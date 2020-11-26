@@ -26,7 +26,7 @@ func monitor() {
 	for {
 		time.Sleep(time.Second * 10)
 		Range(func(name string, db *Component) bool {
-			stats := db.DB.DB().Stats()
+			stats := db.DB().Stats()
 			metric.LibHandleSummary.Observe(float64(stats.Idle), name, "idle")
 			metric.LibHandleSummary.Observe(float64(stats.InUse), name, "inuse")
 			metric.LibHandleSummary.Observe(float64(stats.WaitCount), name, "wait")

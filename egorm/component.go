@@ -8,6 +8,22 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 )
 
+var (
+	errSlowCommand = errors.New("mysql slow command")
+	// IsRecordNotFoundError ...
+	IsRecordNotFoundError = gorm.IsRecordNotFoundError
+	// ErrRecordNotFound returns a "record not found error". Occurs only when attempting to query the database with a struct; querying with a slice won't return this error
+	ErrRecordNotFound = gorm.ErrRecordNotFound
+	// ErrInvalidSQL occurs when you attempt a query with invalid SQL
+	ErrInvalidSQL = gorm.ErrInvalidSQL
+	// ErrInvalidTransaction occurs when you are trying to `Commit` or `Rollback`
+	ErrInvalidTransaction = gorm.ErrInvalidTransaction
+	// ErrCantStartTransaction can't start transaction when you are trying to start one with `Begin`
+	ErrCantStartTransaction = gorm.ErrCantStartTransaction
+	// ErrUnaddressable unaddressable value
+	ErrUnaddressable = gorm.ErrUnaddressable
+)
+
 // SQLCommon ...
 type (
 	// SQLCommon alias of gorm.SQLCommon
@@ -40,50 +56,26 @@ type (
 	Logger = gorm.Logger
 )
 
-var (
-	errSlowCommand = errors.New("mysql slow command")
-
-	// IsRecordNotFoundError ...
-	IsRecordNotFoundError = gorm.IsRecordNotFoundError
-
-	// ErrRecordNotFound returns a "record not found error". Occurs only when attempting to query the database with a struct; querying with a slice won't return this error
-	ErrRecordNotFound = gorm.ErrRecordNotFound
-	// ErrInvalidSQL occurs when you attempt a query with invalid SQL
-	ErrInvalidSQL = gorm.ErrInvalidSQL
-	// ErrInvalidTransaction occurs when you are trying to `Commit` or `Rollback`
-	ErrInvalidTransaction = gorm.ErrInvalidTransaction
-	// ErrCantStartTransaction can't start transaction when you are trying to start one with `Begin`
-	ErrCantStartTransaction = gorm.ErrCantStartTransaction
-	// ErrUnaddressable unaddressable value
-	ErrUnaddressable = gorm.ErrUnaddressable
-)
-
 // Component ...
-type Component struct {
-	name   string
-	config *Config
-	logger *elog.Component
-	*gorm.DB
-}
+type Component = gorm.DB
 
 // newComponent ...
-func newComponent(name string, config *Config, logger *elog.Component) (*Component, error) {
-	inner, err := gorm.Open(config.Dialect, config.DSN)
+func newComponent(config *Config, logger *elog.Component) (*Component, error) {
+	gormDB, err := gorm.Open(config.Dialect, config.DSN)
 	if err != nil {
 		return nil, err
 	}
 
-	inner.LogMode(config.Debug)
 	// 设置默认连接配置
-	inner.DB().SetMaxIdleConns(config.MaxIdleConns)
-	inner.DB().SetMaxOpenConns(config.MaxOpenConns)
+	gormDB.DB().SetMaxIdleConns(config.MaxIdleConns)
+	gormDB.DB().SetMaxOpenConns(config.MaxOpenConns)
 
 	if config.ConnMaxLifetime != 0 {
-		inner.DB().SetConnMaxLifetime(config.ConnMaxLifetime)
+		gormDB.DB().SetConnMaxLifetime(config.ConnMaxLifetime)
 	}
 
-	if xdebug.IsDevelopmentMode() {
-		inner.LogMode(true)
+	if xdebug.IsDevelopmentMode() || config.Debug {
+		gormDB.LogMode(true)
 	}
 
 	replace := func(processor func() *gorm.CallbackProcessor, callbackName string, interceptors ...Interceptor) {
@@ -96,35 +88,30 @@ func newComponent(name string, config *Config, logger *elog.Component) (*Compone
 	}
 
 	replace(
-		inner.Callback().Delete,
+		gormDB.Callback().Delete,
 		"gorm:delete",
 		config.interceptors...,
 	)
 	replace(
-		inner.Callback().Update,
+		gormDB.Callback().Update,
 		"gorm:update",
 		config.interceptors...,
 	)
 	replace(
-		inner.Callback().Create,
+		gormDB.Callback().Create,
 		"gorm:create",
 		config.interceptors...,
 	)
 	replace(
-		inner.Callback().Query,
+		gormDB.Callback().Query,
 		"gorm:query",
 		config.interceptors...,
 	)
 	replace(
-		inner.Callback().RowQuery,
+		gormDB.Callback().RowQuery,
 		"gorm:row_query",
 		config.interceptors...,
 	)
 
-	return &Component{
-		name:   name,
-		config: config,
-		logger: logger,
-		DB:     inner,
-	}, err
+	return gormDB, nil
 }
