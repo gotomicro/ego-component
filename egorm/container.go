@@ -78,7 +78,7 @@ func (c *Container) Build(options ...Option) *Component {
 		c.logger.Panic(ecode.MsgClientMysqlOpenStart, elog.FieldErr(err))
 	}
 
-	component, err := newComponent(c.name, c.config, c.logger)
+	component, err := newComponent(c.config, c.logger)
 	if err != nil {
 		if c.config.OnDialError == "panic" {
 			c.logger.Panic("open mysql", elog.FieldErrKind(ecode.ErrKindRequestErr), elog.FieldErr(err), elog.FieldAddr(c.config.dsnCfg.Addr), elog.FieldValueAny(c.config))
@@ -89,7 +89,7 @@ func (c *Container) Build(options ...Option) *Component {
 		}
 	}
 
-	if err := component.DB.DB().Ping(); err != nil {
+	if err := component.DB().Ping(); err != nil {
 		c.logger.Panic("ping mysql", elog.FieldErrKind(ecode.ErrKindRequestErr), elog.FieldErr(err), elog.FieldValueAny(c.config))
 	}
 
