@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/gotomicro/ego/core/elog"
+	"github.com/gotomicro/ego/core/etrace"
 	"github.com/gotomicro/ego/core/metric"
-	"github.com/gotomicro/ego/core/trace"
 	"github.com/gotomicro/ego/core/util/xcolor"
 )
 
@@ -81,11 +81,11 @@ func traceInterceptor(dsn *DSN, op string, options *Config, logger *elog.Compone
 		return func(scope *Scope) {
 			if val, ok := scope.Get("_context"); ok {
 				if ctx, ok := val.(context.Context); ok {
-					span, _ := trace.StartSpanFromContext(
+					span, _ := etrace.StartSpanFromContext(
 						ctx,
 						"GORM", // TODO this op value is op or GORM
-						trace.TagComponent("mysql"),
-						trace.TagSpanKind("client"),
+						etrace.TagComponent("mysql"),
+						etrace.TagSpanKind("client"),
 					)
 					defer span.Finish()
 
