@@ -1,4 +1,4 @@
-module github.com/gotomicro/ego-component/essesion
+module github.com/gotomicro/ego-component/esession
 
 go 1.15
 
