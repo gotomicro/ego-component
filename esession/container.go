@@ -4,7 +4,7 @@ import (
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/redis"
 	"github.com/gin-gonic/gin"
-	"github.com/gotomicro/ego/core/conf"
+	"github.com/gotomicro/ego/core/econf"
 	"github.com/gotomicro/ego/core/elog"
 )
 
@@ -19,17 +19,18 @@ type Container struct {
 func DefaultContainer() *Container {
 	return &Container{
 		config: DefaultConfig(),
-		logger: elog.EgoLogger.With(elog.FieldMod("component.esession")),
+		logger: elog.EgoLogger.With(elog.FieldComponent("component.esession")),
 	}
 }
 
 func Load(key string) *Container {
 	c := DefaultContainer()
-	if err := conf.UnmarshalKey(key, &c.config); err != nil {
+	if err := econf.UnmarshalKey(key, &c.config); err != nil {
 		c.logger.Panic("parse config error", elog.FieldErr(err), elog.FieldKey(key))
 		return c
 	}
 	c.name = key
+	c.logger = c.logger.With(elog.FieldComponentName(key))
 	return c
 }
 

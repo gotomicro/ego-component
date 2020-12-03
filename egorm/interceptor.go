@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/gotomicro/ego/core/elog"
+	"github.com/gotomicro/ego/core/emetric"
 	"github.com/gotomicro/ego/core/etrace"
-	"github.com/gotomicro/ego/core/metric"
 	"github.com/gotomicro/ego/core/util/xcolor"
 )
 
@@ -41,7 +41,7 @@ func metricInterceptor(dsn *DSN, op string, options *Config, logger *elog.Compon
 
 			// error metric
 			if scope.HasError() {
-				metric.LibHandleCounter.WithLabelValues(metric.TypeGorm, dsn.DBName+"."+scope.TableName(), dsn.Addr, "ERR").Inc()
+				emetric.LibHandleCounter.WithLabelValues(emetric.TypeGorm, dsn.DBName+"."+scope.TableName(), dsn.Addr, "ERR").Inc()
 				// todo sql语句，需要转换成脱密状态才能记录到日志
 				if scope.DB().Error != ErrRecordNotFound {
 					logger.Error("mysql err", elog.FieldErr(scope.DB().Error), elog.FieldName(dsn.DBName+"."+scope.TableName()), elog.FieldMethod(op))
@@ -49,10 +49,10 @@ func metricInterceptor(dsn *DSN, op string, options *Config, logger *elog.Compon
 					logger.Warn("record not found", elog.FieldErr(scope.DB().Error), elog.FieldName(dsn.DBName+"."+scope.TableName()), elog.FieldMethod(op))
 				}
 			} else {
-				metric.LibHandleCounter.Inc(metric.TypeGorm, dsn.DBName+"."+scope.TableName(), dsn.Addr, "OK")
+				emetric.LibHandleCounter.Inc(emetric.TypeGorm, dsn.DBName+"."+scope.TableName(), dsn.Addr, "OK")
 			}
 
-			metric.LibHandleHistogram.WithLabelValues(metric.TypeGorm, dsn.DBName+"."+scope.TableName(), dsn.Addr).Observe(cost.Seconds())
+			emetric.LibHandleHistogram.WithLabelValues(emetric.TypeGorm, dsn.DBName+"."+scope.TableName(), dsn.Addr).Observe(cost.Seconds())
 
 			if options.SlowThreshold > time.Duration(0) && options.SlowThreshold < cost {
 				logger.Error(

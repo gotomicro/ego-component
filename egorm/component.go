@@ -8,6 +8,8 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 )
 
+const PackageName = "component.egorm"
+
 var (
 	errSlowCommand = errors.New("mysql slow command")
 	// IsRecordNotFoundError ...

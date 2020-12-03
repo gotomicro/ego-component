@@ -72,6 +72,8 @@ github.com/gorilla/websocket v1.4.2 h1:+/TMaTYc4QFitKJxsQ7Yye35DkWvkdLcvGKqM+x0U
 github.com/gorilla/websocket v1.4.2/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=
 github.com/gotomicro/ego v0.0.0-20201126052205-992b779495ca h1:lyN+ZG/nhL+L2e7Igds/JGRrMzqLl4q/36KIvdCvDmE=
 github.com/gotomicro/ego v0.0.0-20201126052205-992b779495ca/go.mod h1:Uqs6GDZZfHPzldIhQ3hyhDvafQHKYKjWdzZAHKrJZKY=
+github.com/gotomicro/ego v0.0.0-20201203142702-dd5062ae4690 h1:Z//FL1JbiXh3Bdxm2MU5fkbtcNpJiAkGrq1X7nLoEaU=
+github.com/gotomicro/ego v0.0.0-20201203142702-dd5062ae4690/go.mod h1:7Fb13bOJ+924XSR+KetXFr/mWc1SVb+kFWQ8IOUCVks=
 github.com/jinzhu/gorm v1.9.12 h1:Drgk1clyWT9t9ERbzHza6Mj/8FY/CqMyVzOiHviMo6Q=
 github.com/jinzhu/gorm v1.9.12/go.mod h1:vhTjlKSJUTWNtcbQtrMBFCxy7eXTzeCAzfL5fBZT/Qs=
 github.com/jinzhu/inflection v1.0.0 h1:K317FqzuhWc8YvSVlFMCCUb36O/S9MCKRDI7QkRKD/E=

@@ -6,9 +6,10 @@ import (
 
 // Config ...
 type Config struct {
-	ReadTimeout time.Duration
-	Prefix      string
-	ServiceTTL  time.Duration
+	ReadTimeout  time.Duration
+	Prefix       string
+	ServiceTTL   time.Duration
+	OnFailHandle string
 }
 
 // DefaultConfig ...

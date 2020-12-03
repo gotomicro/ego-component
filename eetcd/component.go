@@ -11,12 +11,12 @@ import (
 	"github.com/coreos/etcd/clientv3"
 	"github.com/coreos/etcd/clientv3/concurrency"
 	"github.com/coreos/etcd/mvcc/mvccpb"
+	"github.com/gotomicro/ego/core/elog"
 	grpcprom "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"google.golang.org/grpc"
-
-	"github.com/gotomicro/ego/core/ecode"
-	"github.com/gotomicro/ego/core/elog"
 )
+
+const PackageName = "component.eetcd"
 
 // Component ...
 type Component struct {
@@ -42,7 +42,7 @@ func newComponent(name string, config *Config, logger *elog.Component) *Componen
 	}
 
 	if config.Endpoints == nil {
-		logger.Panic("client etcd endpoints empty", elog.FieldMod(ecode.ModClientETCD), elog.FieldValueAny(config))
+		logger.Panic("client etcd endpoints empty", elog.FieldValueAny(config))
 	}
 
 	logger = logger.With(elog.FieldAddrAny(config.Endpoints))
@@ -92,7 +92,7 @@ func newComponent(name string, config *Config, logger *elog.Component) *Componen
 	client, err := clientv3.New(conf)
 
 	if err != nil {
-		logger.Panic("client etcd start panic", elog.FieldMod(ecode.ModClientETCD), elog.FieldErrKind(ecode.ErrKindAny), elog.FieldErr(err), elog.FieldValueAny(config))
+		logger.Panic("client etcd start panic", elog.FieldErr(err), elog.FieldValueAny(config))
 	}
 
 	cc := &Component{
