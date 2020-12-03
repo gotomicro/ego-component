@@ -16,7 +16,7 @@ package eredis
 
 import "github.com/go-redis/redis"
 
-//TODO 引入redis统一错误码
+const PackageName = "component.eredis"
 
 //Component client (cmdable and config)
 type Component struct {

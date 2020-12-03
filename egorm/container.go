@@ -1,10 +1,9 @@
 package egorm
 
 import (
-	"github.com/gotomicro/ego/core/conf"
-	"github.com/gotomicro/ego/core/ecode"
+	"github.com/gotomicro/ego/core/econf"
 	"github.com/gotomicro/ego/core/elog"
-	"github.com/gotomicro/ego/core/metric"
+	"github.com/gotomicro/ego/core/emetric"
 )
 
 type Option func(c *Container)
@@ -18,17 +17,18 @@ type Container struct {
 func DefaultContainer() *Container {
 	return &Container{
 		config: DefaultConfig(),
-		logger: elog.EgoLogger.With(elog.FieldMod("component.egorm")),
+		logger: elog.EgoLogger.With(elog.FieldComponent(PackageName)),
 	}
 }
 
 func Load(key string) *Container {
 	c := DefaultContainer()
-	if err := conf.UnmarshalKey(key, &c.config); err != nil {
+	if err := econf.UnmarshalKey(key, &c.config); err != nil {
 		c.logger.Panic("parse config error", elog.FieldErr(err), elog.FieldKey(key))
 		return c
 	}
 
+	c.logger = c.logger.With(elog.FieldComponentName(key))
 	c.name = key
 	return c
 }
@@ -73,24 +73,24 @@ func (c *Container) Build(options ...Option) *Component {
 	c.config.dsnCfg, err = ParseDSN(c.config.DSN)
 
 	if err == nil {
-		c.logger.Info(ecode.MsgClientMysqlOpenStart, elog.FieldAddr(c.config.dsnCfg.Addr), elog.FieldName(c.config.dsnCfg.DBName))
+		c.logger.Info("start mysql", elog.FieldAddr(c.config.dsnCfg.Addr), elog.FieldName(c.config.dsnCfg.DBName))
 	} else {
-		c.logger.Panic(ecode.MsgClientMysqlOpenStart, elog.FieldErr(err))
+		c.logger.Panic("start mysql", elog.FieldErr(err))
 	}
 
 	component, err := newComponent(c.config, c.logger)
 	if err != nil {
 		if c.config.OnDialError == "panic" {
-			c.logger.Panic("open mysql", elog.FieldErrKind(ecode.ErrKindRequestErr), elog.FieldErr(err), elog.FieldAddr(c.config.dsnCfg.Addr), elog.FieldValueAny(c.config))
+			c.logger.Panic("open mysql", elog.FieldErrKind("register err"), elog.FieldErr(err), elog.FieldAddr(c.config.dsnCfg.Addr), elog.FieldValueAny(c.config))
 		} else {
-			metric.LibHandleCounter.Inc(metric.TypeGorm, c.name+".ping", c.config.dsnCfg.Addr, "open err")
-			c.logger.Error("open mysql", elog.FieldErrKind(ecode.ErrKindRequestErr), elog.FieldErr(err), elog.FieldAddr(c.config.dsnCfg.Addr), elog.FieldValueAny(c.config))
+			emetric.LibHandleCounter.Inc(emetric.TypeGorm, c.name+".ping", c.config.dsnCfg.Addr, "open err")
+			c.logger.Error("open mysql", elog.FieldErrKind("register err"), elog.FieldErr(err), elog.FieldAddr(c.config.dsnCfg.Addr), elog.FieldValueAny(c.config))
 			return component
 		}
 	}
 
 	if err := component.DB().Ping(); err != nil {
-		c.logger.Panic("ping mysql", elog.FieldErrKind(ecode.ErrKindRequestErr), elog.FieldErr(err), elog.FieldValueAny(c.config))
+		c.logger.Panic("ping mysql", elog.FieldErrKind("register err"), elog.FieldErr(err), elog.FieldValueAny(c.config))
 	}
 
 	// store db

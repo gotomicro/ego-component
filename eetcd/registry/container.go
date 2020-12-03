@@ -1,10 +1,9 @@
 package registry
 
 import (
-	"github.com/gotomicro/ego/core/conf"
-	"github.com/gotomicro/ego/core/elog"
-
 	"github.com/gotomicro/ego-component/eetcd"
+	"github.com/gotomicro/ego/core/econf"
+	"github.com/gotomicro/ego/core/elog"
 )
 
 type Option func(c *Container)
@@ -18,21 +17,19 @@ type Container struct {
 
 func DefaultContainer() *Container {
 	return &Container{
-		logger: elog.EgoLogger.With(elog.FieldMod("client.egrpc")),
+		config: DefaultConfig(),
+		logger: elog.EgoLogger.With(elog.FieldComponent(eetcd.PackageName)),
 	}
 }
 
 func Load(key string) *Container {
 	c := DefaultContainer()
-	var config = DefaultConfig()
-	if err := conf.UnmarshalKey(key, &config); err != nil {
+	if err := econf.UnmarshalKey(key, &c.config); err != nil {
 		c.logger.Panic("parse Config error", elog.FieldErr(err), elog.FieldKey(key))
 		return c
 	}
-
-	c.config = config
+	c.logger = c.logger.With(elog.FieldComponentName(key))
 	c.name = key
-
 	return c
 }
 
@@ -48,7 +45,11 @@ func (c *Container) Build(options ...Option) *Component {
 		option(c)
 	}
 	if c.client == nil {
-		c.logger.Panic("client etcd nil", elog.FieldKey("use WithClientEtcd method"))
+		if c.config.OnFailHandle == "panic" {
+			c.logger.Panic("client etcd nil", elog.FieldKey("use WithClientEtcd method"))
+		} else {
+			c.logger.Error("client etcd nil", elog.FieldKey("use WithClientEtcd method"))
+		}
 	}
 	return newComponent(c.name, c.config, c.logger, c.client)
 }
