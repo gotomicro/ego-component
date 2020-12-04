@@ -33,7 +33,7 @@ type Component struct {
 }
 
 func newComponent(name string, config *Config, logger *elog.Component, client *eetcd.Component) *Component {
-	logger = logger.With(elog.FieldComponent("component.eetcd"), elog.FieldAddrAny(client.Config.Endpoints))
+	logger = logger.With(elog.FieldAddrAny(client.Config.Endpoints))
 	reg := &Component{
 		name:     name,
 		logger:   logger,
@@ -98,29 +98,21 @@ func (reg *Component) WatchServices(ctx context.Context, name string, scheme str
 	}
 
 	for _, kv := range watch.IncipientKeyValues() {
-		updateAddrList(al, prefix, scheme, kv)
+		reg.updateAddrList(al, prefix, scheme, kv)
 	}
 
-	// var snapshot registry.Endpoints
-	// xstruct.CopyStruct(al, &snapshot)
 	addresses <- *al.DeepCopy()
-
 	xgo.Go(func() {
 		for event := range watch.C() {
 			switch event.Type {
 			case mvccpb.PUT:
-				updateAddrList(al, prefix, scheme, event.Kv)
+				reg.updateAddrList(al, prefix, scheme, event.Kv)
 			case mvccpb.DELETE:
-				deleteAddrList(al, prefix, scheme, event.Kv)
+				reg.deleteAddrList(al, prefix, scheme, event.Kv)
 			}
 
-			// var snapshot registry.Endpoints
-			// xstruct.CopyStruct(al, &snapshot)
 			out := al.DeepCopy()
-			fmt.Printf("al => %p\n", al.Nodes)
-			fmt.Printf("snapshot => %p\n", out.Nodes)
 			select {
-			// case addresses <- snapshot:
 			case addresses <- *out:
 			default:
 				elog.Warnf("invalid")
@@ -284,7 +276,7 @@ func (reg *Component) registerValue(info *server.ServiceInfo) string {
 	return eregistry.GetServiceValue(info)
 }
 
-func deleteAddrList(al *eregistry.Endpoints, prefix, scheme string, kvs ...*mvccpb.KeyValue) {
+func (reg *Component) deleteAddrList(al *eregistry.Endpoints, prefix, scheme string, kvs ...*mvccpb.KeyValue) {
 	for _, kv := range kvs {
 		var addr = strings.TrimPrefix(string(kv.Key), prefix)
 		if strings.HasPrefix(addr, "providers/"+scheme) {
@@ -295,7 +287,7 @@ func deleteAddrList(al *eregistry.Endpoints, prefix, scheme string, kvs ...*mvcc
 			}
 			uri, err := url.Parse(addr)
 			if err != nil {
-				elog.Error("parse uri", elog.FieldErr(err), elog.FieldKey(string(kv.Key)))
+				reg.logger.Error("parse uri", elog.FieldErr(err), elog.FieldKey(string(kv.Key)))
 				continue
 			}
 			delete(al.Nodes, uri.String())
@@ -309,7 +301,7 @@ func deleteAddrList(al *eregistry.Endpoints, prefix, scheme string, kvs ...*mvcc
 			}
 			uri, err := url.Parse(addr)
 			if err != nil {
-				elog.Error("parse uri", elog.FieldErr(err), elog.FieldKey(string(kv.Key)))
+				reg.logger.Error("parse uri", elog.FieldErr(err), elog.FieldKey(string(kv.Key)))
 				continue
 			}
 			delete(al.RouteConfigs, uri.String())
@@ -323,7 +315,7 @@ func deleteAddrList(al *eregistry.Endpoints, prefix, scheme string, kvs ...*mvcc
 	}
 }
 
-func updateAddrList(al *eregistry.Endpoints, prefix, scheme string, kvs ...*mvccpb.KeyValue) {
+func (reg *Component) updateAddrList(al *eregistry.Endpoints, prefix, scheme string, kvs ...*mvccpb.KeyValue) {
 	for _, kv := range kvs {
 		var addr = strings.TrimPrefix(string(kv.Key), prefix)
 		switch {
@@ -332,12 +324,12 @@ func updateAddrList(al *eregistry.Endpoints, prefix, scheme string, kvs ...*mvcc
 			addr = strings.TrimPrefix(addr, "providers/")
 			uri, err := url.Parse(addr)
 			if err != nil {
-				elog.Error("parse uri", elog.FieldErr(err), elog.FieldKey(string(kv.Key)))
+				reg.logger.Error("parse uri", elog.FieldErr(err), elog.FieldKey(string(kv.Key)))
 				continue
 			}
 			var serviceInfo server.ServiceInfo
 			if err := json.Unmarshal(kv.Value, &serviceInfo); err != nil {
-				elog.Error("parse uri", elog.FieldErr(err), elog.FieldKey(string(kv.Key)))
+				reg.logger.Error("parse uri", elog.FieldErr(err), elog.FieldKey(string(kv.Key)))
 				continue
 			}
 			al.Nodes[uri.String()] = serviceInfo
@@ -346,14 +338,14 @@ func updateAddrList(al *eregistry.Endpoints, prefix, scheme string, kvs ...*mvcc
 
 			uri, err := url.Parse(addr)
 			if err != nil {
-				elog.Error("parse uri", elog.FieldErr(err), elog.FieldKey(string(kv.Key)))
+				reg.logger.Error("parse uri", elog.FieldErr(err), elog.FieldKey(string(kv.Key)))
 				continue
 			}
 
 			if strings.HasPrefix(uri.Path, "/routes/") { // 路由配置
 				var routeConfig eregistry.RouteConfig
 				if err := json.Unmarshal(kv.Value, &routeConfig); err != nil {
-					elog.Error("parse uri", elog.FieldErr(err), elog.FieldKey(string(kv.Key)))
+					reg.logger.Error("parse uri", elog.FieldErr(err), elog.FieldKey(string(kv.Key)))
 					continue
 				}
 				routeConfig.ID = strings.TrimPrefix(uri.Path, "/routes/")
@@ -365,7 +357,7 @@ func updateAddrList(al *eregistry.Endpoints, prefix, scheme string, kvs ...*mvcc
 			if strings.HasPrefix(uri.Path, "/providers/") {
 				var providerConfig eregistry.ProviderConfig
 				if err := json.Unmarshal(kv.Value, &providerConfig); err != nil {
-					elog.Error("parse uri", elog.FieldErr(err), elog.FieldKey(string(kv.Key)))
+					reg.logger.Error("parse uri", elog.FieldErr(err), elog.FieldKey(string(kv.Key)))
 					continue
 				}
 				providerConfig.ID = strings.TrimPrefix(uri.Path, "/providers/")
@@ -377,7 +369,7 @@ func updateAddrList(al *eregistry.Endpoints, prefix, scheme string, kvs ...*mvcc
 			if strings.HasPrefix(uri.Path, "/consumers/") {
 				var consumerConfig eregistry.ConsumerConfig
 				if err := json.Unmarshal(kv.Value, &consumerConfig); err != nil {
-					elog.Error("parse uri", elog.FieldErr(err), elog.FieldKey(string(kv.Key)))
+					reg.logger.Error("parse uri", elog.FieldErr(err), elog.FieldKey(string(kv.Key)))
 					continue
 				}
 				consumerConfig.ID = strings.TrimPrefix(uri.Path, "/consumers/")
