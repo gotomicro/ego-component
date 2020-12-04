@@ -8,7 +8,6 @@ import (
 
 	"github.com/coreos/etcd/clientv3"
 	"github.com/coreos/etcd/mvcc/mvccpb"
-	"github.com/gotomicro/ego/core/ecode"
 	"github.com/gotomicro/ego/core/util/xgo"
 )
 
@@ -57,7 +56,7 @@ func (client *Component) WatchPrefix(ctx context.Context, prefix string) (*Watch
 					w.revision = n.Header.GetRevision()
 				}
 				if err := n.Err(); err != nil {
-					client.logger.Error(ecode.MsgWatchRequestErr, elog.FieldErrKind(ecode.ErrKindRegisterErr), elog.FieldErr(err), elog.FieldAddr(prefix))
+					client.logger.Error("watch error", elog.FieldErr(err), elog.FieldAddr(prefix))
 					continue
 				}
 				for _, ev := range n.Events {
