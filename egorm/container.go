@@ -53,11 +53,11 @@ func (c *Container) Build(options ...Option) *Component {
 		options = append(options, WithInterceptor(debugInterceptor))
 	}
 
-	if !c.config.DisableTrace {
+	if c.config.EnableTraceInterceptor {
 		options = append(options, WithInterceptor(traceInterceptor))
 	}
 
-	if !c.config.DisableMetricInterceptor {
+	if c.config.EnableMetricInterceptor {
 		options = append(options, WithInterceptor(metricInterceptor))
 	}
 

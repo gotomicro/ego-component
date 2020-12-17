@@ -72,7 +72,7 @@ func (c *Container) Build(options ...Option) *Component {
 		options = append(options, WithInterceptor(debugInterceptor(c.name, c.config, c.logger)))
 	}
 
-	if !c.config.DisableMetricInterceptor {
+	if c.config.EnableMetricInterceptor {
 		options = append(options, WithInterceptor(metricInterceptor(c.config, c.logger)))
 	}
 
