@@ -33,7 +33,7 @@ type Component struct {
 }
 
 func newComponent(name string, config *Config, logger *elog.Component, client *eetcd.Component) *Component {
-	logger = logger.With(elog.FieldAddrAny(client.Config.Endpoints))
+	logger = logger.With(elog.FieldAddrAny(client.Config.Addrs))
 	reg := &Component{
 		name:     name,
 		logger:   logger,

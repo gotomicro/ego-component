@@ -20,12 +20,12 @@ func (User) TableName() string {
 }
 
 func main() {
-	err := ego.New(
+	err := ego.New().Invoker(
 		openDB,
 		testDB,
 	).Run()
 	if err != nil {
-		elog.Panic("startup", elog.Any("err", err))
+		elog.Error("startup", elog.Any("err", err))
 	}
 }
 
@@ -46,7 +46,7 @@ func openDB() error {
 
 func testDB() error {
 	var user User
-	err := gormDB.Where("id = 1").Find(&user).Error
+	err := gormDB.Where("id = ?", 100).Find(&user).Error
 	elog.Info("user info", elog.String("name", user.Nickname))
 	return err
 }

@@ -1,0 +1,7 @@
+[redis.test]
+   debug = true # ego增加redis debug，打开后可以看到，配置名、地址、耗时、请求数据、响应数据
+   addr = "127.0.0.1:6379"
+   onFail = "panic" # 失败后，直接fail fast，panic操作
+#   enableAccessInterceptor = true
+#   enableAccessInterceptorReq = true
+#   enableAccessInterceptorReply = true
