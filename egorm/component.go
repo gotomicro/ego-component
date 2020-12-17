@@ -3,7 +3,6 @@ package egorm
 import (
 	"errors"
 	"github.com/gotomicro/ego/core/elog"
-	"github.com/gotomicro/ego/core/util/xdebug"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 )
@@ -62,10 +61,14 @@ type (
 type Component = gorm.DB
 
 // newComponent ...
-func newComponent(config *Config, logger *elog.Component) (*Component, error) {
+func newComponent(compName string, config *Config, logger *elog.Component) (*Component, error) {
 	gormDB, err := gorm.Open(config.Dialect, config.DSN)
 	if err != nil {
 		return nil, err
+	}
+
+	if config.RawDebug {
+		gormDB = gormDB.Debug()
 	}
 
 	// 设置默认连接配置
@@ -76,15 +79,11 @@ func newComponent(config *Config, logger *elog.Component) (*Component, error) {
 		gormDB.DB().SetConnMaxLifetime(config.ConnMaxLifetime)
 	}
 
-	if xdebug.IsDevelopmentMode() || config.Debug {
-		gormDB.LogMode(true)
-	}
-
 	replace := func(processor func() *gorm.CallbackProcessor, callbackName string, interceptors ...Interceptor) {
 		old := processor().Get(callbackName)
 		var handler = old
 		for _, interceptor := range interceptors {
-			handler = interceptor(config.dsnCfg, callbackName, config, logger)(handler)
+			handler = interceptor(compName, config.dsnCfg, callbackName, config, logger)(handler)
 		}
 		processor().Replace(callbackName, handler)
 	}

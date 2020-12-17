@@ -8,7 +8,7 @@ import (
 
 // Config ...
 type Config struct {
-	Endpoints        []string      `json:"endpoints"`
+	Addrs            []string      `json:"endpoints"`
 	CertFile         string        `json:"certFile"`
 	KeyFile          string        `json:"keyFile"`
 	CaCert           string        `json:"caCert"`

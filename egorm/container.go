@@ -57,7 +57,7 @@ func (c *Container) Build(options ...Option) *Component {
 		options = append(options, WithInterceptor(traceInterceptor))
 	}
 
-	if !c.config.DisableMetric {
+	if !c.config.DisableMetricInterceptor {
 		options = append(options, WithInterceptor(metricInterceptor))
 	}
 
@@ -78,9 +78,11 @@ func (c *Container) Build(options ...Option) *Component {
 		c.logger.Panic("start mysql", elog.FieldErr(err))
 	}
 
-	component, err := newComponent(c.config, c.logger)
+	c.logger = c.logger.With(elog.FieldAddr(c.config.dsnCfg.Addr))
+
+	component, err := newComponent(c.name, c.config, c.logger)
 	if err != nil {
-		if c.config.OnDialError == "panic" {
+		if c.config.OnFail == "panic" {
 			c.logger.Panic("open mysql", elog.FieldErrKind("register err"), elog.FieldErr(err), elog.FieldAddr(c.config.dsnCfg.Addr), elog.FieldValueAny(c.config))
 		} else {
 			emetric.LibHandleCounter.Inc(emetric.TypeGorm, c.name+".ping", c.config.dsnCfg.Addr, "open err")

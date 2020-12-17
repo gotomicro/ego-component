@@ -1,6 +1,7 @@
 package eredis
 
 import (
+	"fmt"
 	"github.com/go-redis/redis"
 	"github.com/gotomicro/ego/core/econf"
 	"github.com/gotomicro/ego/core/elog"
@@ -51,14 +52,37 @@ func WithCluster() Option {
 	}
 }
 
+// WithInterceptor ...
+func WithInterceptor(interceptors ...Interceptor) Option {
+	return func(c *Container) {
+		if c.config.interceptors == nil {
+			c.config.interceptors = make([]Interceptor, 0)
+		}
+		c.config.interceptors = append(c.config.interceptors, interceptors...)
+	}
+}
+
 // Build ...
 func (c *Container) Build(options ...Option) *Component {
+	if options == nil {
+		options = make([]Option, 0)
+	}
+
+	if c.config.Debug {
+		options = append(options, WithInterceptor(debugInterceptor(c.name, c.config, c.logger)))
+	}
+
+	if !c.config.DisableMetricInterceptor {
+		options = append(options, WithInterceptor(metricInterceptor(c.config, c.logger)))
+	}
+
 	for _, option := range options {
 		option(c)
 	}
+
 	count := len(c.config.Addrs)
 	if count < 1 {
-		c.logger.Panic("no address in redis config", elog.FieldName(c.name))
+		c.logger.Panic("no address in redis config")
 	}
 	if len(c.config.Mode) == 0 {
 		c.config.Mode = StubMode
@@ -81,9 +105,12 @@ func (c *Container) Build(options ...Option) *Component {
 	default:
 		c.logger.Panic("redis mode must be one of (stub, cluster)")
 	}
+
+	c.logger = c.logger.With(elog.FieldAddr(fmt.Sprintf("%s", c.config.Addrs)))
 	return &Component{
 		Config: c.config,
 		Client: client,
+		logger: c.logger,
 	}
 }
 
@@ -101,8 +128,11 @@ func (c *Container) buildCluster() *redis.ClusterClient {
 		MinIdleConns: c.config.MinIdleConns,
 		IdleTimeout:  c.config.IdleTimeout,
 	})
+
+	clusterClient.WrapProcess(InterceptorChain(c.config.interceptors...))
+
 	if err := clusterClient.Ping().Err(); err != nil {
-		switch c.config.OnDialError {
+		switch c.config.OnFail {
 		case "panic":
 			c.logger.Panic("start cluster redis", elog.FieldErr(err))
 		default:
@@ -126,8 +156,10 @@ func (c *Container) buildStub() *redis.Client {
 		IdleTimeout:  c.config.IdleTimeout,
 	})
 
+	stubClient.WrapProcess(InterceptorChain(c.config.interceptors...))
+
 	if err := stubClient.Ping().Err(); err != nil {
-		switch c.config.OnDialError {
+		switch c.config.OnFail {
 		case "panic":
 			c.logger.Panic("start stub redis", elog.FieldErr(err))
 		default:

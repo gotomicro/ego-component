@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"fmt"
 	"io/ioutil"
 	"strings"
 	"time"
@@ -29,7 +30,7 @@ type Component struct {
 // New ...
 func newComponent(name string, config *Config, logger *elog.Component) *Component {
 	conf := clientv3.Config{
-		Endpoints:            config.Endpoints,
+		Endpoints:            config.Addrs,
 		DialTimeout:          config.ConnectTimeout,
 		DialKeepAliveTime:    10 * time.Second,
 		DialKeepAliveTimeout: 3 * time.Second,
@@ -41,11 +42,11 @@ func newComponent(name string, config *Config, logger *elog.Component) *Componen
 		AutoSyncInterval: config.AutoSyncInterval,
 	}
 
-	if config.Endpoints == nil {
+	if config.Addrs == nil {
 		logger.Panic("client etcd endpoints empty", elog.FieldValueAny(config))
 	}
 
-	logger = logger.With(elog.FieldAddrAny(config.Endpoints))
+	logger = logger.With(elog.FieldAddr(fmt.Sprintf("%s", config.Addrs)))
 
 	if !config.Secure {
 		conf.DialOptions = append(conf.DialOptions, grpc.WithInsecure())
