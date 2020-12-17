@@ -33,7 +33,7 @@ type Component struct {
 }
 
 func newComponent(name string, config *Config, logger *elog.Component, client *eetcd.Component) *Component {
-	logger = logger.With(elog.FieldAddrAny(client.Config.Addrs))
+	logger = logger.With(elog.FieldAddr(fmt.Sprintf("%v", client.Config.Addrs)))
 	reg := &Component{
 		name:     name,
 		logger:   logger,
@@ -154,9 +154,9 @@ func (reg *Component) Close() error {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 			err := reg.unregister(ctx, k.(string))
 			if err != nil {
-				reg.logger.Error("unregister service", elog.FieldErrKind("request err"), elog.FieldErr(err), elog.FieldErr(err), elog.FieldKeyAny(k), elog.FieldValueAny(v))
+				reg.logger.Error("unregister service", elog.FieldErrKind("request err"), elog.FieldErr(err), elog.FieldErr(err), elog.FieldKey(fmt.Sprintf("%v", k)), elog.FieldValueAny(v))
 			} else {
-				reg.logger.Info("unregister service", elog.FieldKeyAny(k), elog.FieldValueAny(v))
+				reg.logger.Info("unregister service", elog.FieldKey(fmt.Sprintf("%v", k)), elog.FieldValueAny(v))
 			}
 			cancel()
 		}(k)
@@ -194,11 +194,11 @@ func (reg *Component) registerMetric(ctx context.Context, info *server.ServiceIn
 	}
 	_, err := reg.client.Put(ctx, key, val, opOptions...)
 	if err != nil {
-		reg.logger.Error("register service", elog.FieldErrKind("register err"), elog.FieldErr(err), elog.FieldKeyAny(key), elog.FieldValueAny(info))
+		reg.logger.Error("register service", elog.FieldErrKind("register err"), elog.FieldErr(err), elog.FieldKey(key), elog.FieldValueAny(info))
 		return err
 	}
 
-	reg.logger.Info("register service", elog.FieldKeyAny(key), elog.FieldValueAny(val))
+	reg.logger.Info("register service", elog.FieldKey(key), elog.FieldValueAny(val))
 	reg.kvs.Store(key, val)
 	return nil
 
@@ -226,10 +226,10 @@ func (reg *Component) registerBiz(ctx context.Context, info *server.ServiceInfo)
 	}
 	_, err := reg.client.Put(readCtx, key, val, opOptions...)
 	if err != nil {
-		reg.logger.Error("register service", elog.FieldErrKind("register err"), elog.FieldErr(err), elog.FieldKeyAny(key), elog.FieldValueAny(info))
+		reg.logger.Error("register service", elog.FieldErrKind("register err"), elog.FieldErr(err), elog.FieldKey(key), elog.FieldValueAny(info))
 		return err
 	}
-	reg.logger.Info("register service", elog.FieldKeyAny(key), elog.FieldValueAny(val))
+	reg.logger.Info("register service", elog.FieldKey(key), elog.FieldValueAny(val))
 	reg.kvs.Store(key, val)
 	return nil
 }
