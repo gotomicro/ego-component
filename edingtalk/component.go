@@ -129,7 +129,7 @@ func (c *Component) Oauth2RedirectUri(ctx *gin.Context) {
 	hashedState := c.hashStateCode(state, c.Config.Oauth2AppSecret)
 	// 最大300s
 	ctx.SetCookie(c.Config.Oauth2StateCookieName, url.QueryEscape(hashedState), 300, "/", "", false, true)
-	ctx.Redirect(http.StatusFound, fmt.Sprintf(ApiOauth2Redirect, c.Config.Oauth2AppKey, hashedState, c.Config.Oauth2RedirectUri))
+	ctx.Redirect(http.StatusFound, fmt.Sprintf(Addr+ApiOauth2Redirect, c.Config.Oauth2AppKey, hashedState, c.Config.Oauth2RedirectUri))
 }
 
 // 根据code，获取用户信息
