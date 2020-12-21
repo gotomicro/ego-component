@@ -142,10 +142,14 @@ func (c *Component) Oauth2UserInfo(code string) (user UserInfoDetail, err error)
 	if err != nil {
 		return UserInfoDetail{}, fmt.Errorf("oauth2 user info get http err %w", err)
 	}
-	var data Oauth2UserUnionInfo
+	var data Oauth2UserUnionInfoResponse
 	err = json.Unmarshal(resp.Body(), &data)
 	if err != nil {
 		return UserInfoDetail{}, fmt.Errorf("oauth2 user info json unmarlshal err %w", err)
+	}
+
+	if data.ErrCode != 0 {
+		return UserInfoDetail{}, fmt.Errorf("oauth2 user info errcode error err %s", data.ErrMsg)
 	}
 
 	token, err := c.GetAccessToken()
@@ -154,7 +158,7 @@ func (c *Component) Oauth2UserInfo(code string) (user UserInfoDetail, err error)
 	}
 
 	// 获取用户的userid信息
-	oauth2UseridInfoResp, err := c.ehttp.R().Get(fmt.Sprintf(ApiGetUserIdByUnionId, token, data.UnionId))
+	oauth2UseridInfoResp, err := c.ehttp.R().Get(fmt.Sprintf(ApiGetUserIdByUnionId, token, data.UserInfo.UnionId))
 	if err != nil {
 		return UserInfoDetail{}, fmt.Errorf("oauth2 user info get http err2 %w", err)
 	}
@@ -163,6 +167,10 @@ func (c *Component) Oauth2UserInfo(code string) (user UserInfoDetail, err error)
 	err = json.Unmarshal(oauth2UseridInfoResp.Body(), &oauth2UseridInfo)
 	if err != nil {
 		return UserInfoDetail{}, fmt.Errorf("oauth2 user info json unmarlshal2 err %w", err)
+	}
+
+	if oauth2UseridInfo.ErrCode != 0 {
+		return UserInfoDetail{}, fmt.Errorf("oauth2 user info errcode error err2 %s", oauth2UseridInfo.ErrMsg)
 	}
 
 	// 获取用户的详细信息
@@ -175,6 +183,11 @@ func (c *Component) Oauth2UserInfo(code string) (user UserInfoDetail, err error)
 	if err != nil {
 		return UserInfoDetail{}, fmt.Errorf("oauth2 user info json unmarlshal2 err %w", err)
 	}
+
+	if userInfoDetail.ErrCode != 0 {
+		return UserInfoDetail{}, fmt.Errorf("oauth2 user info errcode error err2 %s", userInfoDetail.ErrMsg)
+	}
+
 	return userInfoDetail, nil
 }
 
