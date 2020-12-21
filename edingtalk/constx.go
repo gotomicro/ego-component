@@ -7,7 +7,10 @@ const (
 	// https://ding-doc.dingtalk.com/document#/org-dev-guide/userid
 	ApiGetUserInfo = "/user/getuserinfo?access_token=%s&code=%s"
 
-	ApiOauth2Redirect = "/connect/oauth2/sns_authorize?appid=%s&response_type=code&scope=snsapi_auth&state=%s&redirect_uri=%s"
+	// https://ding-doc.dingtalk.com/document#/org-dev-guide/etaarr
+	ApiOauth2SnsAuthorize = "/connect/oauth2/sns_authorize?appid=%s&response_type=code&scope=snsapi_auth&state=%s&redirect_uri=%s"
+	// https://ding-doc.dingtalk.com/document#/org-dev-guide/kymkv6
+	ApiOauth2Qrconnect = "/connect/qrconnect?appid=%s&response_type=code&scope=snsapi_login&state=%s&redirect_uri=%s"
 
 	// https://ding-doc.dingtalk.com/document#/org-dev-guide/obtain-the-user-information-based-on-the-sns-temporary-authorization
 	ApiGetUserInfoByCode = "/sns/getuserinfo_bycode?accessKey=%s&timestamp=%s&signature=%s"
