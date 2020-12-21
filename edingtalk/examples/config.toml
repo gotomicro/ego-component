@@ -1,0 +1,9 @@
+[dingtalk]
+corpId = "xxxx"
+agentid = 12345
+appKey = "xxx"
+appSecret = "xxxx"
+
+[redis]
+debug = true # ego增加redis debug，打开后可以看到，配置名、地址、耗时、请求数据、响应数据
+addr = "127.0.0.1:6379"
