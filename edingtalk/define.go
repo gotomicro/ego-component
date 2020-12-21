@@ -21,8 +21,12 @@ type UserInfo struct {
 	SysLevel int    `json:"sys_level"`
 }
 
-type Oauth2UserUnionInfo struct {
+type Oauth2UserUnionInfoResponse struct {
 	OpenAPIResponse
+	UserInfo Oauth2UserUnionInfo `json:"user_info"`
+}
+
+type Oauth2UserUnionInfo struct {
 	Nick                 string `json:"nick"`                     // 用户在钉钉上面的昵称
 	UnionId              string `json:"unionid"`                  // 用户在当前开放应用所属企业的唯一标识。
 	OpenId               string `json:"openid"`                   // 用户在当前开放应用内的唯一标识。
