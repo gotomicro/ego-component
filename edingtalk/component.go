@@ -15,7 +15,6 @@ import (
 	"github.com/gotomicro/ego/client/ehttp"
 	"github.com/gotomicro/ego/core/elog"
 	"go.uber.org/zap"
-	"net/http"
 	"net/url"
 	"strconv"
 	"sync"
@@ -119,17 +118,22 @@ func (c *Component) GetUserInfo(code string) (user UserInfo, err error) {
 
 // 获取跳转地址
 // https://ding-doc.dingtalk.com/document#/org-dev-guide/etaarr
-func (c *Component) Oauth2RedirectUri(ctx *gin.Context) {
+func (c *Component) Oauth2SnsAuthorize(state string) string {
 	// 安全验证，生成随机state，防止获取oa系统的url，登录该系统
-	state, err := genRandState()
-	if err != nil {
-		elog.Error("Generating state string failed", zap.Error(err))
-		return
-	}
-	hashedState := c.hashStateCode(state, c.Config.Oauth2AppSecret)
+	//state, err := genRandState()
+	//if err != nil {
+	//	elog.Error("Generating state string failed", zap.Error(err))
+	//	return
+	//}
+	//hashedState := c.hashStateCode(state, c.Config.Oauth2AppSecret)
 	// 最大300s
-	ctx.SetCookie(c.Config.Oauth2StateCookieName, url.QueryEscape(hashedState), 300, "/", "", false, true)
-	ctx.Redirect(http.StatusFound, fmt.Sprintf(Addr+ApiOauth2Redirect, c.Config.Oauth2AppKey, hashedState, c.Config.Oauth2RedirectUri))
+	//ctx.SetCookie(c.Config.Oauth2StateCookieName, url.QueryEscape(hashedState), 300, "/", "", false, true)
+	//ctx.Redirect(http.StatusFound, fmt.Sprintf(Addr+ApiOauth2Redirect, c.Config.Oauth2AppKey, state, c.Config.Oauth2RedirectUri))
+	return fmt.Sprintf(Addr+ApiOauth2SnsAuthorize, c.Config.Oauth2AppKey, state, c.Config.Oauth2RedirectUri)
+}
+
+func (c *Component) Oauth2Qrconnect(state string) string {
+	return fmt.Sprintf(Addr+ApiOauth2Qrconnect, c.Config.Oauth2AppKey, state, c.Config.Oauth2RedirectUri)
 }
 
 // 根据code，获取用户信息
