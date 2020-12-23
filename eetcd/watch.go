@@ -6,9 +6,9 @@ import (
 
 	"github.com/gotomicro/ego/core/elog"
 
-	"github.com/coreos/etcd/clientv3"
-	"github.com/coreos/etcd/mvcc/mvccpb"
 	"github.com/gotomicro/ego/core/util/xgo"
+	"go.etcd.io/etcd/clientv3"
+	"go.etcd.io/etcd/mvcc/mvccpb"
 )
 
 // Watch A watch only tells the latest revision

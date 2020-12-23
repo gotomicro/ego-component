@@ -1,0 +1,14 @@
+[grpc.test]
+debug = true # 开启后并加上export EGO_DEBUG=true，可以看到每次grpc请求，配置名、地址、耗时、请求数据、响应数据
+addr = "etcd:///main"
+#balancerName = "round_robin" # 默认值
+#dialTimeout = "1s" # 默认值
+#enableAccessInterceptor = true
+#enableAccessInterceptorReply = true
+#enableAccessInterceptorReq = true
+
+[etcd]
+addrs=["127.0.0.1:2379"]
+[registry]
+connectTimeout = "1s"
+secure = false
