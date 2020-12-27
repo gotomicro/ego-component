@@ -4,8 +4,9 @@ go 1.15
 
 require (
 	github.com/go-sql-driver/mysql v1.5.0 // indirect
-	github.com/gotomicro/ego v0.3.2
+	github.com/gotomicro/ego v0.3.4
 	github.com/jinzhu/gorm v1.9.12
 	github.com/json-iterator/go v1.1.10
 	github.com/lib/pq v1.3.0 // indirect
+	github.com/tidwall/pretty v1.0.1 // indirect
 )

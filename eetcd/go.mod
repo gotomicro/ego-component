@@ -13,7 +13,7 @@ require (
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
 	github.com/golang/protobuf v1.4.2
 	github.com/google/btree v1.0.0 // indirect
-	github.com/gotomicro/ego v0.3.4-0.20201223102031-cbb2b1c9eb56
+	github.com/gotomicro/ego v0.3.4
 	github.com/grpc-ecosystem/go-grpc-middleware v1.1.0 // indirect
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
 	github.com/grpc-ecosystem/grpc-gateway v1.9.5 // indirect

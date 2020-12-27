@@ -61,15 +61,17 @@ func metricInterceptor(compName string, dsn *DSN, op string, config *Config, log
 			isSlowLog := false
 			// error metric
 			if scope.HasError() {
-				emetric.LibHandleCounter.WithLabelValues(emetric.TypeGorm, dsn.DBName+"."+scope.TableName(), dsn.Addr, "ERR").Inc()
 				fields = append(fields,
 					elog.FieldEvent("error"),
 					elog.FieldErr(scope.DB().Error),
 				)
 				if errors.Is(scope.DB().Error, ErrRecordNotFound) {
-					logger.Error("access", fields...)
-				} else {
 					logger.Warn("access", fields...)
+					emetric.LibHandleCounter.Inc(emetric.TypeGorm, dsn.DBName+"."+scope.TableName(), dsn.Addr, "Empty")
+				} else {
+					logger.Error("access", fields...)
+					emetric.LibHandleCounter.Inc(emetric.TypeGorm, dsn.DBName+"."+scope.TableName(), dsn.Addr, "Error")
+
 				}
 				isErrLog = true
 			} else {
