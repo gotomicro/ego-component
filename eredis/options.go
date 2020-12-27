@@ -83,10 +83,10 @@ func metricInterceptor(config *Config, logger *elog.Component) Interceptor {
 				isErrLog = true
 				if errors.Is(err, redis.Nil) {
 					logger.Warn("access", fields...)
-					emetric.LibHandleCounter.WithLabelValues(emetric.TypeRedis, cmd.Name(), strings.Join(config.Addrs, ","), "empty").Inc()
+					emetric.LibHandleCounter.Inc(emetric.TypeRedis, cmd.Name(), strings.Join(config.Addrs, ","), "Empty")
 				} else {
 					logger.Error("access", fields...)
-					emetric.LibHandleCounter.Inc(emetric.TypeRedis, cmd.Name(), strings.Join(config.Addrs, ","), "error")
+					emetric.LibHandleCounter.Inc(emetric.TypeRedis, cmd.Name(), strings.Join(config.Addrs, ","), "Error")
 				}
 			} else {
 				emetric.LibHandleCounter.Inc(emetric.TypeRedis, cmd.Name(), strings.Join(config.Addrs, ","), "OK")
