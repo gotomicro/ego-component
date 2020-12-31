@@ -3,13 +3,14 @@ package eredis
 import (
 	"errors"
 	"fmt"
+	"strings"
+	"time"
+
 	"github.com/go-redis/redis"
 	"github.com/gotomicro/ego/core/eapp"
 	"github.com/gotomicro/ego/core/elog"
 	"github.com/gotomicro/ego/core/emetric"
 	"github.com/gotomicro/ego/core/util/xdebug"
-	"strings"
-	"time"
 )
 
 type CmdHandler func(cmd redis.Cmder) error
@@ -38,13 +39,16 @@ func debugInterceptor(compName string, config *Config, logger *elog.Component) I
 			cost := time.Since(beg)
 			if eapp.IsDevelopmentMode() {
 				if err != nil {
-					xdebug.Error(compName, fmt.Sprintf("%v", config.Addrs), cost, fmt.Sprintf("%v", cmd.Args()), err.Error())
+					logger.Error("eredis.reply", elog.String("msg",
+						xdebug.MakeReqResError(compName, fmt.Sprintf("%v", config.Addrs), cost, fmt.Sprintf("%v", cmd.Args()), err.Error())),
+					)
 				} else {
-					xdebug.Info(compName, fmt.Sprintf("%v", config.Addrs), cost, fmt.Sprintf("%v", cmd.Args()), reply(cmd))
+					logger.Info("eredis.reply", elog.String("msg",
+						xdebug.MakeReqResInfo(compName, fmt.Sprintf("%v", config.Addrs), cost, fmt.Sprintf("%v", cmd.Args()), reply(cmd))),
+					)
 				}
 			} else {
 				// todo log debug info
-
 			}
 			return err
 		}
