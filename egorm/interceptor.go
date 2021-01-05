@@ -4,14 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/gotomicro/ego/core/eapp"
-	"github.com/gotomicro/ego/core/util/xdebug"
-
 	"github.com/gotomicro/ego/core/elog"
 	"github.com/gotomicro/ego/core/emetric"
 	"github.com/gotomicro/ego/core/etrace"
+	"github.com/gotomicro/ego/core/util/xdebug"
 )
 
 // Handler ...
@@ -28,12 +28,12 @@ func debugInterceptor(compName string, dsn *DSN, op string, options *Config, log
 			cost := time.Since(beg)
 			if eapp.IsDevelopmentMode() {
 				if scope.HasError() {
-					logger.Error("egorm.reply", elog.String("msg",
-						xdebug.MakeReqResError(compName, fmt.Sprintf("%v", dsn.Addr+"/"+dsn.DBName), cost, logSQL(scope.SQL, scope.SQLVars, true), scope.DB().Error.Error())),
+					log.Println("[egorm.response]",
+						xdebug.MakeReqResError(compName, fmt.Sprintf("%v", dsn.Addr+"/"+dsn.DBName), cost, logSQL(scope.SQL, scope.SQLVars, true), scope.DB().Error.Error()),
 					)
 				} else {
-					logger.Info("egorm.reply", elog.String("msg",
-						xdebug.MakeReqResInfo(compName, fmt.Sprintf("%v", dsn.Addr+"/"+dsn.DBName), cost, logSQL(scope.SQL, scope.SQLVars, true), fmt.Sprintf("%v", scope.Value))),
+					log.Println("[egorm.response]",
+						xdebug.MakeReqResInfo(compName, fmt.Sprintf("%v", dsn.Addr+"/"+dsn.DBName), cost, logSQL(scope.SQL, scope.SQLVars, true), fmt.Sprintf("%v", scope.Value)),
 					)
 				}
 			} else {
