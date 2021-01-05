@@ -3,6 +3,7 @@ package eredis
 import (
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -39,12 +40,12 @@ func debugInterceptor(compName string, config *Config, logger *elog.Component) I
 			cost := time.Since(beg)
 			if eapp.IsDevelopmentMode() {
 				if err != nil {
-					logger.Error("eredis.reply", elog.String("msg",
-						xdebug.MakeReqResError(compName, fmt.Sprintf("%v", config.Addrs), cost, fmt.Sprintf("%v", cmd.Args()), err.Error())),
+					log.Println("[eredis.response]",
+						xdebug.MakeReqResError(compName, fmt.Sprintf("%v", config.Addrs), cost, fmt.Sprintf("%v", cmd.Args()), err.Error()),
 					)
 				} else {
-					logger.Info("eredis.reply", elog.String("msg",
-						xdebug.MakeReqResInfo(compName, fmt.Sprintf("%v", config.Addrs), cost, fmt.Sprintf("%v", cmd.Args()), reply(cmd))),
+					log.Println("[eredis.response]",
+						xdebug.MakeReqResInfo(compName, fmt.Sprintf("%v", config.Addrs), cost, fmt.Sprintf("%v", cmd.Args()), reply(cmd)),
 					)
 				}
 			} else {
