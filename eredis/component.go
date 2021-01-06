@@ -7,7 +7,7 @@ import (
 
 const PackageName = "component.eredis"
 
-//Component client (cmdable and config)
+// Component client (cmdable and config)
 type Component struct {
 	Config *Config
 	Client redis.Cmdable
@@ -22,7 +22,7 @@ func (r *Component) Cluster() *redis.ClusterClient {
 	return nil
 }
 
-//Stub try to get a redis.Client
+// Stub try to get a redis.Client
 func (r *Component) Stub() *redis.Client {
 	if c, ok := r.Client.(*redis.Client); ok {
 		return c

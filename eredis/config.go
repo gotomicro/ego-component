@@ -6,9 +6,9 @@ import (
 )
 
 const (
-	//ClusterMode using clusterClient
+	// ClusterMode using clusterClient
 	ClusterMode string = "cluster"
-	//StubMode using reidsClient
+	// StubMode using reidsClient
 	StubMode string = "stub"
 )
 
