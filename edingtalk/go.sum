@@ -77,6 +77,8 @@ github.com/gotomicro/ego v0.3.4-0.20201218093931-43183a19191c h1:fj5CGEZsNlxI8wF
 github.com/gotomicro/ego v0.3.4-0.20201218093931-43183a19191c/go.mod h1:cpKn3pOj2koa4Q2Vaup3wK8UYWHEdafhf7oweJ6l+AU=
 github.com/gotomicro/ego v0.3.4 h1:nLFyccj99W3JRutZ7AKfSbQ1OAWIztW2NQVH1PZDC9E=
 github.com/gotomicro/ego v0.3.4/go.mod h1:0FfBqO1mxIcKD92ko5GYp0JyifFjw+dnZzSbwP1JX7M=
+github.com/gotomicro/ego v0.3.5 h1:it/ut3klPzAqhehO6EaxLrOmdobPMkR0v2c/BJQ5sa8=
+github.com/gotomicro/ego v0.3.5/go.mod h1:0FfBqO1mxIcKD92ko5GYp0JyifFjw+dnZzSbwP1JX7M=
 github.com/gotomicro/ego-component/eredis v0.1.1 h1:NTxwjzOM4kf6jMeY1tznc5FOK8f17H1dS1+o7AV3BA0=
 github.com/gotomicro/ego-component/eredis v0.1.1/go.mod h1:4zuUP0jtYXoAz2rhORVlKRnACPo8ba9Ze/L+8GT8qZo=
 github.com/hpcloud/tail v1.0.0/go.mod h1:ab1qPbhIpdTxEkNHXyeSf5vhxWSCs/tWer42PpOxQnU=

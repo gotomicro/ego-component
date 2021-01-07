@@ -12,6 +12,7 @@ import (
 	"github.com/gotomicro/ego/core/emetric"
 	"github.com/gotomicro/ego/core/etrace"
 	"github.com/gotomicro/ego/core/util/xdebug"
+
 )
 
 // Handler ...
@@ -58,8 +59,9 @@ func metricInterceptor(compName string, dsn *DSN, op string, config *Config, log
 			if config.EnableAccessInterceptorReq {
 				fields = append(fields, elog.String("req", logSQL(scope.SQL, scope.SQLVars, config.EnableDetailSQL)))
 			}
-			if config.EnableAccessInterceptorReply {
-				fields = append(fields, elog.Any("reply", scope.Value))
+
+			if config.EnableAccessInterceptorRes {
+				fields = append(fields, elog.Any("res", scope.Value))
 			}
 
 			isErrLog := false
@@ -72,18 +74,17 @@ func metricInterceptor(compName string, dsn *DSN, op string, config *Config, log
 				)
 				if errors.Is(scope.DB().Error, ErrRecordNotFound) {
 					logger.Warn("access", fields...)
-					emetric.LibHandleCounter.Inc(emetric.TypeGorm, dsn.DBName+"."+scope.TableName(), dsn.Addr, "Empty")
+					emetric.ClientHandleCounter.Inc(emetric.TypeGorm, compName, dsn.DBName+"."+scope.TableName(), dsn.Addr, "Empty")
 				} else {
 					logger.Error("access", fields...)
-					emetric.LibHandleCounter.Inc(emetric.TypeGorm, dsn.DBName+"."+scope.TableName(), dsn.Addr, "Error")
-
+					emetric.ClientHandleCounter.Inc(emetric.TypeGorm, compName, dsn.DBName+"."+scope.TableName(), dsn.Addr, "Error")
 				}
 				isErrLog = true
 			} else {
-				emetric.LibHandleCounter.Inc(emetric.TypeGorm, dsn.DBName+"."+scope.TableName(), dsn.Addr, "OK")
+				emetric.ClientHandleCounter.Inc(emetric.TypeGorm, compName, dsn.DBName+"."+scope.TableName(), dsn.Addr, "OK")
 			}
 
-			emetric.LibHandleHistogram.WithLabelValues(emetric.TypeGorm, dsn.DBName+"."+scope.TableName(), dsn.Addr).Observe(cost.Seconds())
+			emetric.ClientHandleHistogram.WithLabelValues(emetric.TypeGorm, compName, dsn.DBName+"."+scope.TableName(), dsn.Addr).Observe(cost.Seconds())
 
 			if config.SlowLogThreshold > time.Duration(0) && config.SlowLogThreshold < cost {
 				fields = append(fields,

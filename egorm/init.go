@@ -1,11 +1,12 @@
 package egorm
 
 import (
+	"net/http"
+	"time"
+
 	"github.com/gotomicro/ego/core/emetric"
 	"github.com/gotomicro/ego/server/egovernor"
 	jsoniter "github.com/json-iterator/go"
-	"net/http"
-	"time"
 )
 
 func init() {
@@ -16,7 +17,7 @@ func init() {
 		Gorms: make(map[string]interface{}, 0),
 	}
 	egovernor.HandleFunc("/debug/gorm/stats", func(w http.ResponseWriter, r *http.Request) {
-		rets.Gorms = Stats()
+		rets.Gorms = stats()
 		_ = jsoniter.NewEncoder(w).Encode(rets)
 	})
 	go monitor()
@@ -25,7 +26,7 @@ func init() {
 func monitor() {
 	for {
 		time.Sleep(time.Second * 10)
-		Range(func(name string, db *Component) bool {
+		iterate(func(name string, db *Component) bool {
 			stats := db.DB().Stats()
 			emetric.LibHandleSummary.Observe(float64(stats.Idle), name, "idle")
 			emetric.LibHandleSummary.Observe(float64(stats.InUse), name, "inuse")

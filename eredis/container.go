@@ -2,6 +2,7 @@ package eredis
 
 import (
 	"fmt"
+
 	"github.com/go-redis/redis"
 	"github.com/gotomicro/ego/core/econf"
 	"github.com/gotomicro/ego/core/elog"
@@ -15,6 +16,7 @@ type Container struct {
 	logger *elog.Component
 }
 
+// DefaultContainer 定义了默认Container配置
 func DefaultContainer() *Container {
 	return &Container{
 		config: DefaultConfig(),
@@ -22,6 +24,7 @@ func DefaultContainer() *Container {
 	}
 }
 
+// Load 载入配置，初始化Container
 func Load(key string) *Container {
 	c := DefaultContainer()
 	if err := econf.UnmarshalKey(key, &c.config); err != nil {
@@ -34,35 +37,7 @@ func Load(key string) *Container {
 	return c
 }
 
-func WithStub() Option {
-	return func(c *Container) {
-		if c.config.Addr == "" && len(c.config.Addrs) == 0 {
-			c.logger.Panic("no address in redis config", elog.FieldName(c.name))
-		}
-		if c.config.Addr != "" {
-			c.config.Addrs = []string{c.config.Addr}
-		}
-		c.config.Mode = StubMode
-	}
-}
-
-func WithCluster() Option {
-	return func(c *Container) {
-		c.config.Mode = ClusterMode
-	}
-}
-
-// WithInterceptor ...
-func WithInterceptor(interceptors ...Interceptor) Option {
-	return func(c *Container) {
-		if c.config.interceptors == nil {
-			c.config.interceptors = make([]Interceptor, 0)
-		}
-		c.config.interceptors = append(c.config.interceptors, interceptors...)
-	}
-}
-
-// Build ...
+// Build 构建Component
 func (c *Container) Build(options ...Option) *Component {
 	if options == nil {
 		options = make([]Option, 0)
@@ -73,7 +48,7 @@ func (c *Container) Build(options ...Option) *Component {
 	}
 
 	if c.config.EnableMetricInterceptor {
-		options = append(options, WithInterceptor(metricInterceptor(c.config, c.logger)))
+		options = append(options, WithInterceptor(metricInterceptor(c.name, c.config, c.logger)))
 	}
 
 	for _, option := range options {

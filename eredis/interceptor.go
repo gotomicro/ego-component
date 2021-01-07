@@ -45,7 +45,7 @@ func debugInterceptor(compName string, config *Config, logger *elog.Component) I
 					)
 				} else {
 					log.Println("[eredis.response]",
-						xdebug.MakeReqResInfo(compName, fmt.Sprintf("%v", config.Addrs), cost, fmt.Sprintf("%v", cmd.Args()), reply(cmd)),
+						xdebug.MakeReqResInfo(compName, fmt.Sprintf("%v", config.Addrs), cost, fmt.Sprintf("%v", cmd.Args()), response(cmd)),
 					)
 				}
 			} else {
@@ -56,7 +56,7 @@ func debugInterceptor(compName string, config *Config, logger *elog.Component) I
 	}
 }
 
-func metricInterceptor(config *Config, logger *elog.Component) Interceptor {
+func metricInterceptor(compName string, config *Config, logger *elog.Component) Interceptor {
 	return func(oldProcess CmdHandler) CmdHandler {
 		return func(cmd redis.Cmder) error {
 			beg := time.Now()
@@ -73,8 +73,8 @@ func metricInterceptor(config *Config, logger *elog.Component) Interceptor {
 				fields = append(fields, elog.Any("req", cmd.Args()))
 			}
 
-			if config.EnableAccessInterceptorReply && cmd.Err() == nil {
-				fields = append(fields, elog.Any("reply", reply(cmd)))
+			if config.EnableAccessInterceptorRes && cmd.Err() == nil {
+				fields = append(fields, elog.Any("res", response(cmd)))
 			}
 
 			isErrLog := false
@@ -88,15 +88,15 @@ func metricInterceptor(config *Config, logger *elog.Component) Interceptor {
 				isErrLog = true
 				if errors.Is(err, redis.Nil) {
 					logger.Warn("access", fields...)
-					emetric.LibHandleCounter.Inc(emetric.TypeRedis, cmd.Name(), strings.Join(config.Addrs, ","), "Empty")
+					emetric.ClientHandleCounter.Inc(emetric.TypeRedis, compName, cmd.Name(), strings.Join(config.Addrs, ","), "Empty")
 				} else {
 					logger.Error("access", fields...)
-					emetric.LibHandleCounter.Inc(emetric.TypeRedis, cmd.Name(), strings.Join(config.Addrs, ","), "Error")
+					emetric.ClientHandleCounter.Inc(emetric.TypeRedis, compName, cmd.Name(), strings.Join(config.Addrs, ","), "Error")
 				}
 			} else {
-				emetric.LibHandleCounter.Inc(emetric.TypeRedis, cmd.Name(), strings.Join(config.Addrs, ","), "OK")
+				emetric.ClientHandleCounter.Inc(emetric.TypeRedis, compName, cmd.Name(), strings.Join(config.Addrs, ","), "OK")
 			}
-			emetric.LibHandleHistogram.WithLabelValues(emetric.TypeRedis, cmd.Name(), strings.Join(config.Addrs, ",")).Observe(cost.Seconds())
+			emetric.ClientHandleHistogram.WithLabelValues(emetric.TypeRedis, compName, cmd.Name(), strings.Join(config.Addrs, ",")).Observe(cost.Seconds())
 
 			if config.SlowLogThreshold > time.Duration(0) && cost > config.SlowLogThreshold {
 				fields = append(fields,
@@ -117,7 +117,7 @@ func metricInterceptor(config *Config, logger *elog.Component) Interceptor {
 	}
 }
 
-func reply(cmd redis.Cmder) string {
+func response(cmd redis.Cmder) string {
 	switch cmd.(type) {
 	case *redis.Cmd:
 		return fmt.Sprintf("%v", cmd.(*redis.Cmd).Val())
