@@ -8,11 +8,11 @@ import (
 	"time"
 
 	"github.com/gotomicro/ego/core/eapp"
-	"github.com/gotomicro/ego/core/util/xdebug"
-
 	"github.com/gotomicro/ego/core/elog"
 	"github.com/gotomicro/ego/core/emetric"
 	"github.com/gotomicro/ego/core/etrace"
+	"github.com/gotomicro/ego/core/util/xdebug"
+
 )
 
 // Handler ...
@@ -59,6 +59,7 @@ func metricInterceptor(compName string, dsn *DSN, op string, config *Config, log
 			if config.EnableAccessInterceptorReq {
 				fields = append(fields, elog.String("req", logSQL(scope.SQL, scope.SQLVars, config.EnableDetailSQL)))
 			}
+
 			if config.EnableAccessInterceptorRes {
 				fields = append(fields, elog.Any("res", scope.Value))
 			}
@@ -84,6 +85,7 @@ func metricInterceptor(compName string, dsn *DSN, op string, config *Config, log
 			}
 
 			emetric.ClientHandleHistogram.WithLabelValues(emetric.TypeGorm, compName, dsn.DBName+"."+scope.TableName(), dsn.Addr).Observe(cost.Seconds())
+
 			if config.SlowLogThreshold > time.Duration(0) && config.SlowLogThreshold < cost {
 				fields = append(fields,
 					elog.FieldEvent("slow"),

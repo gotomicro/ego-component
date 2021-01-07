@@ -72,6 +72,7 @@ func metricInterceptor(compName string, config *Config, logger *elog.Component) 
 			if config.EnableAccessInterceptorReq {
 				fields = append(fields, elog.Any("req", cmd.Args()))
 			}
+
 			if config.EnableAccessInterceptorRes && cmd.Err() == nil {
 				fields = append(fields, elog.Any("res", response(cmd)))
 			}

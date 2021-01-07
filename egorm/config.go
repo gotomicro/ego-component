@@ -1,8 +1,9 @@
 package egorm
 
 import (
-	"github.com/gotomicro/ego/core/util/xtime"
 	"time"
+
+	"github.com/gotomicro/ego/core/util/xtime"
 )
 
 // config options
