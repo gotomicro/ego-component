@@ -20,6 +20,7 @@ type Container struct {
 	logger *elog.Component
 }
 
+// DefaultContainer 返回默认Container
 func DefaultContainer() *Container {
 	return &Container{
 		config: DefaultConfig(),
@@ -27,6 +28,7 @@ func DefaultContainer() *Container {
 	}
 }
 
+// Load 载入配置，初始化Container
 func Load(key string) *Container {
 	c := DefaultContainer()
 	if err := econf.UnmarshalKey(key, &c.config); err != nil {
@@ -39,23 +41,7 @@ func Load(key string) *Container {
 	return c
 }
 
-// WithInterceptor ...
-func WithInterceptor(interceptors ...Interceptor) Option {
-	return func(c *Container) {
-		if c.config.interceptors == nil {
-			c.config.interceptors = make([]Interceptor, 0)
-		}
-		c.config.interceptors = append(c.config.interceptors, interceptors...)
-	}
-}
-
-func WithDSN(dsn string) Option {
-	return func(c *Container) {
-		c.config.DSN = dsn
-	}
-}
-
-func (c *Container) newSession(config Config) *WrappedClient {
+func (c *Container) newSession(config Config) *Client {
 	// check config param
 	c.isConfigErr(config)
 	mps := uint64(config.PoolLimit)
@@ -67,23 +53,23 @@ func (c *Container) newSession(config Config) *WrappedClient {
 	if err != nil {
 		c.logger.Panic("dial mongo", elog.FieldAddr(config.DSN), elog.Any("error", err))
 	}
-
-	instances.Store(config.Name, client)
-	client.wrapProcess(InterceptorChain(config.interceptors...))
+	if c.config.Debug {
+		client.logMode = true
+	}
+	instances.Store(c.name, client)
+	client.wrapProcessor(InterceptorChain(config.interceptors...))
 	return client
 }
 
 var instances = sync.Map{}
 
-// Range 遍历所有实例
-func Range(fn func(name string, db *mongo.Client) bool) {
+func iterate(fn func(name string, db *mongo.Client) bool) {
 	instances.Range(func(key, val interface{}) bool {
 		return fn(key.(string), val.(*mongo.Client))
 	})
 }
 
-// Get 返回指定实例
-func Get(name string) *mongo.Client {
+func get(name string) *mongo.Client {
 	if ins, ok := instances.Load(name); ok {
 		return ins.(*mongo.Client)
 	}
@@ -99,17 +85,14 @@ func (c *Container) isConfigErr(config Config) {
 	}
 }
 
-// Build ...
+// Build 构建Container
 func (c *Container) Build(options ...Option) *Component {
 	if options == nil {
 		options = make([]Option, 0)
 	}
 	if c.config.Debug {
-		options = append(options, WithInterceptor(debugInterceptor(c.config)))
+		options = append(options, WithInterceptor(debugInterceptor(c.name, c.config)))
 	}
-	// if c.config.EnableMetricInterceptor {
-	// 	options = append(options, WithInterceptor(metricInterceptor(c.config, c.logger)))
-	// }
 	for _, option := range options {
 		option(c)
 	}

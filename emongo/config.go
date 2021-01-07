@@ -7,7 +7,6 @@ import (
 )
 
 type Config struct {
-	Name string
 	// DSN地址
 	DSN string `json:"dsn" toml:"dsn"`
 	// 是否开启debug模式
@@ -15,9 +14,8 @@ type Config struct {
 	// 创建连接的超时时间
 	SocketTimeout time.Duration `json:"socketTimeout" toml:"socketTimeout"`
 	// 连接池大小(最大连接数)
-	PoolLimit               int `json:"poolLimit" toml:"poolLimit"`
-	EnableMetricInterceptor bool
-	interceptors            []Interceptor
+	PoolLimit    int `json:"poolLimit" toml:"poolLimit"`
+	interceptors []Interceptor
 }
 
 // DefaultConfig 返回默认配置

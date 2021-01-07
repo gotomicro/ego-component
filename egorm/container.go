@@ -85,7 +85,7 @@ func (c *Container) Build(options ...Option) *Component {
 		if c.config.OnFail == "panic" {
 			c.logger.Panic("open mysql", elog.FieldErrKind("register err"), elog.FieldErr(err), elog.FieldAddr(c.config.dsnCfg.Addr), elog.FieldValueAny(c.config))
 		} else {
-			emetric.LibHandleCounter.Inc(emetric.TypeGorm, c.name+".ping", c.config.dsnCfg.Addr, "open err")
+			emetric.ClientHandleCounter.Inc(emetric.TypeGorm, c.name, c.name+".ping", c.config.dsnCfg.Addr, "open err")
 			c.logger.Error("open mysql", elog.FieldErrKind("register err"), elog.FieldErr(err), elog.FieldAddr(c.config.dsnCfg.Addr), elog.FieldValueAny(c.config))
 			return component
 		}

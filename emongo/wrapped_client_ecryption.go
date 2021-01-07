@@ -23,49 +23,54 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-type WrappedClientEncryption struct {
+type ClientEncryption struct {
 	cc        *mongo.ClientEncryption
 	processor processor
+	logMode   bool
 }
 
-func (wc *WrappedClient) NewClientEncryption(opts ...*options.ClientEncryptionOptions) (*WrappedClientEncryption, error) {
+func (wc *Client) NewClientEncryption(opts ...*options.ClientEncryptionOptions) (*ClientEncryption, error) {
 	client, err := mongo.NewClientEncryption(wc.Client(), opts...)
 	if err != nil {
 		return nil, err
 	}
-	return &WrappedClientEncryption{cc: client, processor: defaultProcessor}, nil
+	return &ClientEncryption{cc: client, processor: defaultProcessor, logMode: wc.logMode}, nil
 }
 
-func (wce *WrappedClientEncryption) CreateDataKey(ctx context.Context, kmsProvider string, opts ...*options.DataKeyOptions) (
+func (wce *ClientEncryption) CreateDataKey(ctx context.Context, kmsProvider string, opts ...*options.DataKeyOptions) (
 	id primitive.Binary, err error) {
 
-	err = wce.processor(func() error {
+	err = wce.processor(func(c *cmd) error {
 		id, err = wce.cc.CreateDataKey(ctx, kmsProvider, opts...)
+		logCmd(wce.logMode, c, "CreateDataKey", id)
 		return err
 	})
 	return
 }
 
-func (wce *WrappedClientEncryption) Encrypt(ctx context.Context, val bson.RawValue, opts ...*options.EncryptOptions) (
+func (wce *ClientEncryption) Encrypt(ctx context.Context, val bson.RawValue, opts ...*options.EncryptOptions) (
 	value primitive.Binary, err error) {
 
-	err = wce.processor(func() error {
+	err = wce.processor(func(c *cmd) error {
 		value, err = wce.cc.Encrypt(ctx, val, opts...)
+		logCmd(wce.logMode, c, "Encrypt", value, val)
 		return err
 	})
 	return
 }
 
-func (wce *WrappedClientEncryption) Decrypt(ctx context.Context, val primitive.Binary) (value bson.RawValue, err error) {
-	err = wce.processor(func() error {
+func (wce *ClientEncryption) Decrypt(ctx context.Context, val primitive.Binary) (value bson.RawValue, err error) {
+	err = wce.processor(func(c *cmd) error {
 		value, err = wce.cc.Decrypt(ctx, val)
+		logCmd(wce.logMode, c, "Decrypt", value, val)
 		return err
 	})
 	return
 }
 
-func (wce *WrappedClientEncryption) Close(ctx context.Context) error {
-	return wce.processor(func() error {
+func (wce *ClientEncryption) Close(ctx context.Context) error {
+	return wce.processor(func(c *cmd) error {
+		logCmd(wce.logMode, c, "Close", nil)
 		return wce.cc.Close(ctx)
 	})
 }

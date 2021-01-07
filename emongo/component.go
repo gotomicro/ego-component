@@ -9,6 +9,6 @@ const PackageName = "component.emongo"
 // Component client (cmdable and config)
 type Component struct {
 	Config *Config
-	Client *WrappedClient
+	Client *Client
 	logger *elog.Component
 }

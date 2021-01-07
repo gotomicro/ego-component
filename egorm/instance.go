@@ -6,15 +6,15 @@ import (
 
 var instances = sync.Map{}
 
-// Range 遍历所有实例
-func Range(fn func(name string, db *Component) bool) {
+// iterate 遍历所有实例
+func iterate(fn func(name string, db *Component) bool) {
 	instances.Range(func(key, val interface{}) bool {
 		return fn(key.(string), val.(*Component))
 	})
 }
 
-// Configs
-func Configs() map[string]interface{} {
+// configs
+func configs() map[string]interface{} {
 	var rets = make(map[string]interface{})
 	instances.Range(func(key, val interface{}) bool {
 		return true
@@ -23,8 +23,8 @@ func Configs() map[string]interface{} {
 	return rets
 }
 
-// Stats
-func Stats() (stats map[string]interface{}) {
+// stats
+func stats() (stats map[string]interface{}) {
 	stats = make(map[string]interface{})
 	instances.Range(func(key, val interface{}) bool {
 		name := key.(string)

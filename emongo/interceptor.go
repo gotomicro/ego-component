@@ -1,6 +1,7 @@
 package emongo
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"time"
@@ -25,22 +26,22 @@ func InterceptorChain(interceptors ...Interceptor) func(oldProcess processFn) pr
 	}
 }
 
-func debugInterceptor(c *Config) func(processFn) processFn {
+func debugInterceptor(compName string, c *Config) func(processFn) processFn {
 	return func(oldProcess processFn) processFn {
-		return func() error {
+		return func(cmd *cmd) error {
 			beg := time.Now()
-			err := oldProcess()
+			err := oldProcess(cmd)
 			cost := time.Since(beg)
 			if eapp.IsDevelopmentMode() {
 				if err != nil {
 					log.Println("[emongo.response]",
-						xdebug.MakeReqResError(PackageName,
-							fmt.Sprintf("%v", c.DSN), cost, "", err.Error()),
+						xdebug.MakeReqResError(compName,
+							fmt.Sprintf("%v", c.DSN), cost, fmt.Sprintf("%s %v", cmd.name, mustJsonMarshal(cmd.req)), err.Error()),
 					)
 				} else {
 					log.Println("[emongo.response]",
-						xdebug.MakeReqResInfo(PackageName,
-							fmt.Sprintf("%v", c.DSN), cost, "", ""),
+						xdebug.MakeReqResInfo(compName,
+							fmt.Sprintf("%v", c.DSN), cost, fmt.Sprintf("%s %v", cmd.name, mustJsonMarshal(cmd.req)), fmt.Sprintf("%v", cmd.res)),
 					)
 				}
 			} else {
@@ -49,4 +50,9 @@ func debugInterceptor(c *Config) func(processFn) processFn {
 			return nil
 		}
 	}
+}
+
+func mustJsonMarshal(val interface{}) string {
+	res, _ := json.Marshal(val)
+	return string(res)
 }

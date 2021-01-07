@@ -21,111 +21,124 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
-type WrappedClient struct {
+type Client struct {
 	cc        *mongo.Client
 	processor processor
+	logMode   bool
 }
 
-func NewClient(opts ...*options.ClientOptions) (*WrappedClient, error) {
+func NewClient(opts ...*options.ClientOptions) (*Client, error) {
 	client, err := mongo.NewClient(opts...)
 	if err != nil {
 		return nil, err
 	}
-	return &WrappedClient{cc: client, processor: defaultProcessor}, nil
+	return &Client{cc: client, processor: defaultProcessor}, nil
+}
+
+func (wc *Client) setLogMode(logMode bool) {
+	wc.logMode = logMode
 }
 
 func defaultProcessor(processFn processFn) error {
-	return processFn()
+	return processFn(&cmd{req: make([]interface{}, 0, 1)})
 }
 
-func Connect(ctx context.Context, opts ...*options.ClientOptions) (wc *WrappedClient, err error) {
+func Connect(ctx context.Context, opts ...*options.ClientOptions) (wc *Client, err error) {
 	cc, err := mongo.NewClient(opts...)
 	if err != nil {
 		return nil, err
 	}
 
-	wc = &WrappedClient{cc: cc, processor: defaultProcessor}
-	err = wc.processor(func() error {
+	wc = &Client{cc: cc, processor: defaultProcessor}
+	err = wc.processor(func(c *cmd) error {
 		return wc.Connect(ctx)
 	})
 	return
 }
 
-func (wc *WrappedClient) wrapProcess(fn func(oldProcessFn processFn) (newProcessFn processFn)) {
+func (wc *Client) wrapProcessor(wrapFn func(processFn) processFn) {
 	wc.processor = func(fn processFn) error {
-		return fn()
+		return wrapFn(fn)(&cmd{req: make([]interface{}, 0, 1)})
 	}
 }
 
-func (wc *WrappedClient) Connect(ctx context.Context) error {
-	return wc.processor(func() error {
+func (wc *Client) Connect(ctx context.Context) error {
+	return wc.processor(func(c *cmd) error {
+		logCmd(wc.logMode, c, "Connect", nil)
 		return wc.cc.Connect(ctx)
 	})
 }
 
-func (wc *WrappedClient) Database(name string, opts ...*options.DatabaseOptions) *WrappedDatabase {
+func (wc *Client) Database(name string, opts ...*options.DatabaseOptions) *Database {
 	var db *mongo.Database
-	_ = wc.processor(func() error {
+	_ = wc.processor(func(c *cmd) error {
 		db = wc.cc.Database(name, opts...)
+		logCmd(wc.logMode, c, "Connect", db, name)
 		return nil
 	})
 	if db == nil {
 		return nil
 	}
-	// return &WrappedDatabase{db: db, processor: func(processFn) error { return wc.processFn() }}
-	return &WrappedDatabase{db: db, processor: wc.processor}
+	return &Database{db: db, processor: wc.processor, logMode: wc.logMode}
 }
 
-func (wc *WrappedClient) Disconnect(ctx context.Context) error {
-	return wc.processor(func() error {
+func (wc *Client) Disconnect(ctx context.Context) error {
+	return wc.processor(func(c *cmd) error {
+		logCmd(wc.logMode, c, "Disconnect", nil)
 		return wc.cc.Disconnect(ctx)
 	})
 }
 
-func (wc *WrappedClient) ListDatabaseNames(ctx context.Context, filter interface{}, opts ...*options.ListDatabasesOptions) (
+func (wc *Client) ListDatabaseNames(ctx context.Context, filter interface{}, opts ...*options.ListDatabasesOptions) (
 	dbs []string, err error) {
 
-	err = wc.processor(func() error {
+	err = wc.processor(func(c *cmd) error {
 		dbs, err = wc.cc.ListDatabaseNames(ctx, filter, opts...)
+		logCmd(wc.logMode, c, "ListDatabaseNames", dbs, filter)
 		return err
 	})
 	return
 }
 
-func (wc *WrappedClient) ListDatabases(ctx context.Context, filter interface{}, opts ...*options.ListDatabasesOptions) (
+func (wc *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...*options.ListDatabasesOptions) (
 	dbr mongo.ListDatabasesResult, err error) {
 
-	err = wc.processor(func() error {
+	err = wc.processor(func(c *cmd) error {
 		dbr, err = wc.cc.ListDatabases(ctx, filter, opts...)
+		logCmd(wc.logMode, c, "ListDatabases", dbr, filter)
 		return err
 	})
 	return
 }
 
-func (wc *WrappedClient) Ping(ctx context.Context, rp *readpref.ReadPref) error {
-	return wc.processor(func() error {
+func (wc *Client) Ping(ctx context.Context, rp *readpref.ReadPref) error {
+	return wc.processor(func(c *cmd) error {
+		logCmd(wc.logMode, c, "Ping", nil, rp)
 		return wc.cc.Ping(ctx, rp)
 	})
 }
 
-func (wc *WrappedClient) StartSession(opts ...*options.SessionOptions) (ss mongo.Session, err error) {
-	err = wc.processor(func() error {
+func (wc *Client) StartSession(opts ...*options.SessionOptions) (ss mongo.Session, err error) {
+	err = wc.processor(func(c *cmd) error {
 		ss, err = wc.cc.StartSession(opts...)
+		logCmd(wc.logMode, c, "StartSession", ss)
 		return err
 	})
-	return &WrappedSession{Session: ss}, nil
+	return &Session{Session: ss, logMode: wc.logMode}, nil
 }
 
-func (wc *WrappedClient) UseSession(ctx context.Context, fn func(mongo.SessionContext) error) error {
-	return wc.processor(func() error {
+func (wc *Client) UseSession(ctx context.Context, fn func(mongo.SessionContext) error) error {
+	return wc.processor(func(c *cmd) error {
+		logCmd(wc.logMode, c, "UseSession", nil)
 		return wc.cc.UseSession(ctx, fn)
 	})
 }
 
-func (wc *WrappedClient) UseSessionWithOptions(ctx context.Context, opts *options.SessionOptions, fn func(mongo.SessionContext) error) error {
-	return wc.processor(func() error {
+func (wc *Client) UseSessionWithOptions(ctx context.Context, opts *options.SessionOptions, fn func(mongo.SessionContext) error) error {
+	return wc.processor(func(c *cmd) error {
+		logCmd(wc.logMode, c, "UseSessionWithOptions", nil)
 		return wc.cc.UseSessionWithOptions(ctx, opts, fn)
 	})
 }
 
-func (wc *WrappedClient) Client() *mongo.Client { return wc.cc }
+func (wc *Client) Client() *mongo.Client { return wc.cc }

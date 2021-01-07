@@ -22,181 +22,223 @@ import (
 )
 
 type processor func(fn processFn) error
-type processFn func() error
+type processFn func(*cmd) error
 
-type WrappedCollection struct {
+type cmd struct {
+	name string
+	req  []interface{}
+	res  interface{}
+}
+
+func logCmd(logMode bool, c *cmd, name string, res interface{}, req ...interface{}) {
+	// 只有开启log模式才会记录req、res
+	if logMode {
+		c.name = name
+		c.req = append(c.req, req...)
+		switch res := res.(type) {
+		case *mongo.SingleResult:
+			val, _ := res.DecodeBytes()
+			c.res = val
+		default:
+			c.res = res
+		}
+	}
+}
+
+type Collection struct {
 	coll      *mongo.Collection
 	processor processor
+	logMode   bool
 }
 
-func (wc *WrappedCollection) Aggregate(ctx context.Context, pipeline interface{}, opts ...*options.AggregateOptions) (cur *mongo.Cursor, err error) {
-	err = wc.processor(func() error {
-		cur, err = wc.coll.Aggregate(ctx, pipeline, opts...)
+func (wc *Collection) Aggregate(ctx context.Context, pipeline interface{}, opts ...*options.AggregateOptions) (res *mongo.Cursor, err error) {
+	err = wc.processor(func(c *cmd) error {
+		res, err = wc.coll.Aggregate(ctx, pipeline, opts...)
+		logCmd(wc.logMode, c, "Aggregate", res, pipeline)
 		return err
 	})
 	return
 }
 
-func (wc *WrappedCollection) BulkWrite(ctx context.Context, models []mongo.WriteModel, opts ...*options.BulkWriteOptions) (
-	bwres *mongo.BulkWriteResult, err error) {
+func (wc *Collection) BulkWrite(ctx context.Context, models []mongo.WriteModel, opts ...*options.BulkWriteOptions) (
+	res *mongo.BulkWriteResult, err error) {
 
-	err = wc.processor(func() error {
-		bwres, err = wc.coll.BulkWrite(ctx, models, opts...)
+	err = wc.processor(func(c *cmd) error {
+		res, err = wc.coll.BulkWrite(ctx, models, opts...)
+		logCmd(wc.logMode, c, "BulkWrite", res, models)
 		return err
 	})
 	return
 }
 
-func (wc *WrappedCollection) Clone(opts ...*options.CollectionOptions) (coll *mongo.Collection, err error) {
-	err = wc.processor(func() error {
-		coll, err = wc.coll.Clone(opts...)
+func (wc *Collection) Clone(opts ...*options.CollectionOptions) (res *mongo.Collection, err error) {
+	err = wc.processor(func(c *cmd) error {
+		res, err = wc.coll.Clone(opts...)
+		logCmd(wc.logMode, c, "Clone", res)
 		return err
 	})
 	return
 }
 
-func (wc *WrappedCollection) CountDocuments(ctx context.Context, filter interface{}, opts ...*options.CountOptions) (count int64, err error) {
-	err = wc.processor(func() error {
-		count, err = wc.coll.CountDocuments(ctx, filter, opts...)
+func (wc *Collection) CountDocuments(ctx context.Context, filter interface{}, opts ...*options.CountOptions) (res int64, err error) {
+	err = wc.processor(func(c *cmd) error {
+		res, err = wc.coll.CountDocuments(ctx, filter, opts...)
+		logCmd(wc.logMode, c, "CountDocuments", res, filter)
 		return err
 	})
-	return count, err
+	return res, err
 }
 
-func (wc *WrappedCollection) Database() *mongo.Database { return wc.coll.Database() }
+func (wc *Collection) Database() *mongo.Database { return wc.coll.Database() }
 
-func (wc *WrappedCollection) DeleteMany(ctx context.Context, filter interface{}, opts ...*options.DeleteOptions) (
+func (wc *Collection) DeleteMany(ctx context.Context, filter interface{}, opts ...*options.DeleteOptions) (
 	res *mongo.DeleteResult, err error) {
 
-	err = wc.processor(func() error {
+	err = wc.processor(func(c *cmd) error {
 		res, err = wc.coll.DeleteMany(ctx, filter, opts...)
+		logCmd(wc.logMode, c, "DeleteMany", res, filter)
 		return err
 	})
 	return
 }
 
-func (wc *WrappedCollection) DeleteOne(ctx context.Context, filter interface{}, opts ...*options.DeleteOptions) (res *mongo.DeleteResult, err error) {
-	err = wc.processor(func() error {
+func (wc *Collection) DeleteOne(ctx context.Context, filter interface{}, opts ...*options.DeleteOptions) (res *mongo.DeleteResult, err error) {
+	err = wc.processor(func(c *cmd) error {
 		res, err = wc.coll.DeleteOne(ctx, filter, opts...)
+		logCmd(wc.logMode, c, "DeleteOne", res, filter)
 		return err
 	})
 	return
 }
 
-func (wc *WrappedCollection) Distinct(ctx context.Context, fieldName string, filter interface{}, opts ...*options.DistinctOptions) (res []interface{}, err error) {
-	err = wc.processor(func() error {
+func (wc *Collection) Distinct(ctx context.Context, fieldName string, filter interface{}, opts ...*options.DistinctOptions) (res []interface{}, err error) {
+	err = wc.processor(func(c *cmd) error {
 		res, err = wc.coll.Distinct(ctx, fieldName, filter, opts...)
+		logCmd(wc.logMode, c, "Distinct", nil, fieldName, filter)
 		return err
 	})
 	return
 }
 
-func (wc *WrappedCollection) Drop(ctx context.Context) error {
-	return wc.processor(func() error {
+func (wc *Collection) Drop(ctx context.Context) error {
+	return wc.processor(func(c *cmd) error {
+		logCmd(wc.logMode, c, "Drop", nil)
 		return wc.coll.Drop(ctx)
 	})
 }
 
-func (wc *WrappedCollection) EstimatedDocumentCount(ctx context.Context, opts ...*options.EstimatedDocumentCountOptions) (res int64, err error) {
-	err = wc.processor(func() error {
+func (wc *Collection) EstimatedDocumentCount(ctx context.Context, opts ...*options.EstimatedDocumentCountOptions) (res int64, err error) {
+	err = wc.processor(func(c *cmd) error {
 		res, err = wc.coll.EstimatedDocumentCount(ctx, opts...)
+		logCmd(wc.logMode, c, "EstimatedDocumentCount", res)
 		return err
 	})
 	return
 }
 
-func (wc *WrappedCollection) Find(ctx context.Context, filter interface{}, opts ...*options.FindOptions) (cur *mongo.Cursor, err error) {
-	err = wc.processor(func() error {
-		cur, err = wc.coll.Find(ctx, filter, opts...)
+func (wc *Collection) Find(ctx context.Context, filter interface{}, opts ...*options.FindOptions) (res *mongo.Cursor, err error) {
+	err = wc.processor(func(c *cmd) error {
+		res, err = wc.coll.Find(ctx, filter, opts...)
+		logCmd(wc.logMode, c, "Find", res.Current, filter)
 		return err
 	})
 	return
 }
 
-func (wc *WrappedCollection) FindOne(ctx context.Context, filter interface{}, opts ...*options.FindOneOptions) (res *mongo.SingleResult) {
-	_ = wc.processor(func() error {
+func (wc *Collection) FindOne(ctx context.Context, filter interface{}, opts ...*options.FindOneOptions) (res *mongo.SingleResult) {
+	_ = wc.processor(func(c *cmd) error {
 		res = wc.coll.FindOne(ctx, filter, opts...)
+		logCmd(wc.logMode, c, "FindOne", res, filter)
 		return res.Err()
 	})
 	return
 }
 
-func (wc *WrappedCollection) FindOneAndDelete(ctx context.Context, filter interface{}, opts ...*options.FindOneAndDeleteOptions) (res *mongo.SingleResult) {
-	_ = wc.processor(func() error {
+func (wc *Collection) FindOneAndDelete(ctx context.Context, filter interface{}, opts ...*options.FindOneAndDeleteOptions) (res *mongo.SingleResult) {
+	_ = wc.processor(func(c *cmd) error {
 		res = wc.coll.FindOneAndDelete(ctx, filter, opts...)
+		logCmd(wc.logMode, c, "FindOneAndDelete", res, filter)
 		return res.Err()
 	})
 	return
 }
 
-func (wc *WrappedCollection) FindOneAndReplace(ctx context.Context, filter, replacement interface{}, opts ...*options.FindOneAndReplaceOptions) (res *mongo.SingleResult) {
-	_ = wc.processor(func() error {
+func (wc *Collection) FindOneAndReplace(ctx context.Context, filter, replacement interface{}, opts ...*options.FindOneAndReplaceOptions) (res *mongo.SingleResult) {
+	_ = wc.processor(func(c *cmd) error {
 		res = wc.coll.FindOneAndReplace(ctx, filter, replacement, opts...)
+		logCmd(wc.logMode, c, "FindOneAndReplace", res, filter)
 		return res.Err()
 	})
 	return
 }
 
-func (wc *WrappedCollection) FindOneAndUpdate(ctx context.Context, filter, update interface{}, opts ...*options.FindOneAndUpdateOptions) (res *mongo.SingleResult) {
-	_ = wc.processor(func() error {
+func (wc *Collection) FindOneAndUpdate(ctx context.Context, filter, update interface{}, opts ...*options.FindOneAndUpdateOptions) (res *mongo.SingleResult) {
+	_ = wc.processor(func(c *cmd) error {
 		res = wc.coll.FindOneAndUpdate(ctx, filter, update, opts...)
+		logCmd(wc.logMode, c, "FindOneAndReplace", res, filter)
 		return res.Err()
 	})
 	return
 }
 
-func (wc *WrappedCollection) Indexes() mongo.IndexView { return wc.coll.Indexes() }
+func (wc *Collection) Indexes() mongo.IndexView { return wc.coll.Indexes() }
 
-func (wc *WrappedCollection) InsertMany(ctx context.Context, documents []interface{}, opts ...*options.InsertManyOptions) (res *mongo.InsertManyResult, err error) {
-	_ = wc.processor(func() error {
+func (wc *Collection) InsertMany(ctx context.Context, documents []interface{}, opts ...*options.InsertManyOptions) (res *mongo.InsertManyResult, err error) {
+	_ = wc.processor(func(c *cmd) error {
 		res, err = wc.coll.InsertMany(ctx, documents, opts...)
+		logCmd(wc.logMode, c, "FindOneAndReplace", res, documents)
 		return err
 	})
 	return
 }
 
-func (wc *WrappedCollection) InsertOne(ctx context.Context, document interface{}, opts ...*options.InsertOneOptions) (res *mongo.InsertOneResult, err error) {
-	_ = wc.processor(func() error {
+func (wc *Collection) InsertOne(ctx context.Context, document interface{}, opts ...*options.InsertOneOptions) (res *mongo.InsertOneResult, err error) {
+	_ = wc.processor(func(c *cmd) error {
 		res, err = wc.coll.InsertOne(ctx, document, opts...)
+		logCmd(wc.logMode, c, "InsertOne", res, document)
 		return err
 	})
 	return
 }
 
-func (wc *WrappedCollection) Name() string { return wc.coll.Name() }
+func (wc *Collection) Name() string { return wc.coll.Name() }
 
-func (wc *WrappedCollection) ReplaceOne(ctx context.Context, filter, replacement interface{}, opts ...*options.ReplaceOptions) (res *mongo.UpdateResult, err error) {
-	_ = wc.processor(func() error {
+func (wc *Collection) ReplaceOne(ctx context.Context, filter, replacement interface{}, opts ...*options.ReplaceOptions) (res *mongo.UpdateResult, err error) {
+	_ = wc.processor(func(c *cmd) error {
 		res, err = wc.coll.ReplaceOne(ctx, filter, replacement, opts...)
+		logCmd(wc.logMode, c, "ReplaceOne", res, filter, replacement)
 		return err
 	})
 	return
 }
 
-func (wc *WrappedCollection) UpdateMany(ctx context.Context, filter, replacement interface{}, opts ...*options.UpdateOptions) (res *mongo.UpdateResult, err error) {
-	_ = wc.processor(func() error {
+func (wc *Collection) UpdateMany(ctx context.Context, filter, replacement interface{}, opts ...*options.UpdateOptions) (res *mongo.UpdateResult, err error) {
+	_ = wc.processor(func(c *cmd) error {
 		res, err = wc.coll.UpdateMany(ctx, filter, replacement, opts...)
+		logCmd(wc.logMode, c, "UpdateMany", res, filter, replacement)
 		return err
 	})
 	return
 }
 
-func (wc *WrappedCollection) UpdateOne(ctx context.Context, filter, replacement interface{}, opts ...*options.UpdateOptions) (res *mongo.UpdateResult, err error) {
-	_ = wc.processor(func() error {
+func (wc *Collection) UpdateOne(ctx context.Context, filter, replacement interface{}, opts ...*options.UpdateOptions) (res *mongo.UpdateResult, err error) {
+	_ = wc.processor(func(c *cmd) error {
 		res, err = wc.coll.UpdateOne(ctx, filter, replacement, opts...)
+		logCmd(wc.logMode, c, "UpdateOne", res, filter, replacement)
 		return err
 	})
 	return
 }
 
-func (wc *WrappedCollection) Watch(ctx context.Context, pipeline interface{}, opts ...*options.ChangeStreamOptions) (cs *mongo.ChangeStream, err error) {
-	_ = wc.processor(func() error {
-		cs, err = wc.coll.Watch(ctx, pipeline, opts...)
+func (wc *Collection) Watch(ctx context.Context, pipeline interface{}, opts ...*options.ChangeStreamOptions) (res *mongo.ChangeStream, err error) {
+	_ = wc.processor(func(c *cmd) error {
+		res, err = wc.coll.Watch(ctx, pipeline, opts...)
+		logCmd(wc.logMode, c, "Watch", res, pipeline)
 		return err
 	})
 	return
 }
 
-func (wc *WrappedCollection) Collection() *mongo.Collection {
+func (wc *Collection) Collection() *mongo.Collection {
 	return wc.coll
 }

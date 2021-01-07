@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/gotomicro/ego/core/eapp"
@@ -28,12 +29,12 @@ func debugInterceptor(compName string, dsn *DSN, op string, options *Config, log
 			cost := time.Since(beg)
 			if eapp.IsDevelopmentMode() {
 				if scope.HasError() {
-					logger.Error("egorm.reply", elog.String("msg",
-						xdebug.MakeReqResError(compName, fmt.Sprintf("%v", dsn.Addr+"/"+dsn.DBName), cost, logSQL(scope.SQL, scope.SQLVars, true), scope.DB().Error.Error())),
+					log.Println("[egorm.response]",
+						xdebug.MakeReqResError(compName, fmt.Sprintf("%v", dsn.Addr+"/"+dsn.DBName), cost, logSQL(scope.SQL, scope.SQLVars, true), scope.DB().Error.Error()),
 					)
 				} else {
-					logger.Info("egorm.reply", elog.String("msg",
-						xdebug.MakeReqResInfo(compName, fmt.Sprintf("%v", dsn.Addr+"/"+dsn.DBName), cost, logSQL(scope.SQL, scope.SQLVars, true), fmt.Sprintf("%v", scope.Value))),
+					log.Println("[egorm.response]",
+						xdebug.MakeReqResInfo(compName, fmt.Sprintf("%v", dsn.Addr+"/"+dsn.DBName), cost, logSQL(scope.SQL, scope.SQLVars, true), fmt.Sprintf("%v", scope.Value)),
 					)
 				}
 			} else {
@@ -58,8 +59,8 @@ func metricInterceptor(compName string, dsn *DSN, op string, config *Config, log
 			if config.EnableAccessInterceptorReq {
 				fields = append(fields, elog.String("req", logSQL(scope.SQL, scope.SQLVars, config.EnableDetailSQL)))
 			}
-			if config.EnableAccessInterceptorReply {
-				fields = append(fields, elog.Any("reply", scope.Value))
+			if config.EnableAccessInterceptorRes {
+				fields = append(fields, elog.Any("res", scope.Value))
 			}
 
 			isErrLog := false
@@ -72,19 +73,17 @@ func metricInterceptor(compName string, dsn *DSN, op string, config *Config, log
 				)
 				if errors.Is(scope.DB().Error, ErrRecordNotFound) {
 					logger.Warn("access", fields...)
-					emetric.LibHandleCounter.Inc(emetric.TypeGorm, dsn.DBName+"."+scope.TableName(), dsn.Addr, "Empty")
+					emetric.ClientHandleCounter.Inc(emetric.TypeGorm, compName, dsn.DBName+"."+scope.TableName(), dsn.Addr, "Empty")
 				} else {
 					logger.Error("access", fields...)
-					emetric.LibHandleCounter.Inc(emetric.TypeGorm, dsn.DBName+"."+scope.TableName(), dsn.Addr, "Error")
-
+					emetric.ClientHandleCounter.Inc(emetric.TypeGorm, compName, dsn.DBName+"."+scope.TableName(), dsn.Addr, "Error")
 				}
 				isErrLog = true
 			} else {
-				emetric.LibHandleCounter.Inc(emetric.TypeGorm, dsn.DBName+"."+scope.TableName(), dsn.Addr, "OK")
+				emetric.ClientHandleCounter.Inc(emetric.TypeGorm, compName, dsn.DBName+"."+scope.TableName(), dsn.Addr, "OK")
 			}
 
-			emetric.LibHandleHistogram.WithLabelValues(emetric.TypeGorm, dsn.DBName+"."+scope.TableName(), dsn.Addr).Observe(cost.Seconds())
-
+			emetric.ClientHandleHistogram.WithLabelValues(emetric.TypeGorm, compName, dsn.DBName+"."+scope.TableName(), dsn.Addr).Observe(cost.Seconds())
 			if config.SlowLogThreshold > time.Duration(0) && config.SlowLogThreshold < cost {
 				fields = append(fields,
 					elog.FieldEvent("slow"),
