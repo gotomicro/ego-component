@@ -8,12 +8,28 @@ import (
 	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/readconcern"
+	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 )
 
 func newColl() *Collection {
 	cmp := DefaultContainer().Build(WithDSN(os.Getenv("EMONGO_DSN")))
 	coll := cmp.Client.Database("test").Collection("cells")
 	return coll
+}
+
+func TestWrappedSession(t *testing.T) {
+	ctx := context.TODO()
+	cmp := DefaultContainer().Build(WithDSN(os.Getenv("EMONGO_DSN")))
+	sess, err := cmp.Client.StartSession()
+	defer sess.EndSession(ctx)
+	assert.NoError(t, err)
+
+	wc := writeconcern.New(writeconcern.WMajority())
+	rc := readconcern.Snapshot()
+	txnOpts := options.Transaction().SetWriteConcern(wc).SetReadConcern(rc)
+	err = sess.StartTransaction(txnOpts)
+	assert.NoError(t, err)
 }
 
 func TestWrappedCollection_FindOne(t *testing.T) {

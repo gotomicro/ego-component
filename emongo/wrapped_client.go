@@ -124,7 +124,7 @@ func (wc *Client) StartSession(opts ...*options.SessionOptions) (ss mongo.Sessio
 		logCmd(wc.logMode, c, "StartSession", ss)
 		return err
 	})
-	return &Session{Session: ss, logMode: wc.logMode}, nil
+	return &Session{Session: ss, logMode: wc.logMode, processor: wc.processor}, nil
 }
 
 func (wc *Client) UseSession(ctx context.Context, fn func(mongo.SessionContext) error) error {
