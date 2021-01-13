@@ -19,7 +19,7 @@ func main() {
 	conf := `
 [mongo]
 	debug=true
-	dsn="mongodb://user:password@localhosth:27017,localhost:27018"
+	dsn="mongodb://user:password@localhost:27017,localhost:27018"
 `
 	// 加载配置文件
 	err := econf.LoadFromReader(strings.NewReader(conf), toml.Unmarshal)
@@ -27,7 +27,7 @@ func main() {
 		panic("LoadFromReader fail," + err.Error())
 	}
 
-	// 初始化ekafka组件
+	// 初始化emongo组件
 	cmp := emongo.Load("mongo").Build()
 	coll := cmp.Client.Database("test").Collection("cells")
 	findOne(coll)

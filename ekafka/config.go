@@ -9,8 +9,6 @@ type Config struct {
 	Brokers []string `json:"brokers" toml:"brokers"`
 	// Debug 是否开启debug模式
 	Debug bool `json:"debug" toml:"debug"`
-	// Topic 默认使用的topic
-	Topic bool `json:"topic" toml:"topic"`
 	// Client 用于创建topic等
 	Client ClientConfig `json:"client" toml:"client"`
 	// Producers 多个消费者，用于生产消息
