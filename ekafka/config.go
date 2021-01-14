@@ -2,6 +2,8 @@ package ekafka
 
 import (
 	"time"
+
+	"github.com/segmentio/kafka-go"
 )
 
 type Config struct {
@@ -16,6 +18,7 @@ type Config struct {
 	// Consumers 多个生产者，用于消费消息
 	Consumers    map[string]ConsumerConfig `json:"consumers" toml:"consumers"`
 	interceptors []Interceptor
+	balancers    map[string]Balancer
 }
 
 type ClientConfig struct {
@@ -53,9 +56,18 @@ type ConsumerConfig struct {
 	ReadLagInterval time.Duration `json:"readLagInterval" toml:"readLagInterval"`
 }
 
+const (
+	balancerHash       = "hash"
+	balancerRoundRobin = "roundRobin"
+)
+
 // DefaultConfig 返回默认配置
 func DefaultConfig() *Config {
 	return &Config{
 		Debug: true,
+		balancers: map[string]Balancer{
+			balancerHash:       &kafka.Hash{},
+			balancerRoundRobin: &kafka.RoundRobin{},
+		},
 	}
 }
