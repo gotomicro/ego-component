@@ -2,6 +2,8 @@ package ekafka
 
 import (
 	"time"
+
+	"github.com/segmentio/kafka-go"
 )
 
 type Config struct {
@@ -16,6 +18,7 @@ type Config struct {
 	// Consumers 多个生产者，用于消费消息
 	Consumers    map[string]ConsumerConfig `json:"consumers" toml:"consumers"`
 	interceptors []Interceptor
+	balancers    map[string]Balancer
 }
 
 type ClientConfig struct {
@@ -57,5 +60,9 @@ type ConsumerConfig struct {
 func DefaultConfig() *Config {
 	return &Config{
 		Debug: true,
+		balancers: map[string]Balancer{
+			"hash":       &kafka.Hash{},
+			"roundRobin": &kafka.RoundRobin{},
+		},
 	}
 }

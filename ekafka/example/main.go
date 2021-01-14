@@ -8,6 +8,7 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/gotomicro/ego/core/econf"
+	"github.com/segmentio/kafka-go"
 
 	"github.com/gotomicro/ego-component/ekafka"
 )
@@ -58,12 +59,13 @@ func main() {
         timeout="3s"
 	[kafka.producers.p1]        # 定义了名字为p1的producer
 		topic="sre-infra-test"  # 指定生产消息的topic
-	[kafka.consumers.c1]		# 定义了名字为c1的consumer
-		topic="sre-infra-test" 	# 指定消费的topic
-		groupID="group-1"		# 如果配置了groupID，将初始化为consumerGroup	
-	[kafka.consumers.c2]		# 定义了名字为c2的consumer
+		balancer="my-balancer"  # 指定balancer，此balancer非默认balancer，需要使用ekafka.WithRegisterBalancer()注册
+	[kafka.consumers.c1]        # 定义了名字为c1的consumer
 		topic="sre-infra-test"  # 指定消费的topic
-		groupID="group-2"		# 如果配置了groupID，将初始化为consumerGroup	
+		groupID="group-1"       # 如果配置了groupID，将初始化为consumerGroup	
+	[kafka.consumers.c2]        # 定义了名字为c2的consumer
+		topic="sre-infra-test"  # 指定消费的topic
+		groupID="group-2"       # 如果配置了groupID，将初始化为consumerGroup	
 `
 	// 加载配置文件
 	err := econf.LoadFromReader(strings.NewReader(conf), toml.Unmarshal)
@@ -72,7 +74,10 @@ func main() {
 	}
 
 	// 初始化ekafka组件
-	cmp := ekafka.Load("kafka").Build()
+	cmp := ekafka.Load("kafka").Build(
+		// 注册名为my-balancer的自定义balancer
+		ekafka.WithRegisterBalancer("my-balancer", &kafka.Hash{}),
+	)
 
 	// 使用p1生产者生产消息
 	go produce(cmp.Producer("p1"))

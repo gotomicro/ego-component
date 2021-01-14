@@ -66,11 +66,15 @@ func (c *Container) Build(options ...Option) *Component {
 	// 初始化producers
 	cmp.producers = make(map[string]*Producer)
 	for name, producer := range c.config.Producers {
+		b, ok := c.config.balancers[producer.Balancer]
+		if !ok {
+			panic(fmt.Sprintf("producer.Balancer is not in registered balancers, %s, %v", producer.Balancer, c.config.balancers))
+		}
 		w := &Producer{
 			w: &kafka.Writer{
 				Addr:     kafka.TCP(c.config.Brokers...),
 				Topic:    producer.Topic,
-				Balancer: getBalancer(producer.Balancer),
+				Balancer: b,
 			},
 			processor: defaultProcessor,
 			logMode:   c.config.Debug,
@@ -106,17 +110,6 @@ func (c *Container) Build(options ...Option) *Component {
 	}
 
 	return cmp
-}
-
-func getBalancer(name string) kafka.Balancer {
-	switch name {
-	case "hash":
-		return &kafka.Hash{}
-	case "roundRobin":
-		return &kafka.RoundRobin{}
-	default:
-		return &kafka.RoundRobin{}
-	}
 }
 
 type logger struct {
