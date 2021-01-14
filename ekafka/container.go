@@ -66,6 +66,10 @@ func (c *Container) Build(options ...Option) *Component {
 	// 初始化producers
 	cmp.producers = make(map[string]*Producer)
 	for name, producer := range c.config.Producers {
+		// 如果未设置balancer，则使用roundRobin
+		if producer.Balancer == "" {
+			producer.Balancer = balancerRoundRobin
+		}
 		b, ok := c.config.balancers[producer.Balancer]
 		if !ok {
 			panic(fmt.Sprintf("producer.Balancer is not in registered balancers, %s, %v", producer.Balancer, c.config.balancers))

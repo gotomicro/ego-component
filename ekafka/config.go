@@ -56,13 +56,18 @@ type ConsumerConfig struct {
 	ReadLagInterval time.Duration `json:"readLagInterval" toml:"readLagInterval"`
 }
 
+const (
+	balancerHash       = "hash"
+	balancerRoundRobin = "roundRobin"
+)
+
 // DefaultConfig 返回默认配置
 func DefaultConfig() *Config {
 	return &Config{
 		Debug: true,
 		balancers: map[string]Balancer{
-			"hash":       &kafka.Hash{},
-			"roundRobin": &kafka.RoundRobin{},
+			balancerHash:       &kafka.Hash{},
+			balancerRoundRobin: &kafka.RoundRobin{},
 		},
 	}
 }
