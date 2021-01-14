@@ -25,7 +25,7 @@ func produce(w *Producer) {
 	if err := w.Close(); err != nil {
 		log.Fatal("failed to close writer:", err)
 	}
-	fmt.Println(`write succ--------------->`, 1)
+	fmt.Println(`produce message succ--------------->`)
 }
 
 func consume(r *Consumer) {

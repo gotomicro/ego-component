@@ -1,8 +1,6 @@
 package ekafka
 
 import (
-	"fmt"
-
 	"github.com/gotomicro/ego/core/elog"
 )
 
@@ -19,13 +17,11 @@ type Component struct {
 
 // Consumer 返回指定名称的kafka Consumer
 func (cmp Component) Consumer(name string) *Consumer {
-	fmt.Printf("cmp.consumers--------------->"+"%+v\n", cmp.consumers)
 	return cmp.consumers[name]
 }
 
 // Consumer 返回指定名称的kafka Producer
 func (cmp Component) Producer(name string) *Producer {
-	fmt.Printf("cmp.producers--------------->"+"%+v\n", cmp.producers)
 	return cmp.producers[name]
 }
 
