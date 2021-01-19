@@ -12,7 +12,6 @@ import (
 	"github.com/gotomicro/ego/core/emetric"
 	"github.com/gotomicro/ego/core/etrace"
 	"github.com/gotomicro/ego/core/util/xdebug"
-
 )
 
 // Handler ...
@@ -51,15 +50,10 @@ func metricInterceptor(compName string, dsn *DSN, op string, config *Config, log
 			next(scope)
 			cost := time.Since(beg)
 			var fields = make([]elog.Field, 0, 15)
-			fields = append(fields,
-				elog.FieldMethod(op),
-				elog.FieldName(dsn.DBName+"."+scope.TableName()),
-				elog.FieldCost(cost),
-			)
+			fields = append(fields, elog.FieldMethod(op), elog.FieldName(dsn.DBName+"."+scope.TableName()), elog.FieldCost(cost))
 			if config.EnableAccessInterceptorReq {
 				fields = append(fields, elog.String("req", logSQL(scope.SQL, scope.SQLVars, config.EnableDetailSQL)))
 			}
-
 			if config.EnableAccessInterceptorRes {
 				fields = append(fields, elog.Any("res", scope.Value))
 			}
@@ -68,10 +62,7 @@ func metricInterceptor(compName string, dsn *DSN, op string, config *Config, log
 			isSlowLog := false
 			// error metric
 			if scope.HasError() {
-				fields = append(fields,
-					elog.FieldEvent("error"),
-					elog.FieldErr(scope.DB().Error),
-				)
+				fields = append(fields, elog.FieldEvent("error"), elog.FieldErr(scope.DB().Error))
 				if errors.Is(scope.DB().Error, ErrRecordNotFound) {
 					logger.Warn("access", fields...)
 					emetric.ClientHandleCounter.Inc(emetric.TypeGorm, compName, dsn.DBName+"."+scope.TableName(), dsn.Addr, "Empty")
