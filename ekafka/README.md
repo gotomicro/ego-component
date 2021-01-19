@@ -11,5 +11,5 @@
 
 ## 快速上手
 
-生产者消费者使用样例可参考 [example](./example/main.go)
+生产者消费者使用样例可参考 [example](examples/main.go)
 

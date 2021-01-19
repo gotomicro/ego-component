@@ -43,14 +43,12 @@ func debugInterceptor(compName string, c *Config) func(processFn) processFn {
 			cost := time.Since(beg)
 			if eapp.IsDevelopmentMode() {
 				if err != nil {
-					log.Println("[ekafka.response]",
-						xdebug.MakeReqResError(compName,
-							fmt.Sprintf("%v", c.Brokers), cost, fmt.Sprintf("%s %v", cmd.name, mustJsonMarshal(cmd.req)), err.Error()),
+					log.Println("[ekafka.response]", xdebug.MakeReqResError(compName,
+						fmt.Sprintf("%v", c.Brokers), cost, fmt.Sprintf("%s %v", cmd.name, mustJsonMarshal(cmd.req)), err.Error()),
 					)
 				} else {
-					log.Println("[ekafka.response]",
-						xdebug.MakeReqResInfo(compName,
-							fmt.Sprintf("%v", c.Brokers), cost, fmt.Sprintf("%s %v", cmd.name, mustJsonMarshal(cmd.req)), fmt.Sprintf("%v", cmd.res)),
+					log.Println("[ekafka.response]", xdebug.MakeReqResInfo(compName,
+						fmt.Sprintf("%v", c.Brokers), cost, fmt.Sprintf("%s %v", cmd.name, mustJsonMarshal(cmd.req)), fmt.Sprintf("%v", cmd.res)),
 					)
 				}
 			} else {
