@@ -62,54 +62,59 @@ func metricInterceptor(compName string, config *Config, logger *elog.Component) 
 			beg := time.Now()
 			err := oldProcess(cmd)
 			cost := time.Since(beg)
-
-			var fields = make([]elog.Field, 0, 15)
-			fields = append(fields,
-				elog.FieldMethod(cmd.Name()),
-				elog.FieldCost(cost),
-			)
-
-			if config.EnableAccessInterceptorReq {
-				fields = append(fields, elog.Any("req", cmd.Args()))
-			}
-
-			if config.EnableAccessInterceptorRes && cmd.Err() == nil {
-				fields = append(fields, elog.Any("res", response(cmd)))
-			}
-
-			isErrLog := false
-			isSlowLog := false
 			// error metric
 			if err != nil {
-				fields = append(fields,
-					elog.FieldEvent("error"),
-					elog.FieldErr(err),
-				)
-				isErrLog = true
 				if errors.Is(err, redis.Nil) {
-					logger.Warn("access", fields...)
 					emetric.ClientHandleCounter.Inc(emetric.TypeRedis, compName, cmd.Name(), strings.Join(config.Addrs, ","), "Empty")
 				} else {
-					logger.Error("access", fields...)
 					emetric.ClientHandleCounter.Inc(emetric.TypeRedis, compName, cmd.Name(), strings.Join(config.Addrs, ","), "Error")
 				}
 			} else {
 				emetric.ClientHandleCounter.Inc(emetric.TypeRedis, compName, cmd.Name(), strings.Join(config.Addrs, ","), "OK")
 			}
 			emetric.ClientHandleHistogram.WithLabelValues(emetric.TypeRedis, compName, cmd.Name(), strings.Join(config.Addrs, ",")).Observe(cost.Seconds())
+			return err
+		}
+	}
+}
+
+func accessInterceptor(compName string, config *Config, logger *elog.Component) Interceptor {
+	return func(oldProcess CmdHandler) CmdHandler {
+		return func(cmd redis.Cmder) error {
+			beg := time.Now()
+			err := oldProcess(cmd)
+			cost := time.Since(beg)
+
+			var fields = make([]elog.Field, 0, 15)
+			fields = append(fields, elog.FieldComponentName(compName), elog.FieldMethod(cmd.Name()), elog.FieldCost(cost))
+
+			if config.EnableAccessInterceptorReq {
+				fields = append(fields, elog.Any("req", cmd.Args()))
+			}
+			if config.EnableAccessInterceptorRes && cmd.Err() == nil {
+				fields = append(fields, elog.Any("res", response(cmd)))
+			}
+			isErrLog := false
+			isSlowLog := false
+			// error metric
+			if err != nil {
+				fields = append(fields, elog.FieldEvent("error"), elog.FieldErr(err))
+				isErrLog = true
+				if errors.Is(err, redis.Nil) {
+					logger.Warn("access", fields...)
+				} else {
+					logger.Error("access", fields...)
+				}
+			}
 
 			if config.SlowLogThreshold > time.Duration(0) && cost > config.SlowLogThreshold {
-				fields = append(fields,
-					elog.FieldEvent("slow"),
-				)
+				fields = append(fields, elog.FieldEvent("slow"))
 				logger.Info("access", fields...)
 				isSlowLog = true
 			}
 
 			if config.EnableAccessInterceptor && !isSlowLog && !isErrLog {
-				fields = append(fields,
-					elog.FieldEvent("normal"),
-				)
+				fields = append(fields, elog.FieldEvent("normal"))
 				logger.Info("access", fields...)
 			}
 			return err
