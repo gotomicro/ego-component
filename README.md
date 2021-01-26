@@ -2,7 +2,7 @@
 
 EGO 的客户端组件最佳实践。
 
-* [ x ] [GORM](./egorm)
+* [ x ] [Gorm](./egorm)
 * [ x ] [Redis](./eredis)
 * [ x ] [Kafka](./ekafka)
 * [ x ] [Mongo](./emongo)
