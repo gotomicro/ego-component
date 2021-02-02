@@ -1,5 +1,11 @@
 package edingtalk
 
+import (
+	"fmt"
+)
+
+type payload map[string]interface{}
+
 type AccessTokenResponse struct {
 	OpenAPIResponse
 	AccessToken string `json:"access_token"`
@@ -8,8 +14,13 @@ type AccessTokenResponse struct {
 }
 
 type OpenAPIResponse struct {
-	ErrCode int    `json:"errcode"`
-	ErrMsg  string `json:"errmsg"`
+	ErrCode   int    `json:"errcode"`
+	ErrMsg    string `json:"errmsg"`
+	RequestId string `json:"request_id"`
+}
+
+func (o OpenAPIResponse) String() string {
+	return fmt.Sprintf(`{"errcode":%d,"errmsg":"%s"}`, o.ErrCode, o.ErrMsg)
 }
 
 type UserInfo struct {
