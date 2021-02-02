@@ -9,16 +9,17 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
+	"strconv"
+	"sync"
+	"time"
+
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis"
 	"github.com/gotomicro/ego-component/eredis"
 	"github.com/gotomicro/ego/client/ehttp"
 	"github.com/gotomicro/ego/core/elog"
 	"go.uber.org/zap"
-	"net/url"
-	"strconv"
-	"sync"
-	"time"
 )
 
 const PackageName = "component.edingtalk"
@@ -120,15 +121,15 @@ func (c *Component) GetUserInfo(code string) (user UserInfo, err error) {
 // https://ding-doc.dingtalk.com/document#/org-dev-guide/etaarr
 func (c *Component) Oauth2SnsAuthorize(state string) string {
 	// 安全验证，生成随机state，防止获取oa系统的url，登录该系统
-	//state, err := genRandState()
-	//if err != nil {
+	// state, err := genRandState()
+	// if err != nil {
 	//	elog.Error("Generating state string failed", zap.Error(err))
 	//	return
-	//}
-	//hashedState := c.hashStateCode(state, c.Config.Oauth2AppSecret)
+	// }
+	// hashedState := c.hashStateCode(state, c.Config.Oauth2AppSecret)
 	// 最大300s
-	//ctx.SetCookie(c.Config.Oauth2StateCookieName, url.QueryEscape(hashedState), 300, "/", "", false, true)
-	//ctx.Redirect(http.StatusFound, fmt.Sprintf(Addr+ApiOauth2Redirect, c.Config.Oauth2AppKey, state, c.Config.Oauth2RedirectUri))
+	// ctx.SetCookie(c.Config.Oauth2StateCookieName, url.QueryEscape(hashedState), 300, "/", "", false, true)
+	// ctx.Redirect(http.StatusFound, fmt.Sprintf(Addr+ApiOauth2Redirect, c.Config.Oauth2AppKey, state, c.Config.Oauth2RedirectUri))
 	return fmt.Sprintf(Addr+ApiOauth2SnsAuthorize, c.Config.Oauth2AppKey, state, c.Config.Oauth2RedirectUri)
 }
 
@@ -209,13 +210,6 @@ func (c *Component) hashStateCode(code, seed string) string {
 	return hex.EncodeToString(hashBytes[:])
 }
 
-//
-//func encryptHMAC(paramsJoin string, secret string) []byte {
-//	hHmac := hmac.New(md5.New, []byte(secret))
-//	hHmac.Write([]byte(paramsJoin))
-//	return hHmac.Sum([]byte(""))
-//}
-
 func encryptHMAC(message, secret string) string {
 	// 钉钉签名算法实现
 	h := hmac.New(sha256.New, []byte(secret))
@@ -228,4 +222,175 @@ func encryptHMAC(message, secret string) string {
 	message2 := uv.Encode()[2:]
 	return message2
 
+}
+
+// 查询用户
+// 接口文档 https://ding-doc.dingtalk.com/document/app/create-a-department-v2
+// 调试文档 https://open-dev.dingtalk.com/apiExplorer#/jsapi?api=runtime.permission.requestAuthCode
+func (c *Component) UserGet(uid string) (user *User, err error) {
+	token, err := c.GetAccessToken()
+	if err != nil {
+		return nil, fmt.Errorf("get user info token err %w", err)
+	}
+	var res userGetRes
+	resp, err := c.ehttp.R().SetBody(payload{"userid": uid}).SetResult(&res).Post(fmt.Sprintf(ApiUserGet, token))
+	if err != nil {
+		return nil, fmt.Errorf("user get request fail, %w", err)
+	}
+	if resp.StatusCode() != 200 || res.ErrCode != 0 {
+		return nil, fmt.Errorf("user get fail, %s", res)
+	}
+	return &res.Result, nil
+}
+
+// 创建用户
+// 接口文档 https://ding-doc.dingtalk.com/document/app/create-a-department-v2
+// 调试文档 https://open-dev.dingtalk.com/apiExplorer#/jsapi?api=runtime.permission.requestAuthCode
+func (c *Component) UserCreate(req userCreateReq) (userId string, err error) {
+	token, err := c.GetAccessToken()
+	if err != nil {
+		return "", fmt.Errorf("get user info token err %w", err)
+	}
+	var res userCreateRes
+	resp, err := c.ehttp.R().SetBody(req).SetResult(&res).Post(fmt.Sprintf(ApiUserCreate, token))
+	if err != nil {
+		return "", fmt.Errorf("user create request fail, %w", err)
+	}
+	if resp.StatusCode() != 200 || res.ErrCode != 0 {
+		return "", fmt.Errorf("user create fail, %s", res)
+	}
+	return res.Result.UserId, nil
+}
+
+// 更新用户
+// 接口文档 https://ding-doc.dingtalk.com/document/app/update-a-department-v2
+// 调试文档 https://open-dev.dingtalk.com/apiExplorer#/jsapi?api=runtime.permission.requestAuthCode
+func (c *Component) UserUpdate(req *userUpdateReq) (err error) {
+	token, err := c.GetAccessToken()
+	if err != nil {
+		return fmt.Errorf("get user info token err %w", err)
+	}
+	var res OpenAPIResponse
+	resp, err := c.ehttp.R().SetBody(req).SetResult(&res).Post(fmt.Sprintf(ApiUserUpdate, token))
+	if err != nil {
+		return fmt.Errorf("user update request fail, %w", err)
+	}
+	if resp.StatusCode() != 200 || res.ErrCode != 0 {
+		return fmt.Errorf("user update fail, %d,%s", resp.StatusCode(), res)
+	}
+	return
+}
+
+// 删除用户
+// 接口文档 https://ding-doc.dingtalk.com/document/app/update-a-department-v2
+// 调试文档 https://open-dev.dingtalk.com/apiExplorer#/jsapi?api=runtime.permission.requestAuthCode
+func (c *Component) UserDelete(uid string) (err error) {
+	token, err := c.GetAccessToken()
+	if err != nil {
+		return fmt.Errorf("get user info token err %w", err)
+	}
+	var res OpenAPIResponse
+	resp, err := c.ehttp.R().SetBody(payload{"userid": uid}).SetResult(&res).Post(fmt.Sprintf(ApiUserDelete, token))
+	if err != nil {
+		return fmt.Errorf("user update request fail, %w", err)
+	}
+	if resp.StatusCode() != 200 || res.ErrCode != 0 {
+		return fmt.Errorf("user delete fail, %d,%s", resp.StatusCode(), res)
+	}
+	return
+}
+
+// 获取部门用户userid列表
+// 接口文档 https://ding-doc.dingtalk.com/document/app/update-a-department-v2
+// 调试文档 https://open-dev.dingtalk.com/apiExplorer#/jsapi?api=runtime.permission.requestAuthCode
+func (c *Component) UserListID(did int) (userIds []string, err error) {
+	token, err := c.GetAccessToken()
+	if err != nil {
+		return nil, fmt.Errorf("get user info token err %w", err)
+	}
+	var res userListIDRes
+	resp, err := c.ehttp.R().SetBody(payload{"dept_id": did}).SetResult(&res).Post(fmt.Sprintf(ApiUserListID, token))
+	if err != nil {
+		return nil, fmt.Errorf("user listid request fail, %w", err)
+	}
+	if resp.StatusCode() != 200 || res.ErrCode != 0 {
+		return nil, fmt.Errorf("user listid fail, %d,%s", resp.StatusCode(), res)
+	}
+	return res.Result.UserIDList, nil
+}
+
+// 获取部门详情
+// 接口文档 https://ding-doc.dingtalk.com/document/app/create-a-department-v2
+// 调试文档 https://open-dev.dingtalk.com/apiExplorer#/jsapi?api=runtime.permission.requestAuthCode
+func (c *Component) DepartmentGet(did int) (dep *Department, err error) {
+	token, err := c.GetAccessToken()
+	if err != nil {
+		return nil, fmt.Errorf("get user info token err %w", err)
+	}
+	var res departmentGetRes
+	resp, err := c.ehttp.R().SetBody(payload{"dept_id": did}).SetResult(&res).Post(fmt.Sprintf(ApiDepartmentGet, token))
+	if err != nil {
+		return nil, fmt.Errorf("department get request fail, %w", err)
+	}
+	if resp.StatusCode() != 200 || res.ErrCode != 0 {
+		return nil, fmt.Errorf("department get fail, %s", res)
+	}
+	return &res.Result, nil
+}
+
+// 创建部门
+// 接口文档 https://ding-doc.dingtalk.com/document/app/create-a-department-v2
+// 调试文档 https://open-dev.dingtalk.com/apiExplorer#/jsapi?api=runtime.permission.requestAuthCode
+func (c *Component) DepartmentCreate(req departmentCreateReq) (deptId int, err error) {
+	token, err := c.GetAccessToken()
+	if err != nil {
+		return 0, fmt.Errorf("get user info token err %w", err)
+	}
+	var res DepartmentCreateRes
+	resp, err := c.ehttp.R().SetBody(req).SetResult(&res).Post(fmt.Sprintf(ApiDepartmentCreate, token))
+	if err != nil {
+		return 0, fmt.Errorf("department create request fail, %w", err)
+	}
+	if resp.StatusCode() != 200 || res.ErrCode != 0 {
+		return 0, fmt.Errorf("department create fail, %s", res)
+	}
+	return res.Result.DeptId, nil
+}
+
+// 创建部门
+// 接口文档 https://ding-doc.dingtalk.com/document/app/update-a-department-v2
+// 调试文档 https://open-dev.dingtalk.com/apiExplorer#/jsapi?api=runtime.permission.requestAuthCode
+func (c *Component) DepartmentUpdate(req *DepartmentUpdateReq) (err error) {
+	token, err := c.GetAccessToken()
+	if err != nil {
+		return fmt.Errorf("get user info token err %w", err)
+	}
+	var res OpenAPIResponse
+	resp, err := c.ehttp.R().SetBody(req).SetResult(&res).Post(fmt.Sprintf(ApiDepartmentUpdate, token))
+	if err != nil {
+		return fmt.Errorf("department update request fail, %w", err)
+	}
+	if resp.StatusCode() != 200 || res.ErrCode != 0 {
+		return fmt.Errorf("department update fail, %d,%s", resp.StatusCode(), res)
+	}
+	return
+}
+
+// 创建部门
+// 接口文档 https://ding-doc.dingtalk.com/document/app/delete-a-department-v2
+// 调试文档 https://open-dev.dingtalk.com/apiExplorer#/jsapi?api=runtime.permission.requestAuthCode
+func (c *Component) DepartmentDelete(did int) error {
+	token, err := c.GetAccessToken()
+	if err != nil {
+		return fmt.Errorf("get user info token fail, %w", err)
+	}
+	var res OpenAPIResponse
+	resp, err := c.ehttp.R().SetBody(payload{"dept_id": did}).SetResult(&res).Post(fmt.Sprintf(ApiDepartmentDelete, token))
+	if err != nil {
+		return fmt.Errorf("department delete request fail, %w", err)
+	}
+	if resp.StatusCode() != 200 || res.ErrCode != 0 {
+		return fmt.Errorf("department delete fail, %s", res)
+	}
+	return nil
 }
