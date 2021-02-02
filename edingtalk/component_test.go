@@ -63,9 +63,9 @@ func TestUserCreateGetUpdateDelete(t *testing.T) {
 	uid, err := cmp.UserCreate(userCreateReq{
 		UserId:        userid,
 		Name:          "user01",
-		Mobile:        "",
+		Mobile:        os.Getenv("USER_PHONE"),
 		HideMobile:    false,
-		Telephone:     "",
+		Telephone:     os.Getenv("USER_PHONE"),
 		JobNumber:     "9999",
 		Title:         "developer",
 		Email:         "user01@gmail.com",
