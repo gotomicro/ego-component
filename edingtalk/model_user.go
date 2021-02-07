@@ -153,14 +153,17 @@ func (u *UserUpdateReq) SetDeptOrderList(deptOrderList []UserDeptOrderList) *Use
 	u.DeptOrderList = &deptOrderList
 	return u
 }
+
 func (u *UserUpdateReq) SetDeptTitleList(deptTitleList []UserDeptTitleList) *UserUpdateReq {
 	u.DeptTitleList = &deptTitleList
 	return u
 }
+
 func (u *UserUpdateReq) SetSeniorMode(seniorMode bool) *UserUpdateReq {
 	u.SeniorMode = &seniorMode
 	return u
 }
+
 func (u *UserUpdateReq) SetHiredDate(hiredDate int64) *UserUpdateReq {
 	u.HiredDate = &hiredDate
 	return u
@@ -171,4 +174,15 @@ type userListIDRes struct {
 	Result struct {
 		UserIDList []string `json:"userid_list"`
 	} `json:"result"`
+}
+
+type userListRes struct {
+	OpenAPIResponse
+	Result *UserListRes `json:"result"`
+}
+
+type UserListRes struct {
+	HasMore    bool   `json:"has_more"`
+	NextCursor int    `json:"next_cursor"`
+	List       []User `json:"list"`
 }

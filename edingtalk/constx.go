@@ -42,4 +42,6 @@ const (
 	ApiUserDelete = "/topapi/v2/user/delete?access_token=%s"
 	// https://ding-doc.dingtalk.com/document/app/query-the-list-of-department-userids
 	ApiUserListID = "/topapi/user/listid?access_token=%s"
+	// https://ding-doc.dingtalk.com/document/app/queries-the-complete-information-of-a-department-user
+	ApiUserList = "https://oapi.dingtalk.com/topapi/v2/user/list?access_token=%s"
 )
