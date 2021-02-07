@@ -227,7 +227,7 @@ func encryptHMAC(message, secret string) string {
 // 查询用户
 // 接口文档 https://ding-doc.dingtalk.com/document/app/create-a-department-v2
 // 调试文档 https://open-dev.dingtalk.com/apiExplorer#/jsapi?api=runtime.permission.requestAuthCode
-func (c *Component) UserGet(uid string) (user *User, err error) {
+func (c *Component) UserGet(uid string) (*User, error) {
 	token, err := c.GetAccessToken()
 	if err != nil {
 		return nil, fmt.Errorf("get user info token err %w", err)
@@ -246,7 +246,7 @@ func (c *Component) UserGet(uid string) (user *User, err error) {
 // 创建用户
 // 接口文档 https://ding-doc.dingtalk.com/document/app/create-a-department-v2
 // 调试文档 https://open-dev.dingtalk.com/apiExplorer#/jsapi?api=runtime.permission.requestAuthCode
-func (c *Component) UserCreate(req userCreateReq) (userId string, err error) {
+func (c *Component) UserCreate(req UserCreateReq) (string, error) {
 	token, err := c.GetAccessToken()
 	if err != nil {
 		return "", fmt.Errorf("get user info token err %w", err)
@@ -265,7 +265,7 @@ func (c *Component) UserCreate(req userCreateReq) (userId string, err error) {
 // 更新用户
 // 接口文档 https://ding-doc.dingtalk.com/document/app/update-a-department-v2
 // 调试文档 https://open-dev.dingtalk.com/apiExplorer#/jsapi?api=runtime.permission.requestAuthCode
-func (c *Component) UserUpdate(req *userUpdateReq) (err error) {
+func (c *Component) UserUpdate(req *UserUpdateReq) error {
 	token, err := c.GetAccessToken()
 	if err != nil {
 		return fmt.Errorf("get user info token err %w", err)
@@ -278,13 +278,13 @@ func (c *Component) UserUpdate(req *userUpdateReq) (err error) {
 	if resp.StatusCode() != 200 || res.ErrCode != 0 {
 		return fmt.Errorf("user update fail, %d,%s", resp.StatusCode(), res)
 	}
-	return
+	return nil
 }
 
 // 删除用户
 // 接口文档 https://ding-doc.dingtalk.com/document/app/update-a-department-v2
 // 调试文档 https://open-dev.dingtalk.com/apiExplorer#/jsapi?api=runtime.permission.requestAuthCode
-func (c *Component) UserDelete(uid string) (err error) {
+func (c *Component) UserDelete(uid string) error {
 	token, err := c.GetAccessToken()
 	if err != nil {
 		return fmt.Errorf("get user info token err %w", err)
@@ -297,13 +297,13 @@ func (c *Component) UserDelete(uid string) (err error) {
 	if resp.StatusCode() != 200 || res.ErrCode != 0 {
 		return fmt.Errorf("user delete fail, %d,%s", resp.StatusCode(), res)
 	}
-	return
+	return nil
 }
 
 // 获取部门用户userid列表
 // 接口文档 https://ding-doc.dingtalk.com/document/app/update-a-department-v2
 // 调试文档 https://open-dev.dingtalk.com/apiExplorer#/jsapi?api=runtime.permission.requestAuthCode
-func (c *Component) UserListID(did int) (userIds []string, err error) {
+func (c *Component) UserListID(did int) ([]string, error) {
 	token, err := c.GetAccessToken()
 	if err != nil {
 		return nil, fmt.Errorf("get user info token err %w", err)
@@ -322,7 +322,7 @@ func (c *Component) UserListID(did int) (userIds []string, err error) {
 // 获取部门详情
 // 接口文档 https://ding-doc.dingtalk.com/document/app/create-a-department-v2
 // 调试文档 https://open-dev.dingtalk.com/apiExplorer#/jsapi?api=runtime.permission.requestAuthCode
-func (c *Component) DepartmentGet(did int) (dep *Department, err error) {
+func (c *Component) DepartmentGet(did int) (*Department, error) {
 	token, err := c.GetAccessToken()
 	if err != nil {
 		return nil, fmt.Errorf("get user info token err %w", err)
@@ -341,7 +341,7 @@ func (c *Component) DepartmentGet(did int) (dep *Department, err error) {
 // 创建部门
 // 接口文档 https://ding-doc.dingtalk.com/document/app/create-a-department-v2
 // 调试文档 https://open-dev.dingtalk.com/apiExplorer#/jsapi?api=runtime.permission.requestAuthCode
-func (c *Component) DepartmentCreate(req departmentCreateReq) (deptId int, err error) {
+func (c *Component) DepartmentCreate(req DepartmentCreateReq) (int, error) {
 	token, err := c.GetAccessToken()
 	if err != nil {
 		return 0, fmt.Errorf("get user info token err %w", err)
@@ -360,7 +360,7 @@ func (c *Component) DepartmentCreate(req departmentCreateReq) (deptId int, err e
 // 创建部门
 // 接口文档 https://ding-doc.dingtalk.com/document/app/update-a-department-v2
 // 调试文档 https://open-dev.dingtalk.com/apiExplorer#/jsapi?api=runtime.permission.requestAuthCode
-func (c *Component) DepartmentUpdate(req *DepartmentUpdateReq) (err error) {
+func (c *Component) DepartmentUpdate(req *DepartmentUpdateReq) error {
 	token, err := c.GetAccessToken()
 	if err != nil {
 		return fmt.Errorf("get user info token err %w", err)
@@ -373,7 +373,7 @@ func (c *Component) DepartmentUpdate(req *DepartmentUpdateReq) (err error) {
 	if resp.StatusCode() != 200 || res.ErrCode != 0 {
 		return fmt.Errorf("department update fail, %d,%s", resp.StatusCode(), res)
 	}
-	return
+	return nil
 }
 
 // 创建部门
@@ -393,4 +393,83 @@ func (c *Component) DepartmentDelete(did int) error {
 		return fmt.Errorf("department delete fail, %s", res)
 	}
 	return nil
+}
+
+// 获取部门下一级部门列表
+// 接口文档 https://ding-doc.dingtalk.com/document/app/obtain-the-department-list-v2
+// 调试文档 https://open-dev.dingtalk.com/apiExplorer#/jsapi?api=runtime.permission.requestAuthCode
+func (c *Component) DepartmentListsub(did int) ([]Department, error) {
+	token, err := c.GetAccessToken()
+	if err != nil {
+		return nil, fmt.Errorf("get user info token fail, %w", err)
+	}
+	var res DepartmentListsubRes
+	resp, err := c.ehttp.R().SetBody(payload{"dept_id": did}).SetResult(&res).Post(fmt.Sprintf(ApiDepartmentListsub, token))
+	if err != nil {
+		return nil, fmt.Errorf("department listsub request fail, %w", err)
+	}
+	if resp.StatusCode() != 200 || res.ErrCode != 0 {
+		return nil, fmt.Errorf("department listsub fail, %s", res)
+	}
+	return res.Result, nil
+}
+
+// 获取部门树，递归查询全部子部门
+// NOTICE: 只能查询Name,DeptID,CreateDeptGroup,ParentID,SubDeptList字段
+// 接口文档 https://ding-doc.dingtalk.com/document/app/obtain-the-department-list
+// 调试文档 https://open-dev.dingtalk.com/apiExplorer#/jsapi?api=runtime.permission.requestAuthCode
+func (c *Component) DepartmentTree(did int) (*Department, error) {
+	token, err := c.GetAccessToken()
+	if err != nil {
+		return nil, fmt.Errorf("get user info token fail, %w", err)
+	}
+	var res departmentListRes
+	resp, err := c.ehttp.R().SetBody(payload{"dept_id": did}).SetResult(&res).Get(fmt.Sprintf(ApiDepartmentList, token))
+	if err != nil {
+		return nil, fmt.Errorf("department listsub request fail, %w", err)
+	}
+	if resp.StatusCode() != 200 || res.ErrCode != 0 {
+		return nil, fmt.Errorf("department listsub fail, %s", res)
+	}
+
+	return castDepV1ToDepV2(res.Result), nil
+}
+
+func castDepV1ToDepV2(depv1 []departmentV1) *Department {
+	depv1Map := make(map[int][]departmentV1)
+	for _, v := range depv1 {
+		if _, ok := depv1Map[v.ParentID]; !ok {
+			depv1Map[v.ParentID] = make([]departmentV1, 0)
+		}
+		depv1Map[v.ParentID] = append(depv1Map[v.ParentID], v)
+	}
+	depv1Root := depv1Map[0][0]
+	depv2Root := &Department{
+		Name:            depv1Root.Name,
+		DeptId:          depv1Root.ID,
+		CreateDeptGroup: depv1Root.CreateDeptGroup,
+		ParentId:        depv1Root.ParentID,
+		SubDeptList:     make([]Department, 0),
+	}
+	buildDepTree(depv2Root, depv1Map)
+	return depv2Root
+}
+
+func buildDepTree(d *Department, depv1Map map[int][]departmentV1) {
+	// 说明无子节点
+	if _, ok := depv1Map[d.DeptId]; !ok {
+		return
+	}
+	// 有子节点
+	for _, val := range depv1Map[d.DeptId] {
+		newD := Department{
+			Name:        val.Name,
+			DeptId:      val.ID,
+			ParentId:    val.ParentID,
+			SubDeptList: make([]Department, 0),
+		}
+		buildDepTree(&newD, depv1Map)
+		d.SubDeptList = append(d.SubDeptList, newD)
+	}
+	return
 }
