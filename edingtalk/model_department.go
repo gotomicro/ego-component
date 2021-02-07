@@ -22,7 +22,7 @@ type departmentGetRes struct {
 	Result Department `json:"result"`
 }
 
-type departmentCreateReq = Department
+type DepartmentCreateReq = Department
 
 type DepartmentCreateRes struct {
 	OpenAPIResponse

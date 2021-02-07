@@ -62,7 +62,7 @@ type userGetRes struct {
 	Result User `json:"result"`
 }
 
-type userCreateReq = User
+type UserCreateReq = User
 
 type userCreateRes struct {
 	OpenAPIResponse
@@ -71,7 +71,7 @@ type userCreateRes struct {
 	} `json:"result"`
 }
 
-type userUpdateReq struct {
+type UserUpdateReq struct {
 	UserId        string               `json:"userid,omitempty"`
 	Name          *string              `json:"name,omitempty"`
 	Mobile        *string              `json:"mobile,omitempty"`
@@ -90,78 +90,78 @@ type userUpdateReq struct {
 	HiredDate     *int64               `json:"hired_date,omitempty"`
 }
 
-func NewUserUpdateReq(uid string) *userUpdateReq {
-	return &userUpdateReq{UserId: uid}
+func NewUserUpdateReq(uid string) *UserUpdateReq {
+	return &UserUpdateReq{UserId: uid}
 }
 
-func (u *userUpdateReq) SetName(name string) *userUpdateReq {
+func (u *UserUpdateReq) SetName(name string) *UserUpdateReq {
 	u.Name = &name
 	return u
 }
 
-func (u *userUpdateReq) SetMobile(mobile string) *userUpdateReq {
+func (u *UserUpdateReq) SetMobile(mobile string) *UserUpdateReq {
 	u.Mobile = &mobile
 	return u
 }
 
-func (u *userUpdateReq) SetHideMobile(hideMobile bool) *userUpdateReq {
+func (u *UserUpdateReq) SetHideMobile(hideMobile bool) *UserUpdateReq {
 	u.HideMobile = &hideMobile
 	return u
 }
 
-func (u *userUpdateReq) SetTelephone(telephone string) *userUpdateReq {
+func (u *UserUpdateReq) SetTelephone(telephone string) *UserUpdateReq {
 	u.Telephone = &telephone
 	return u
 }
 
-func (u *userUpdateReq) SetJobNumber(jobNumber string) *userUpdateReq {
+func (u *UserUpdateReq) SetJobNumber(jobNumber string) *UserUpdateReq {
 	u.JobNumber = &jobNumber
 	return u
 }
 
-func (u *userUpdateReq) SetTitle(title string) *userUpdateReq {
+func (u *UserUpdateReq) SetTitle(title string) *UserUpdateReq {
 	u.Title = &title
 	return u
 }
 
-func (u *userUpdateReq) SetEmail(email string) *userUpdateReq {
+func (u *UserUpdateReq) SetEmail(email string) *UserUpdateReq {
 	u.Email = &email
 	return u
 }
 
-func (u *userUpdateReq) SetOrgEmail(orgEmail string) *userUpdateReq {
+func (u *UserUpdateReq) SetOrgEmail(orgEmail string) *UserUpdateReq {
 	u.OrgEmail = &orgEmail
 	return u
 }
 
-func (u *userUpdateReq) SetWorkPlace(workPlace string) *userUpdateReq {
+func (u *UserUpdateReq) SetWorkPlace(workPlace string) *UserUpdateReq {
 	u.WorkPlace = &workPlace
 	return u
 }
 
-func (u *userUpdateReq) SetRemark(remark string) *userUpdateReq {
+func (u *UserUpdateReq) SetRemark(remark string) *UserUpdateReq {
 	u.Remark = &remark
 	return u
 }
 
-func (u *userUpdateReq) SetDeptIdList(deptIdList []int) *userUpdateReq {
+func (u *UserUpdateReq) SetDeptIdList(deptIdList []int) *UserUpdateReq {
 	u.DeptIdList = (*Ints)(&deptIdList)
 	return u
 }
 
-func (u *userUpdateReq) SetDeptOrderList(deptOrderList []UserDeptOrderList) *userUpdateReq {
+func (u *UserUpdateReq) SetDeptOrderList(deptOrderList []UserDeptOrderList) *UserUpdateReq {
 	u.DeptOrderList = &deptOrderList
 	return u
 }
-func (u *userUpdateReq) SetDeptTitleList(deptTitleList []UserDeptTitleList) *userUpdateReq {
+func (u *UserUpdateReq) SetDeptTitleList(deptTitleList []UserDeptTitleList) *UserUpdateReq {
 	u.DeptTitleList = &deptTitleList
 	return u
 }
-func (u *userUpdateReq) SetSeniorMode(seniorMode bool) *userUpdateReq {
+func (u *UserUpdateReq) SetSeniorMode(seniorMode bool) *UserUpdateReq {
 	u.SeniorMode = &seniorMode
 	return u
 }
-func (u *userUpdateReq) SetHiredDate(hiredDate int64) *userUpdateReq {
+func (u *UserUpdateReq) SetHiredDate(hiredDate int64) *UserUpdateReq {
 	u.HiredDate = &hiredDate
 	return u
 }

@@ -60,7 +60,7 @@ func TestUserCreateGetUpdateDelete(t *testing.T) {
 	cmp := newCmp()
 	const userid = "user01"
 	// test create user
-	uid, err := cmp.UserCreate(userCreateReq{
+	uid, err := cmp.UserCreate(UserCreateReq{
 		UserId:        userid,
 		Name:          "user01",
 		Mobile:        os.Getenv("USER_PHONE"),
@@ -102,7 +102,7 @@ func TestDepartmentCreateGetUpdateDelete(t *testing.T) {
 	cmp := newCmp()
 
 	// test create department
-	deptId, err := cmp.DepartmentCreate(departmentCreateReq{
+	deptId, err := cmp.DepartmentCreate(DepartmentCreateReq{
 		Name:             "dep01",
 		ParentId:         1,
 		OuterPermitUsers: []string{"manager440"},
