@@ -27,6 +27,10 @@ const (
 	ApiDepartmentUpdate = "/topapi/v2/department/update?access_token=%s"
 	// https://ding-doc.dingtalk.com/document/app/delete-a-department-v2
 	ApiDepartmentDelete = "/topapi/v2/department/delete?access_token=%s"
+	// https://ding-doc.dingtalk.com/document/app/delete-a-department-v2
+	ApiDepartmentListsub = "/topapi/v2/department/listsub?access_token=%s"
+	// https://ding-doc.dingtalk.com/document/app/delete-a-department-v2
+	ApiDepartmentList = "/department/list?access_token=%s"
 
 	// https://ding-doc.dingtalk.com/document/app/query-user-details
 	ApiUserGet = "/topapi/v2/user/get?access_token=%s"

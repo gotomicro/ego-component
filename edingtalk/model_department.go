@@ -1,19 +1,20 @@
 package edingtalk
 
 type Department struct {
-	DeptId            int     `json:"dept_id,omitempty"`
-	Name              string  `json:"name,omitempty"`
-	ParentId          int     `json:"parent_id,omitempty"`
-	HideDept          bool    `json:"hide_dept,omitempty"`
-	DeptPermits       Ints    `json:"dept_permits,omitempty"`
-	UserPermits       Strings `json:"user_permits,omitempty"`
-	OuterDept         bool    `json:"outer_dept,omitempty"`
-	OuterDeptOnlySelf string  `json:"outer_dept_only_self,omitempty"`
-	OuterPermitUsers  Strings `json:"outer_permit_users,omitempty"`
-	OuterPermitDepts  Ints    `json:"outer_permit_depts,omitempty"`
-	CreateDeptGroup   bool    `json:"create_dept_group,omitempty"`
-	Order             int     `json:"order,omitempty"`
-	SourceIdentifier  string  `json:"source_identifier,omitempty"`
+	DeptId            int          `json:"dept_id,omitempty"`
+	Name              string       `json:"name,omitempty"`
+	ParentId          int          `json:"parent_id,omitempty"`
+	HideDept          bool         `json:"hide_dept,omitempty"`
+	DeptPermits       Ints         `json:"dept_permits,omitempty"`
+	UserPermits       Strings      `json:"user_permits,omitempty"`
+	OuterDept         bool         `json:"outer_dept,omitempty"`
+	OuterDeptOnlySelf string       `json:"outer_dept_only_self,omitempty"`
+	OuterPermitUsers  Strings      `json:"outer_permit_users,omitempty"`
+	OuterPermitDepts  Ints         `json:"outer_permit_depts,omitempty"`
+	CreateDeptGroup   bool         `json:"create_dept_group,omitempty"`
+	Order             int          `json:"order,omitempty"`
+	SourceIdentifier  string       `json:"source_identifier,omitempty"`
+	SubDeptList       []Department `json:"sub_dept_list,omitempty"`
 }
 
 type departmentGetRes struct {
@@ -108,4 +109,22 @@ func (d *DepartmentUpdateReq) SetOuterPermitDepts(outerPermitDepts string) *Depa
 func (d *DepartmentUpdateReq) SetOuterDeptOnlySelf(outerDeptOnlySelf string) *DepartmentUpdateReq {
 	d.OuterDeptOnlySelf = &outerDeptOnlySelf
 	return d
+}
+
+type DepartmentListsubRes struct {
+	OpenAPIResponse
+	Result []Department `json:"result"`
+}
+
+type departmentListRes struct {
+	OpenAPIResponse
+	Result []departmentV1 `json:"department"`
+}
+
+type departmentV1 struct {
+	ID              int    `json:"id"`
+	Name            string `json:"name"`
+	ParentID        int    `json:"parentid"`
+	CreateDeptGroup bool   `json:"createDeptGroup"`
+	AutoAddUser     bool   `json:"autoAddUser"`
 }

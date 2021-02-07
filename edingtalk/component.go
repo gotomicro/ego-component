@@ -394,3 +394,82 @@ func (c *Component) DepartmentDelete(did int) error {
 	}
 	return nil
 }
+
+// 获取部门下一级部门列表
+// 接口文档 https://ding-doc.dingtalk.com/document/app/obtain-the-department-list-v2
+// 调试文档 https://open-dev.dingtalk.com/apiExplorer#/jsapi?api=runtime.permission.requestAuthCode
+func (c *Component) DepartmentListsub(did int) (desp []Department, err error) {
+	token, err := c.GetAccessToken()
+	if err != nil {
+		return nil, fmt.Errorf("get user info token fail, %w", err)
+	}
+	var res DepartmentListsubRes
+	resp, err := c.ehttp.R().SetBody(payload{"dept_id": did}).SetResult(&res).Post(fmt.Sprintf(ApiDepartmentListsub, token))
+	if err != nil {
+		return nil, fmt.Errorf("department listsub request fail, %w", err)
+	}
+	if resp.StatusCode() != 200 || res.ErrCode != 0 {
+		return nil, fmt.Errorf("department listsub fail, %s", res)
+	}
+	return res.Result, nil
+}
+
+// 获取部门树，递归查询全部子部门
+// NOTICE: 只能查询Name,DeptID,CreateDeptGroup,ParentID,SubDeptList字段
+// 接口文档 https://ding-doc.dingtalk.com/document/app/obtain-the-department-list
+// 调试文档 https://open-dev.dingtalk.com/apiExplorer#/jsapi?api=runtime.permission.requestAuthCode
+func (c *Component) DepartmentTree(did int) (*Department, error) {
+	token, err := c.GetAccessToken()
+	if err != nil {
+		return nil, fmt.Errorf("get user info token fail, %w", err)
+	}
+	var res departmentListRes
+	resp, err := c.ehttp.R().SetBody(payload{"dept_id": did}).SetResult(&res).Get(fmt.Sprintf(ApiDepartmentList, token))
+	if err != nil {
+		return nil, fmt.Errorf("department listsub request fail, %w", err)
+	}
+	if resp.StatusCode() != 200 || res.ErrCode != 0 {
+		return nil, fmt.Errorf("department listsub fail, %s", res)
+	}
+
+	return castDepV1ToDepV2(res.Result), nil
+}
+
+func castDepV1ToDepV2(depv1 []departmentV1) *Department {
+	depv1Map := make(map[int][]departmentV1)
+	for _, v := range depv1 {
+		if _, ok := depv1Map[v.ParentID]; !ok {
+			depv1Map[v.ParentID] = make([]departmentV1, 0)
+		}
+		depv1Map[v.ParentID] = append(depv1Map[v.ParentID], v)
+	}
+	depv1Root := depv1Map[0][0]
+	depv2Root := &Department{
+		Name:            depv1Root.Name,
+		DeptId:          depv1Root.ID,
+		CreateDeptGroup: depv1Root.CreateDeptGroup,
+		ParentId:        depv1Root.ParentID,
+		SubDeptList:     make([]Department, 0),
+	}
+	buildDepTree(depv2Root, depv1Map)
+	return depv2Root
+}
+
+func buildDepTree(d *Department, depv1Map map[int][]departmentV1) {
+	// 说明无子节点
+	if _, ok := depv1Map[d.DeptId]; !ok {
+		return
+	}
+	// 有子节点
+	for _, val := range depv1Map[d.DeptId] {
+		newD := Department{
+			Name:        val.Name,
+			DeptId:      val.ID,
+			ParentId:    val.ParentID,
+			SubDeptList: make([]Department, 0),
+		}
+		buildDepTree(&newD, depv1Map)
+		d.SubDeptList = append(d.SubDeptList, newD)
+	}
+	return
+}
