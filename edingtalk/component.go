@@ -60,41 +60,36 @@ func (c *Component) GetAccessToken() (token string, err error) {
 	accessTokenBytes, err := c.eredis.GetBytes(c.Config.RedisPrefix + c.Config.RedisBaseToken)
 	// 系统错误返回
 	if err != nil && !errors.Is(err, redis.Nil) {
-		err = fmt.Errorf("refresh access token get redis %w", err)
-		return
+		return "", fmt.Errorf("refresh access token get redis %w", err)
 	}
 
 	// 如果redis没数据，说明过期，重新获取数据
 	if errors.Is(err, redis.Nil) {
-		resp, err := c.ehttp.R().Get(fmt.Sprintf(ApiGetToken, c.Config.AppKey, c.Config.AppSecret))
+		_, err := c.ehttp.R().SetResult(&data).Get(fmt.Sprintf(ApiGetToken, c.Config.AppKey, c.Config.AppSecret))
 		if err != nil {
-			err = fmt.Errorf("refresh access token get dingding err %w", err)
-			return "", err
+			return "", fmt.Errorf("refresh access token get dingding fail, %w", err)
 		}
 		// todo 存在并发问题
-		err = json.Unmarshal(resp.Body(), &data)
-		if err != nil {
-			err = fmt.Errorf("refresh access token json unmarshal %w", err)
-			return "", err
+		if data.ErrCode != 0 {
+			return "", fmt.Errorf("get access token fail, %w", err)
 		}
-
 		bytes, err := json.Marshal(data)
 		if err != nil {
-			err = fmt.Errorf("refresh access token json marshal %w", err)
-			return "", err
+			return "", fmt.Errorf("refresh access token json marshal fail, %w", err)
 		}
 		// -60，可以提前过期，更新token数据
-		c.eredis.Set(c.Config.RedisPrefix+c.Config.RedisBaseToken, string(bytes), time.Duration(data.ExpireTime-60)*time.Second)
+		err = c.eredis.Set(c.Config.RedisPrefix+c.Config.RedisBaseToken, string(bytes), time.Duration(data.ExpireTime-60)*time.Second)
+		if err != nil {
+			return "", fmt.Errorf("set access token to redis fail, %w", err)
+		}
 		return data.AccessToken, err
 	}
 
-	err = json.Unmarshal(accessTokenBytes, &data)
-	if err != nil {
-		err = fmt.Errorf("refresh access token json unmarshal2 %w", err)
-		return "", err
+	if err = json.Unmarshal(accessTokenBytes, &data); err != nil {
+		return "", fmt.Errorf("refresh access token json unmarshal fail, %w", err)
 	}
-	token = data.AccessToken
-	return
+
+	return data.AccessToken, nil
 }
 
 // 获取用户信息
@@ -317,6 +312,29 @@ func (c *Component) UserListID(did int) ([]string, error) {
 		return nil, fmt.Errorf("user listid fail, %d,%s", resp.StatusCode(), res)
 	}
 	return res.Result.UserIDList, nil
+}
+
+// 获取部门用户详情
+// 接口文档 https://ding-doc.dingtalk.com/document/app/update-a-department-v2
+// 调试文档 https://open-dev.dingtalk.com/apiExplorer#/jsapi?api=runtime.permission.requestAuthCode
+func (c *Component) UserList(did, cursor, size int) (*UserListRes, error) {
+	token, err := c.GetAccessToken()
+	if err != nil {
+		return nil, fmt.Errorf("get user info token err %w", err)
+	}
+	var res userListRes
+	resp, err := c.ehttp.R().SetBody(payload{
+		"dept_id": did,
+		"cursor":  cursor,
+		"size":    size,
+	}).SetResult(&res).Post(fmt.Sprintf(ApiUserList, token))
+	if err != nil {
+		return nil, fmt.Errorf("user listid request fail, %w", err)
+	}
+	if resp.StatusCode() != 200 || res.ErrCode != 0 {
+		return nil, fmt.Errorf("user listid fail, %d,%s", resp.StatusCode(), res)
+	}
+	return res.Result, nil
 }
 
 // 获取部门详情
