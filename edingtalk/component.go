@@ -314,7 +314,7 @@ func (c *Component) UserListID(did int) ([]string, error) {
 	return res.Result.UserIDList, nil
 }
 
-// 获取部门用户详情
+// 获取部门用户详情，注意size最大为100，超过100钉钉会报错
 // 接口文档 https://ding-doc.dingtalk.com/document/app/update-a-department-v2
 // 调试文档 https://open-dev.dingtalk.com/apiExplorer#/jsapi?api=runtime.permission.requestAuthCode
 func (c *Component) UserList(did, cursor, size int) (*UserListRes, error) {
