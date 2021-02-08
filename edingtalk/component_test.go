@@ -100,10 +100,15 @@ func TestUserCreateGetUpdateDelete(t *testing.T) {
 
 func TestUserList(t *testing.T) {
 	cmp := newCmp()
-	res, err := cmp.UserList(1, 0, 10)
+	res, err := cmp.UserList(1, 0, 100)
 	assert.NoError(t, err)
 	assert.NotNil(t, res)
 	t.Log("userList res", res)
+
+	res, err = cmp.UserList(1, 0, 101)
+	assert.Error(t, err)
+	assert.Nil(t, res)
+	t.Log("userList err", err)
 }
 
 func TestDepartmentCreateGetUpdateDelete(t *testing.T) {
