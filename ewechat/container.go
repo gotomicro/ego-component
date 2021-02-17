@@ -24,7 +24,6 @@ import (
 
 	"github.com/gotomicro/ego-component/ewechat/cache"
 	"github.com/gotomicro/ego-component/ewechat/context"
-	"github.com/gotomicro/ego-component/ewechat/miniprogram"
 )
 
 type Container struct {
@@ -55,7 +54,7 @@ func Load(key string) *Container {
 }
 
 // Build
-func (con *Container) Build(options ...Option) *Container {
+func (con *Container) Build(options ...Option) *Component {
 	cfg := con.config
 	ctx := new(context.Context)
 	ctx.AppID = cfg.AppID
@@ -73,10 +72,8 @@ func (con *Container) Build(options ...Option) *Container {
 	for _, option := range options {
 		option(con)
 	}
-
 	ctx.Cache = con.client
-
-	return con
+	return newComponent(cfg, ctx, con.client, con.logger)
 }
 
 func WithRedis(client *eredis.Component) Option {
@@ -85,7 +82,3 @@ func WithRedis(client *eredis.Component) Option {
 	}
 }
 
-// GetMiniProgram 获取小程序的实例
-func (con *Container) GetMiniProgram() *miniprogram.MiniProgram {
-	return miniprogram.NewMiniProgram(con.Context)
-}
