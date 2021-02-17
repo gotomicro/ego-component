@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package token
+package etoken
 
 import (
 	"github.com/go-redis/redis"
@@ -30,7 +30,7 @@ type Container struct {
 func DefaultContainer() *Container {
 	return &Container{
 		config: DefaultConfig(),
-		logger:                    elog.EgoLogger.With(elog.FieldComponent(PackageName)),
+		logger: elog.EgoLogger.With(elog.FieldComponent(PackageName)),
 	}
 }
 
@@ -46,11 +46,11 @@ func Load(key string) *Container {
 }
 
 // Build
-func (con *Container) Build(options ...Option) *Container {
+func (con *Container) Build(options ...Option) *Component {
 	for _, option := range options {
 		option(con)
 	}
-	return con
+	return newComponent(con.config, con.client, con.logger)
 }
 
 func WithRedis(client *eredis.Component) Option {

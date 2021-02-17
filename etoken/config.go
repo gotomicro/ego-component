@@ -1,4 +1,4 @@
-package token
+package etoken
 
 type Option func(c *Container)
 

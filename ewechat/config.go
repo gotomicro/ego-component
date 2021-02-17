@@ -1,4 +1,4 @@
-package wechat
+package ewechat
 
 type Option func(c *Container)
 
