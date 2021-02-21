@@ -1,34 +1,18 @@
-// Copyright 2020 
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-// http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 package ewechat
 
 import (
-	"sync"
-
-	"github.com/go-resty/resty/v2"
 	"github.com/gotomicro/ego-component/eredis"
-	"github.com/gotomicro/ego/core/econf"
-	"github.com/gotomicro/ego/core/elog"
-
 	"github.com/gotomicro/ego-component/ewechat/cache"
 	"github.com/gotomicro/ego-component/ewechat/context"
+	"github.com/gotomicro/ego/client/ehttp"
+	"github.com/gotomicro/ego/core/econf"
+	"github.com/gotomicro/ego/core/elog"
+	"sync"
 )
 
 type Container struct {
-	config *Config
-	name string
+	config  *Config
+	name    string
 	Context *context.Context
 	client  cache.Cache
 	logger  *elog.Component
@@ -40,7 +24,6 @@ func DefaultContainer() *Container {
 		logger: elog.EgoLogger.With(elog.FieldComponent(ModName)),
 	}
 }
-
 
 // Invoker ...
 func Load(key string) *Container {
@@ -67,7 +50,14 @@ func (con *Container) Build(options ...Option) *Component {
 	con.Context = ctx
 	ctx.SetAccessTokenLock(new(sync.RWMutex))
 	ctx.SetJsAPITicketLock(new(sync.RWMutex))
-	ctx.RestyClient = resty.New().SetDebug(cfg.Debug)
+	ctx.RestyClient = ehttp.DefaultContainer().Build(
+		ehttp.WithDebug(cfg.Debug),
+		ehttp.WithRawDebug(cfg.RawDebug),
+		ehttp.WithReadTimeout(cfg.ReadTimeout),
+		ehttp.WithSlowLogThreshold(cfg.SlowLogThreshold),
+		ehttp.WithEnableAccessInterceptor(cfg.EnableAccessInterceptor),
+		ehttp.WithEnableAccessInterceptorReply(cfg.EnableAccessInterceptorReply),
+	)
 
 	for _, option := range options {
 		option(con)
@@ -81,4 +71,3 @@ func WithRedis(client *eredis.Component) Option {
 		c.client = client
 	}
 }
-
