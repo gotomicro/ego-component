@@ -1,7 +1,7 @@
 package context
 
 import (
-	"github.com/go-resty/resty/v2"
+	"github.com/gotomicro/ego/client/ehttp"
 	"net/http"
 	"sync"
 
@@ -19,7 +19,7 @@ type Context struct {
 	PayKey         string
 
 	Cache       cache.Cache
-	RestyClient *resty.Client
+	RestyClient *ehttp.Component
 
 	Writer  http.ResponseWriter
 	Request *http.Request
