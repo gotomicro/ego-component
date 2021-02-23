@@ -1,0 +1,4 @@
+[kubernetes]
+addr=""
+token=""
+namespaces=["default"]
