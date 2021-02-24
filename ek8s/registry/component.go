@@ -34,12 +34,12 @@ func newComponent(name string, config *Config, logger *elog.Component, client *e
 	return reg
 }
 
-// RegisterService register service to registry
+// RegisterService do noting
 func (reg *Component) RegisterService(ctx context.Context, info *server.ServiceInfo) error {
 	return nil
 }
 
-// UnregisterService unregister service from registry
+// UnregisterService do noting
 func (reg *Component) UnregisterService(ctx context.Context, info *server.ServiceInfo) error {
 	return nil
 }
