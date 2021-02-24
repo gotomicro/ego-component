@@ -15,7 +15,7 @@ import (
 	"time"
 )
 
-const PackageName = "component.ekubernetes"
+const PackageName = "component.ek8s"
 const defaultResync = 5 * time.Minute
 
 // Component ...

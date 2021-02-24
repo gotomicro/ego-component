@@ -1,7 +1,7 @@
 package registry
 
 import (
-	"github.com/gotomicro/ego-component/ekubernetes"
+	"github.com/gotomicro/ego-component/ek8s"
 	"github.com/gotomicro/ego/core/econf"
 	"github.com/gotomicro/ego/core/elog"
 )

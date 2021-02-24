@@ -3,7 +3,7 @@ package registry
 import (
 	"context"
 	"fmt"
-	"github.com/gotomicro/ego-component/ekubernetes"
+	"github.com/gotomicro/ego-component/ek8s"
 	"github.com/gotomicro/ego/core/elog"
 	"github.com/gotomicro/ego/core/eregistry"
 	"github.com/gotomicro/ego/server"

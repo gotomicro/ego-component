@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/gotomicro/ego"
-	"github.com/gotomicro/ego-component/ekubernetes"
+	"github.com/gotomicro/ego-component/ek8s"
 	"github.com/gotomicro/ego/core/elog"
 )
 
