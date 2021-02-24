@@ -40,7 +40,7 @@ func (wxa *MiniProgram) CheckImg(fileName string) (response ResSecurity, err err
 //// 文档地址： https://developers.weixin.qq.com/miniprogram/dev/api-backend/open-api/sec-check/security.imgSecCheck.html
 //func (wxa *MiniProgram) CheckMedia(fileName string) (response ResSecurity, err error) {
 //	var info  []byte
-//	info,err = wxa.Context.PostFile("media",fileName,getImgSecCheckURL)
+//	info,err = wxa.ctx.PostFile("media",fileName,getImgSecCheckURL)
 //	if err != nil {
 //		return
 //	}
