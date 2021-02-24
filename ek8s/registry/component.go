@@ -14,7 +14,7 @@ import (
 
 type Component struct {
 	name   string
-	client *ekubernetes.Component
+	client *ek8s.Component
 	kvs    sync.Map
 	Config *Config
 	cancel context.CancelFunc
@@ -22,7 +22,7 @@ type Component struct {
 	logger *elog.Component
 }
 
-func newComponent(name string, config *Config, logger *elog.Component, client *ekubernetes.Component) *Component {
+func newComponent(name string, config *Config, logger *elog.Component, client *ek8s.Component) *Component {
 	reg := &Component{
 		name:   name,
 		logger: logger,
@@ -72,7 +72,7 @@ func (reg *Component) WatchServices(ctx context.Context, addr string, scheme str
 		return nil, err
 	}
 
-	err = reg.client.WatchPrefix(context.Background(), appName)
+	err = reg.client.WatchPrefix(ctx, appName)
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +96,7 @@ func (reg *Component) WatchServices(ctx context.Context, addr string, scheme str
 	addresses <- *al.DeepCopy()
 	go func() {
 
-		for reg.client.ProcessWorkItem(func(info *ekubernetes.KubernetesEvent) error {
+		for reg.client.ProcessWorkItem(func(info *ek8s.KubernetesEvent) error {
 			switch info.EventType {
 			case watch.Added:
 				reg.updateAddrList(al, info.Pod.Status.PodIP+":"+port)

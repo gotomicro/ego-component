@@ -16,7 +16,7 @@ func main() {
 }
 
 func invokerGrpc() error {
-	obj := ekubernetes.Load("kubernetes").Build()
+	obj := ek8s.Load("kubernetes").Build()
 	list, err := obj.ListPod("svc-oss")
 	if err != nil {
 		panic(err)

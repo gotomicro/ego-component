@@ -20,7 +20,7 @@ func main() {
 }
 
 func invokerGrpc() error {
-	kubClient := ekubernetes.Load("kubernetes").Build()
+	kubClient := ek8s.Load("kubernetes").Build()
 	kubeRegistry := registry.Load("registry").Build(registry.WithClientKubernetes(kubClient))
 	resolver.Register("kubernetes", kubeRegistry)
 	grpcConn := egrpc.Load("grpc.test").Build()

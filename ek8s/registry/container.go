@@ -1,6 +1,7 @@
-package ekubernetes
+package registry
 
 import (
+	"github.com/gotomicro/ego-component/ekubernetes"
 	"github.com/gotomicro/ego/core/econf"
 	"github.com/gotomicro/ego/core/elog"
 )
@@ -11,12 +12,13 @@ type Container struct {
 	config *Config
 	name   string
 	logger *elog.Component
+	client *ek8s.Component
 }
 
 func DefaultContainer() *Container {
 	return &Container{
 		config: DefaultConfig(),
-		logger: elog.EgoLogger.With(elog.FieldComponent(PackageName)),
+		logger: elog.EgoLogger.With(elog.FieldComponent(ek8s.PackageName)),
 	}
 }
 
@@ -31,11 +33,23 @@ func Load(key string) *Container {
 	return c
 }
 
+func WithClientKubernetes(kubernetes *ek8s.Component) Option {
+	return func(c *Container) {
+		c.client = kubernetes
+	}
+}
+
 // Build ...
 func (c *Container) Build(options ...Option) *Component {
 	for _, option := range options {
 		option(c)
 	}
-	cc := newComponent(c.name, c.config, c.logger)
-	return cc
+	if c.client == nil {
+		if c.config.OnFailHandle == "panic" {
+			c.logger.Panic("client kubernetes nil", elog.FieldKey("use WithKubernetes method"))
+		} else {
+			c.logger.Error("client kubernetes nil", elog.FieldKey("use WithKubernetes method"))
+		}
+	}
+	return newComponent(c.name, c.config, c.logger, c.client)
 }

@@ -1,4 +1,4 @@
-package ekubernetes
+package ek8s
 
 import (
 	"context"
@@ -10,7 +10,6 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 	"time"
@@ -25,7 +24,7 @@ type Component struct {
 	config *Config
 	*kubernetes.Clientset
 	logger *elog.Component
-	queue  workqueue.Interface //shared by namespaced informers
+	queue  workqueue.Interface
 }
 
 type KubernetesEvent struct {
@@ -35,14 +34,7 @@ type KubernetesEvent struct {
 
 // New ...
 func newComponent(name string, config *Config, logger *elog.Component) *Component {
-	restConfig := &rest.Config{
-		Host:        config.Addr,
-		BearerToken: config.Token,
-		TLSClientConfig: rest.TLSClientConfig{
-			Insecure: true,
-		},
-	}
-	client, err := kubernetes.NewForConfig(restConfig)
+	client, err := kubernetes.NewForConfig(config.toRestConfig())
 	if err != nil {
 		logger.Panic("new component err", elog.FieldErr(err))
 	}
