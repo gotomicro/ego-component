@@ -64,6 +64,9 @@ func (c *Container) Build(options ...Option) *Component {
 		c.config.Mode = StubMode
 		if count > 1 {
 			c.config.Mode = ClusterMode
+			if c.config.MasterName != "" {
+				c.config.Mode = SentinelMode
+			}
 		}
 	}
 	var client redis.Cmdable
@@ -78,6 +81,11 @@ func (c *Container) Build(options ...Option) *Component {
 			c.logger.Warn("redis config has more than 1 address but with stub mode")
 		}
 		client = c.buildStub()
+	case SentinelMode:
+		if count > 1 {
+			c.logger.Warn("redis config has more than 1 address but with stub mode")
+		}
+		client = c.buildSentinel()
 	default:
 		c.logger.Panic("redis mode must be one of (stub, cluster)")
 	}
@@ -116,6 +124,34 @@ func (c *Container) buildCluster() *redis.ClusterClient {
 		}
 	}
 	return clusterClient
+}
+
+func (c *Container) buildSentinel() *redis.Client {
+	sentinelClient := redis.NewFailoverClient(&redis.FailoverOptions{
+		MasterName:    c.config.MasterName,
+		SentinelAddrs: c.config.Addrs,
+		Password:      c.config.Password,
+		DB:            c.config.DB,
+		MaxRetries:    c.config.MaxRetries,
+		DialTimeout:   c.config.DialTimeout,
+		ReadTimeout:   c.config.ReadTimeout,
+		WriteTimeout:  c.config.WriteTimeout,
+		PoolSize:      c.config.PoolSize,
+		MinIdleConns:  c.config.MinIdleConns,
+		IdleTimeout:   c.config.IdleTimeout,
+	})
+
+	sentinelClient.WrapProcess(InterceptorChain(c.config.interceptors...))
+
+	if err := sentinelClient.Ping().Err(); err != nil {
+		switch c.config.OnFail {
+		case "panic":
+			c.logger.Panic("start sentinel redis", elog.FieldErr(err))
+		default:
+			c.logger.Error("start sentinel redis", elog.FieldErr(err))
+		}
+	}
+	return sentinelClient
 }
 
 func (c *Container) buildStub() *redis.Client {

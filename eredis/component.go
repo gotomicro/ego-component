@@ -29,3 +29,11 @@ func (r *Component) Stub() *redis.Client {
 	}
 	return nil
 }
+
+// Sentinel try to get a redis Failover Sentinel Client
+func (r *Component) Sentinel() *redis.Client {
+	if c, ok := r.Client.(*redis.Client); ok {
+		return c
+	}
+	return nil
+}

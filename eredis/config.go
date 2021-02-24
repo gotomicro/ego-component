@@ -1,22 +1,26 @@
 package eredis
 
 import (
-	"github.com/gotomicro/ego/core/util/xtime"
 	"time"
+
+	"github.com/gotomicro/ego/core/util/xtime"
 )
 
 const (
 	// ClusterMode using clusterClient
 	ClusterMode string = "cluster"
-	// StubMode using reidsClient
+	// StubMode using stubClient
 	StubMode string = "stub"
+	// SentinelMode using Failover sentinel Client
+	SentinelMode string = "sentinel"
 )
 
-// Config for redis, contains RedisStubConfig and RedisClusterConfig
+// Config for redis, contains RedisStubConfig, RedisClusterConfig and RedisSentinelConfig
 type Config struct {
 	Addrs                      []string      // Addrs 实例配置地址
 	Addr                       string        // Addr stubConfig 实例配置地址
-	Mode                       string        // Mode Redis模式 cluster|stub
+	Mode                       string        // Mode Redis模式 cluster|stub|sentinel
+	MasterName                 string        // MasterName 哨兵主节点名称，sentinel模式下需要配置此项
 	Password                   string        // Password 密码
 	DB                         int           // DB，默认为0, 一般应用不推荐使用DB分片
 	PoolSize                   int           // PoolSize 集群内每个节点的最大连接池限制 默认每个CPU10个连接
