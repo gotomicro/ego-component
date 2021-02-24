@@ -34,7 +34,7 @@ func InterceptorChain(interceptors ...Interceptor) func(oldProcess processFn) pr
 	}
 }
 
-func debugInterceptor(compName string, c *Config) func(processFn) processFn {
+func debugInterceptor(compName string, c *config) func(processFn) processFn {
 	return func(oldProcess processFn) processFn {
 		return func(cmd *cmd) error {
 			beg := time.Now()
@@ -58,7 +58,7 @@ func debugInterceptor(compName string, c *Config) func(processFn) processFn {
 	}
 }
 
-func metricInterceptor(compName string, c *Config, logger *elog.Component) func(processFn) processFn {
+func metricInterceptor(compName string, c *config, logger *elog.Component) func(processFn) processFn {
 	return func(oldProcess processFn) processFn {
 		return func(cmd *cmd) error {
 			beg := time.Now()
@@ -80,7 +80,7 @@ func metricInterceptor(compName string, c *Config, logger *elog.Component) func(
 	}
 }
 
-func accessInterceptor(compName string, c *Config, logger *elog.Component) func(processFn) processFn {
+func accessInterceptor(compName string, c *config, logger *elog.Component) func(processFn) processFn {
 	return func(oldProcess processFn) processFn {
 		return func(cmd *cmd) error {
 			beg := time.Now()

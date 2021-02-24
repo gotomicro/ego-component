@@ -21,7 +21,7 @@ func main() {
 var eredisClient *eredis.Component
 
 func invokerRedis() error {
-	eredisClient = eredis.Load("redis.test").Build(eredis.WithStub())
+	eredisClient = eredis.Load("redis.test").Build()
 	return nil
 }
 

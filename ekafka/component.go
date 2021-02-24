@@ -8,7 +8,7 @@ const PackageName = "component.ekafka"
 
 // Component kafka 组件，包含Client、Producers、Consumers
 type Component struct {
-	Config    *Config
+	config    *config
 	logger    *elog.Component
 	client    *Client
 	consumers map[string]*Consumer

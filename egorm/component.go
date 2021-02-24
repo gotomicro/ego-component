@@ -61,7 +61,7 @@ type (
 type Component = gorm.DB
 
 // newComponent ...
-func newComponent(compName string, config *Config, logger *elog.Component) (*Component, error) {
+func newComponent(compName string, config *config, logger *elog.Component) (*Component, error) {
 	gormDB, err := gorm.Open(config.Dialect, config.DSN)
 	if err != nil {
 		return nil, err

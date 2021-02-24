@@ -11,7 +11,7 @@ import (
 type Option func(c *Container)
 
 type Container struct {
-	config *Config
+	config *config
 	name   string
 	logger *elog.Component
 }
@@ -56,44 +56,34 @@ func (c *Container) Build(options ...Option) *Component {
 		option(c)
 	}
 
-	count := len(c.config.Addrs)
-	if count < 1 {
-		c.logger.Panic("no address in redis config")
-	}
-	if len(c.config.Mode) == 0 {
-		c.config.Mode = StubMode
-		if count > 1 {
-			c.config.Mode = ClusterMode
-			if c.config.MasterName != "" {
-				c.config.Mode = SentinelMode
-			}
-		}
-	}
 	var client redis.Cmdable
 	switch c.config.Mode {
 	case ClusterMode:
-		if count == 1 {
-			c.logger.Warn("redis config has only 1 address but with cluster mode")
+		if len(c.config.Addrs) == 0 {
+			c.logger.Panic(`invalid "addrs" config, "addrs" has none addresses but with cluster mode"`)
 		}
 		client = c.buildCluster()
 	case StubMode:
-		if count > 1 {
-			c.logger.Warn("redis config has more than 1 address but with stub mode")
+		if c.config.Addr == "" {
+			c.logger.Panic(`invalid "addr" config, "addr" is empty but with cluster mode"`)
 		}
 		client = c.buildStub()
 	case SentinelMode:
-		if count > 1 {
-			c.logger.Warn("redis config has more than 1 address but with stub mode")
+		if len(c.config.Addrs) == 0 {
+			c.logger.Panic(`invalid "addrs" config, "addrs" has none addresses but with sentinel mode"`)
+		}
+		if c.config.MasterName == "" {
+			c.logger.Panic(`invalid "masterName" config, "masterName" is empty but with sentinel mode"`)
 		}
 		client = c.buildSentinel()
 	default:
-		c.logger.Panic("redis mode must be one of (stub, cluster)")
+		c.logger.Panic(`redis mode must be one of ("stub", "cluster", "sentinel")`)
 	}
 
 	c.logger = c.logger.With(elog.FieldAddr(fmt.Sprintf("%s", c.config.Addrs)))
 	return &Component{
-		Config: c.config,
-		Client: client,
+		config: c.config,
+		client: client,
 		logger: c.logger,
 	}
 }
@@ -156,7 +146,7 @@ func (c *Container) buildSentinel() *redis.Client {
 
 func (c *Container) buildStub() *redis.Client {
 	stubClient := redis.NewClient(&redis.Options{
-		Addr:         c.config.Addrs[0],
+		Addr:         c.config.Addr,
 		Password:     c.config.Password,
 		DB:           c.config.DB,
 		MaxRetries:   c.config.MaxRetries,

@@ -5,8 +5,8 @@ type Option func(c *Container)
 // PackageName ..
 const PackageName = "contrib.token"
 
-// Config
-type Config struct {
+// config
+type config struct {
 	AccessTokenIss            string
 	AccessTokenKey            string
 	AccessTokenExpireInterval int64
@@ -14,8 +14,8 @@ type Config struct {
 }
 
 // DefaultConfig ...
-func DefaultConfig() *Config {
-	return &Config{
+func DefaultConfig() *config {
+	return &config{
 		AccessTokenIss:            "git.yitum.com/mygomod/yitea-contib",
 		AccessTokenKey:            "ecologysK#xo",
 		AccessTokenExpireInterval: 24 * 3600,

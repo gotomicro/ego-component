@@ -1,4 +1,4 @@
-// Copyright 2020 
+// Copyright 2020
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,22 +23,22 @@ import (
 )
 
 type Component struct {
-	Config *Config
-	ctx *context.Context
-	client  cache.Cache
-	logger  *elog.Component
+	config *config
+	ctx    *context.Context
+	client cache.Cache
+	logger *elog.Component
 }
 
-func newComponent(cfg *Config, ctx *context.Context, client cache.Cache, logger *elog.Component) *Component {
+func newComponent(cfg *config, ctx *context.Context, client cache.Cache, logger *elog.Component) *Component {
 	return &Component{
-		Config: cfg,
-		ctx: ctx,
+		config: cfg,
+		ctx:    ctx,
 		client: client,
 		logger: logger,
 	}
 }
 
 // GetMiniProgram 获取小程序的实例
-func (con *Component) GetMiniProgram() *miniprogram.MiniProgram {
-	return miniprogram.NewMiniProgram(con.ctx)
+func (c *Component) GetMiniProgram() *miniprogram.MiniProgram {
+	return miniprogram.NewMiniProgram(c.ctx)
 }

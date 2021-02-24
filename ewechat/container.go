@@ -11,7 +11,7 @@ import (
 )
 
 type Container struct {
-	config  *Config
+	config  *config
 	name    string
 	Context *context.Context
 	client  cache.Cache

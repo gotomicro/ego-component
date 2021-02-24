@@ -11,12 +11,12 @@ const (
 	ClusterMode string = "cluster"
 	// StubMode using stubClient
 	StubMode string = "stub"
-	// SentinelMode using Failover sentinel Client
+	// SentinelMode using Failover sentinel client
 	SentinelMode string = "sentinel"
 )
 
-// Config for redis, contains RedisStubConfig, RedisClusterConfig and RedisSentinelConfig
-type Config struct {
+// config for redis, contains RedisStubConfig, RedisClusterConfig and RedisSentinelConfig
+type config struct {
 	Addrs                      []string      // Addrs 实例配置地址
 	Addr                       string        // Addr stubConfig 实例配置地址
 	Mode                       string        // Mode Redis模式 cluster|stub|sentinel
@@ -42,8 +42,9 @@ type Config struct {
 }
 
 // DefaultConfig default config ...
-func DefaultConfig() *Config {
-	return &Config{
+func DefaultConfig() *config {
+	return &config{
+		Mode:                    StubMode,
 		DB:                      0,
 		PoolSize:                10,
 		MaxRetries:              3,

@@ -1,7 +1,7 @@
 package esession
 
-// Config
-type Config struct {
+// config
+type config struct {
 	Mode     string // session模式，默认redis，目前只支持redis
 	Name     string // session名称
 	Size     int
@@ -13,8 +13,8 @@ type Config struct {
 }
 
 // DefaultConfig 定义了esession默认配置
-func DefaultConfig() *Config {
-	return &Config{
+func DefaultConfig() *config {
+	return &config{
 		Mode: "redis",
 	}
 }

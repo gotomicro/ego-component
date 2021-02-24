@@ -22,13 +22,13 @@ const PackageName = "component.eetcd"
 // Component ...
 type Component struct {
 	name   string
-	Config *Config
+	config *config
 	logger *elog.Component
 	*clientv3.Client
 }
 
 // New ...
-func newComponent(name string, config *Config, logger *elog.Component) *Component {
+func newComponent(name string, config *config, logger *elog.Component) *Component {
 	conf := clientv3.Config{
 		Endpoints:            config.Addrs,
 		DialTimeout:          config.ConnectTimeout,
@@ -100,7 +100,7 @@ func newComponent(name string, config *Config, logger *elog.Component) *Componen
 		name:   name,
 		logger: logger,
 		Client: client,
-		Config: config,
+		config: config,
 	}
 
 	logger.Info("dial etcd server")
@@ -108,8 +108,8 @@ func newComponent(name string, config *Config, logger *elog.Component) *Componen
 }
 
 // GetKeyValue queries etcd key, returns mvccpb.KeyValue
-func (client *Component) GetKeyValue(ctx context.Context, key string) (kv *mvccpb.KeyValue, err error) {
-	rp, err := client.Client.Get(ctx, key)
+func (c *Component) GetKeyValue(ctx context.Context, key string) (kv *mvccpb.KeyValue, err error) {
+	rp, err := c.Client.Get(ctx, key)
 	if err != nil {
 		return nil, err
 	}
@@ -122,12 +122,12 @@ func (client *Component) GetKeyValue(ctx context.Context, key string) (kv *mvccp
 }
 
 // GetPrefix get prefix
-func (client *Component) GetPrefix(ctx context.Context, prefix string) (map[string]string, error) {
+func (c *Component) GetPrefix(ctx context.Context, prefix string) (map[string]string, error) {
 	var (
 		vars = make(map[string]string)
 	)
 
-	resp, err := client.Get(ctx, prefix, clientv3.WithPrefix())
+	resp, err := c.Get(ctx, prefix, clientv3.WithPrefix())
 	if err != nil {
 		return vars, err
 	}
@@ -140,8 +140,8 @@ func (client *Component) GetPrefix(ctx context.Context, prefix string) (map[stri
 }
 
 // DelPrefix 按前缀删除
-func (client *Component) DelPrefix(ctx context.Context, prefix string) (deleted int64, err error) {
-	resp, err := client.Delete(ctx, prefix, clientv3.WithPrefix())
+func (c *Component) DelPrefix(ctx context.Context, prefix string) (deleted int64, err error) {
+	resp, err := c.Delete(ctx, prefix, clientv3.WithPrefix())
 	if err != nil {
 		return 0, err
 	}
@@ -149,7 +149,7 @@ func (client *Component) DelPrefix(ctx context.Context, prefix string) (deleted 
 }
 
 // GetValues queries etcd for keys prefixed by prefix.
-func (client *Component) GetValues(ctx context.Context, keys ...string) (map[string]string, error) {
+func (c *Component) GetValues(ctx context.Context, keys ...string) (map[string]string, error) {
 	var (
 		firstRevision = int64(0)
 		vars          = make(map[string]string)
@@ -167,7 +167,7 @@ func (client *Component) GetValues(ctx context.Context, keys ...string) (map[str
 				clientv3.WithRev(firstRevision)))
 		}
 
-		result, err := client.Txn(ctx).Then(txnOps...).Commit()
+		result, err := c.Txn(ctx).Then(txnOps...).Commit()
 		if err != nil {
 			return err
 		}
@@ -206,7 +206,7 @@ func (client *Component) GetValues(ctx context.Context, keys ...string) (map[str
 	return vars, nil
 }
 
-//GetLeaseSession 创建租约会话
-func (client *Component) GetLeaseSession(ctx context.Context, opts ...concurrency.SessionOption) (leaseSession *concurrency.Session, err error) {
-	return concurrency.NewSession(client.Client, opts...)
+// GetLeaseSession 创建租约会话
+func (c *Component) GetLeaseSession(ctx context.Context, opts ...concurrency.SessionOption) (leaseSession *concurrency.Session, err error) {
+	return concurrency.NewSession(c.Client, opts...)
 }

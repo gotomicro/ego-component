@@ -1,26 +1,23 @@
 package eredis
 
-import (
-	"github.com/gotomicro/ego/core/elog"
-)
-
-// WithStub 注入stub配置
+// WithStub set mode to "stub"
 func WithStub() Option {
 	return func(c *Container) {
-		if c.config.Addr == "" && len(c.config.Addrs) == 0 {
-			c.logger.Panic("no address in redis config", elog.FieldName(c.name))
-		}
-		if c.config.Addr != "" {
-			c.config.Addrs = []string{c.config.Addr}
-		}
 		c.config.Mode = StubMode
 	}
 }
 
-// WithCluster 注入Cluster配置
+// WithStub set mode to "cluster"
 func WithCluster() Option {
 	return func(c *Container) {
 		c.config.Mode = ClusterMode
+	}
+}
+
+// WithStub set mode to "sentinel"
+func WithSentinel() Option {
+	return func(c *Container) {
+		c.config.Mode = SentinelMode
 	}
 }
 

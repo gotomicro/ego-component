@@ -7,7 +7,7 @@ import (
 )
 
 // Config ...
-type Config struct {
+type config struct {
 	Addrs            []string      `json:"endpoints"`
 	CertFile         string        `json:"certFile"`
 	KeyFile          string        `json:"keyFile"`
@@ -22,8 +22,8 @@ type Config struct {
 }
 
 // DefaultConfig 返回默认配置
-func DefaultConfig() *Config {
-	return &Config{
+func DefaultConfig() *config {
+	return &config{
 		BasicAuth:      false,
 		ConnectTimeout: xtime.Duration("5s"),
 		Secure:         false,
