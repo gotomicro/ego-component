@@ -1,0 +1,17 @@
+[kubernetes]
+addr=""
+token=""
+namespaces=["default"]
+
+[registry]
+connectTimeout = "1s"
+secure = false
+
+[grpc.test]
+debug = true # 开启后并加上export EGO_DEBUG=true，可以看到每次grpc请求，配置名、地址、耗时、请求数据、响应数据
+addr = "kubernetes:///test:9090"
+#balancerName = "round_robin" # 默认值
+#dialTimeout = "1s" # 默认值
+#enableAccessInterceptor = true
+#enableAccessInterceptorReply = true
+#enableAccessInterceptorReq = true
