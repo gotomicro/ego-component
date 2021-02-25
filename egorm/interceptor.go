@@ -18,9 +18,9 @@ import (
 type Handler func(*Scope)
 
 // Interceptor ...
-type Interceptor func(string, *DSN, string, *Config, *elog.Component) func(next Handler) Handler
+type Interceptor func(string, *DSN, string, *config, *elog.Component) func(next Handler) Handler
 
-func debugInterceptor(compName string, dsn *DSN, op string, options *Config, logger *elog.Component) func(Handler) Handler {
+func debugInterceptor(compName string, dsn *DSN, op string, options *config, logger *elog.Component) func(Handler) Handler {
 	return func(next Handler) Handler {
 		return func(scope *Scope) {
 			beg := time.Now()
@@ -43,7 +43,7 @@ func debugInterceptor(compName string, dsn *DSN, op string, options *Config, log
 	}
 }
 
-func metricInterceptor(compName string, dsn *DSN, op string, config *Config, logger *elog.Component) func(Handler) Handler {
+func metricInterceptor(compName string, dsn *DSN, op string, config *config, logger *elog.Component) func(Handler) Handler {
 	return func(next Handler) Handler {
 		return func(scope *Scope) {
 			beg := time.Now()
@@ -102,7 +102,7 @@ func logSQL(sql string, args []interface{}, containArgs bool) string {
 	return sql
 }
 
-func traceInterceptor(compName string, dsn *DSN, op string, options *Config, logger *elog.Component) func(Handler) Handler {
+func traceInterceptor(compName string, dsn *DSN, op string, options *config, logger *elog.Component) func(Handler) Handler {
 	return func(next Handler) Handler {
 		return func(scope *Scope) {
 			if val, ok := scope.Get("_context"); ok {

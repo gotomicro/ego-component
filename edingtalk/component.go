@@ -25,7 +25,7 @@ import (
 const PackageName = "component.edingtalk"
 
 type Component struct {
-	Config      *Config
+	config      *config
 	ehttp       *ehttp.Component
 	eredis      *eredis.Component
 	logger      *elog.Component
@@ -34,7 +34,7 @@ type Component struct {
 }
 
 // newComponent ...
-func newComponent(compName string, config *Config, logger *elog.Component) *Component {
+func newComponent(compName string, config *config, logger *elog.Component) *Component {
 	ehttpClient := ehttp.DefaultContainer().Build(
 		ehttp.WithDebug(config.Debug),
 		ehttp.WithRawDebug(config.RawDebug),
@@ -46,7 +46,7 @@ func newComponent(compName string, config *Config, logger *elog.Component) *Comp
 	)
 
 	return &Component{
-		Config: config,
+		config: config,
 		ehttp:  ehttpClient,
 		logger: logger,
 		eredis: config.eredis,
@@ -57,7 +57,7 @@ func newComponent(compName string, config *Config, logger *elog.Component) *Comp
 // https://ding-doc.dingtalk.com/document#/org-dev-guide/obtain-access_token
 func (c *Component) GetAccessToken() (token string, err error) {
 	var data AccessTokenResponse
-	accessTokenBytes, err := c.eredis.GetBytes(c.Config.RedisPrefix + c.Config.RedisBaseToken)
+	accessTokenBytes, err := c.eredis.GetBytes(c.config.RedisPrefix + c.config.RedisBaseToken)
 	// 系统错误返回
 	if err != nil && !errors.Is(err, redis.Nil) {
 		return "", fmt.Errorf("refresh access token get redis %w", err)
@@ -65,7 +65,7 @@ func (c *Component) GetAccessToken() (token string, err error) {
 
 	// 如果redis没数据，说明过期，重新获取数据
 	if errors.Is(err, redis.Nil) {
-		_, err := c.ehttp.R().SetResult(&data).Get(fmt.Sprintf(ApiGetToken, c.Config.AppKey, c.Config.AppSecret))
+		_, err := c.ehttp.R().SetResult(&data).Get(fmt.Sprintf(ApiGetToken, c.config.AppKey, c.config.AppSecret))
 		if err != nil {
 			return "", fmt.Errorf("refresh access token get dingding fail, %w", err)
 		}
@@ -78,7 +78,7 @@ func (c *Component) GetAccessToken() (token string, err error) {
 			return "", fmt.Errorf("refresh access token json marshal fail, %w", err)
 		}
 		// -60，可以提前过期，更新token数据
-		err = c.eredis.Set(c.Config.RedisPrefix+c.Config.RedisBaseToken, string(bytes), time.Duration(data.ExpireTime-60)*time.Second)
+		err = c.eredis.Set(c.config.RedisPrefix+c.config.RedisBaseToken, string(bytes), time.Duration(data.ExpireTime-60)*time.Second)
 		if err != nil {
 			return "", fmt.Errorf("set access token to redis fail, %w", err)
 		}
@@ -125,20 +125,20 @@ func (c *Component) Oauth2SnsAuthorize(state string) string {
 	// 最大300s
 	// ctx.SetCookie(c.Config.Oauth2StateCookieName, url.QueryEscape(hashedState), 300, "/", "", false, true)
 	// ctx.Redirect(http.StatusFound, fmt.Sprintf(Addr+ApiOauth2Redirect, c.Config.Oauth2AppKey, state, c.Config.Oauth2RedirectUri))
-	return fmt.Sprintf(Addr+ApiOauth2SnsAuthorize, c.Config.Oauth2AppKey, state, c.Config.Oauth2RedirectUri)
+	return fmt.Sprintf(Addr+ApiOauth2SnsAuthorize, c.config.Oauth2AppKey, state, c.config.Oauth2RedirectUri)
 }
 
 func (c *Component) Oauth2Qrconnect(state string) string {
-	return fmt.Sprintf(Addr+ApiOauth2Qrconnect, c.Config.Oauth2AppKey, state, c.Config.Oauth2RedirectUri)
+	return fmt.Sprintf(Addr+ApiOauth2Qrconnect, c.config.Oauth2AppKey, state, c.config.Oauth2RedirectUri)
 }
 
 // 根据code，获取用户信息
 // todo code state
 func (c *Component) Oauth2UserInfo(code string) (user UserInfoDetail, err error) {
 	timestamp := strconv.FormatInt(time.Now().UnixNano()/1000000, 10) // 毫秒时间戳
-	signature := encryptHMAC(timestamp, c.Config.Oauth2AppSecret)
+	signature := encryptHMAC(timestamp, c.config.Oauth2AppSecret)
 	// 获取用户的union信息
-	resp, err := c.ehttp.R().SetBody(gin.H{"tmp_auth_code": code}).Post(fmt.Sprintf(ApiGetUserInfoByCode, c.Config.Oauth2AppKey, timestamp, signature))
+	resp, err := c.ehttp.R().SetBody(gin.H{"tmp_auth_code": code}).Post(fmt.Sprintf(ApiGetUserInfoByCode, c.config.Oauth2AppKey, timestamp, signature))
 	if err != nil {
 		return UserInfoDetail{}, fmt.Errorf("oauth2 user info get http err %w", err)
 	}
@@ -201,7 +201,7 @@ func genRandState() (string, error) {
 }
 
 func (c *Component) hashStateCode(code, seed string) string {
-	hashBytes := sha256.Sum256([]byte(code + c.Config.Oauth2AppKey + seed))
+	hashBytes := sha256.Sum256([]byte(code + c.config.Oauth2AppKey + seed))
 	return hex.EncodeToString(hashBytes[:])
 }
 

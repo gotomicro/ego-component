@@ -7,8 +7,8 @@ type Option func(c *Container)
 // ModName ..
 const ModName = "contrib.wechat"
 
-// Config
-type Config struct {
+// config
+type config struct {
 	AppID          string
 	AppSecret      string
 	Token          string
@@ -26,6 +26,6 @@ type Config struct {
 }
 
 // DefaultConfig ...
-func DefaultConfig() *Config {
-	return &Config{}
+func DefaultConfig() *config {
+	return &config{}
 }

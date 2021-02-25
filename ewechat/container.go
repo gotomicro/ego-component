@@ -11,11 +11,11 @@ import (
 )
 
 type Container struct {
-	config  *Config
-	name    string
-	Context *context.Context
-	client  cache.Cache
-	logger  *elog.Component
+	config *config
+	name   string
+	ctx    *context.Context
+	client cache.Cache
+	logger *elog.Component
 }
 
 func DefaultContainer() *Container {
@@ -47,7 +47,7 @@ func (con *Container) Build(options ...Option) *Component {
 	ctx.PayMchID = cfg.PayMchID
 	ctx.PayKey = cfg.PayKey
 	ctx.PayNotifyURL = cfg.PayNotifyURL
-	con.Context = ctx
+	con.ctx = ctx
 	ctx.SetAccessTokenLock(new(sync.RWMutex))
 	ctx.SetJsAPITicketLock(new(sync.RWMutex))
 	ctx.RestyClient = ehttp.DefaultContainer().Build(

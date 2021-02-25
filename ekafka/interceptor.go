@@ -35,7 +35,7 @@ func InterceptorChain(interceptors ...Interceptor) func(oldProcess processFn) pr
 	}
 }
 
-func debugInterceptor(compName string, c *Config) func(processFn) processFn {
+func debugInterceptor(compName string, c *config) func(processFn) processFn {
 	return func(oldProcess processFn) processFn {
 		return func(cmd *cmd) error {
 			beg := time.Now()

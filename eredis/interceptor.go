@@ -32,7 +32,7 @@ func InterceptorChain(interceptors ...Interceptor) func(oldProcess func(cmd redi
 	}
 }
 
-func debugInterceptor(compName string, config *Config, logger *elog.Component) Interceptor {
+func debugInterceptor(compName string, config *config, logger *elog.Component) Interceptor {
 	return func(oldProcess CmdHandler) CmdHandler {
 		return func(cmd redis.Cmder) error {
 			beg := time.Now()
@@ -56,7 +56,7 @@ func debugInterceptor(compName string, config *Config, logger *elog.Component) I
 	}
 }
 
-func metricInterceptor(compName string, config *Config, logger *elog.Component) Interceptor {
+func metricInterceptor(compName string, config *config, logger *elog.Component) Interceptor {
 	return func(oldProcess CmdHandler) CmdHandler {
 		return func(cmd redis.Cmder) error {
 			beg := time.Now()
@@ -78,7 +78,7 @@ func metricInterceptor(compName string, config *Config, logger *elog.Component) 
 	}
 }
 
-func accessInterceptor(compName string, config *Config, logger *elog.Component) Interceptor {
+func accessInterceptor(compName string, config *config, logger *elog.Component) Interceptor {
 	return func(oldProcess CmdHandler) CmdHandler {
 		return func(cmd redis.Cmder) error {
 			beg := time.Now()

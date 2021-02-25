@@ -31,8 +31,8 @@ func (w *Watch) IncipientKeyValues() []*mvccpb.KeyValue {
 }
 
 // NewWatch ...
-func (client *Component) WatchPrefix(ctx context.Context, prefix string) (*Watch, error) {
-	resp, err := client.Get(ctx, prefix, clientv3.WithPrefix())
+func (c *Component) WatchPrefix(ctx context.Context, prefix string) (*Watch, error) {
+	resp, err := c.Get(ctx, prefix, clientv3.WithPrefix())
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +46,7 @@ func (client *Component) WatchPrefix(ctx context.Context, prefix string) (*Watch
 	xgo.Go(func() {
 		ctx, cancel := context.WithCancel(context.Background())
 		w.cancel = cancel
-		rch := client.Client.Watch(ctx, prefix, clientv3.WithPrefix(), clientv3.WithCreatedNotify(), clientv3.WithRev(w.revision))
+		rch := c.Client.Watch(ctx, prefix, clientv3.WithPrefix(), clientv3.WithCreatedNotify(), clientv3.WithRev(w.revision))
 		for {
 			for n := range rch {
 				if n.CompactRevision > w.revision {
@@ -56,23 +56,23 @@ func (client *Component) WatchPrefix(ctx context.Context, prefix string) (*Watch
 					w.revision = n.Header.GetRevision()
 				}
 				if err := n.Err(); err != nil {
-					client.logger.Error("watch error", elog.FieldErr(err), elog.FieldAddr(prefix))
+					c.logger.Error("watch error", elog.FieldErr(err), elog.FieldAddr(prefix))
 					continue
 				}
 				for _, ev := range n.Events {
 					select {
 					case w.eventChan <- ev:
 					default:
-						client.logger.Error("watch etcd with prefix", elog.Any("err", "block event chan, drop event message"))
+						c.logger.Error("watch etcd with prefix", elog.Any("err", "block event chan, drop event message"))
 					}
 				}
 			}
 			ctx, cancel := context.WithCancel(context.Background())
 			w.cancel = cancel
 			if w.revision > 0 {
-				rch = client.Watch(ctx, prefix, clientv3.WithPrefix(), clientv3.WithCreatedNotify(), clientv3.WithRev(w.revision))
+				rch = c.Watch(ctx, prefix, clientv3.WithPrefix(), clientv3.WithCreatedNotify(), clientv3.WithRev(w.revision))
 			} else {
-				rch = client.Watch(ctx, prefix, clientv3.WithPrefix(), clientv3.WithCreatedNotify())
+				rch = c.Watch(ctx, prefix, clientv3.WithPrefix(), clientv3.WithCreatedNotify())
 			}
 		}
 	})

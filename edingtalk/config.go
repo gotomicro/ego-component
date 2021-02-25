@@ -6,7 +6,7 @@ import (
 )
 
 // config options
-type Config struct {
+type config struct {
 	CorpID                string
 	AgentID               int
 	AppKey                string // 用于企业内部接口
@@ -28,8 +28,8 @@ type Config struct {
 }
 
 // DefaultConfig 返回默认配置
-func DefaultConfig() *Config {
-	return &Config{
+func DefaultConfig() *config {
+	return &config{
 		CorpID:                "",
 		AgentID:               0,
 		AppKey:                "",

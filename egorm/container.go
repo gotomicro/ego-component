@@ -9,7 +9,7 @@ import (
 type Option func(c *Container)
 
 type Container struct {
-	config *Config
+	config *config
 	name   string
 	logger *elog.Component
 }

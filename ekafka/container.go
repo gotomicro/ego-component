@@ -11,7 +11,7 @@ import (
 type Option func(c *Container)
 
 type Container struct {
-	config *Config
+	config *config
 	name   string
 	logger *elog.Component
 }
@@ -51,7 +51,7 @@ func (c *Container) Build(options ...Option) *Component {
 
 	c.logger = c.logger.With(elog.FieldAddr(fmt.Sprintf("%s", c.config.Brokers)))
 	cmp := &Component{
-		Config: c.config,
+		config: c.config,
 		logger: c.logger,
 	}
 	// 初始化client

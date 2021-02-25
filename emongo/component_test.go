@@ -12,7 +12,7 @@ import (
 
 func newColl() *Collection {
 	cmp := DefaultContainer().Build(WithDSN(os.Getenv("EMONGO_DSN")))
-	coll := cmp.Client.Database("test").Collection("cells")
+	coll := cmp.Client().Database("test").Collection("cells")
 	return coll
 }
 

@@ -13,10 +13,10 @@ type Mutex struct {
 }
 
 // NewMutex ...
-func (client *Component) NewMutex(key string, opts ...concurrency.SessionOption) (mutex *Mutex, err error) {
+func (c *Component) NewMutex(key string, opts ...concurrency.SessionOption) (mutex *Mutex, err error) {
 	mutex = &Mutex{}
 	// 默认session ttl = 60s
-	mutex.s, err = concurrency.NewSession(client.Client, opts...)
+	mutex.s, err = concurrency.NewSession(c.Client, opts...)
 	if err != nil {
 		return
 	}

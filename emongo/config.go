@@ -6,7 +6,7 @@ import (
 	"github.com/gotomicro/ego/core/util/xtime"
 )
 
-type Config struct {
+type config struct {
 	// DSN DSN地址
 	DSN string `json:"dsn" toml:"dsn"`
 	// Debug 是否开启debug模式
@@ -29,8 +29,8 @@ type Config struct {
 }
 
 // DefaultConfig 返回默认配置
-func DefaultConfig() *Config {
-	return &Config{
+func DefaultConfig() *config {
+	return &config{
 		DSN:           "",
 		Debug:         true,
 		SocketTimeout: xtime.Duration("300s"),

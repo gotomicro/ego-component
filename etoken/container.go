@@ -1,4 +1,4 @@
-// Copyright 2020 
+// Copyright 2020
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,9 +22,9 @@ import (
 )
 
 type Container struct {
-	config *Config
-	client                    *redis.Client
-	logger                    *elog.Component
+	config *config
+	client *redis.Client
+	logger *elog.Component
 }
 
 func DefaultContainer() *Container {
@@ -58,4 +58,3 @@ func WithRedis(client *eredis.Component) Option {
 		c.client = client.Stub()
 	}
 }
-

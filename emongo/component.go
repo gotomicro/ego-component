@@ -8,7 +8,12 @@ const PackageName = "component.emongo"
 
 // Component client (cmdable and config)
 type Component struct {
-	Config *Config
-	Client *Client
+	config *config
+	client *Client
 	logger *elog.Component
+}
+
+// Client returns emongo Client
+func (c *Component) Client() *Client {
+	return c.client
 }

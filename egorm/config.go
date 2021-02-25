@@ -7,7 +7,7 @@ import (
 )
 
 // config options
-type Config struct {
+type config struct {
 	Dialect                    string        // 选择数据库种类，默认mysql
 	DSN                        string        // DSN地址: mysql://root:secret@tcp(127.0.0.1:3306)/mysql?charset=utf8mb4&collation=utf8mb4_general_ci&parseTime=True&loc=Local&timeout=1s&readTimeout=3s&writeTimeout=3s
 	Debug                      bool          // 是否开启调试，默认不开启，开启后并加上export EGO_DEBUG=true，可以看到每次请求，配置名、地址、耗时、请求数据、响应数据
@@ -28,8 +28,8 @@ type Config struct {
 }
 
 // DefaultConfig 返回默认配置
-func DefaultConfig() *Config {
-	return &Config{
+func DefaultConfig() *config {
+	return &config{
 		DSN:                     "",
 		Dialect:                 "mysql",
 		Debug:                   false,

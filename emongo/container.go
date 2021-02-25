@@ -15,7 +15,7 @@ import (
 type Option func(c *Container)
 
 type Container struct {
-	config *Config
+	config *config
 	name   string
 	logger *elog.Component
 }
@@ -41,7 +41,7 @@ func Load(key string) *Container {
 	return c
 }
 
-func (c *Container) newSession(config Config) *Client {
+func (c *Container) newSession(config config) *Client {
 	// check config param
 	c.isConfigErr(config)
 	mps := uint64(config.PoolLimit)
@@ -76,7 +76,7 @@ func get(name string) *mongo.Client {
 	return nil
 }
 
-func (c *Container) isConfigErr(config Config) {
+func (c *Container) isConfigErr(config config) {
 	if config.SocketTimeout == time.Duration(0) {
 		c.logger.Panic("invalid config", elog.FieldExtMessage("socketTimeout"))
 	}
@@ -106,8 +106,8 @@ func (c *Container) Build(options ...Option) *Component {
 	c.logger = c.logger.With(elog.FieldAddr(fmt.Sprintf("%s", c.config.DSN)))
 	client := c.newSession(*c.config)
 	return &Component{
-		Config: c.config,
-		Client: client,
+		config: c.config,
+		client: client,
 		logger: c.logger,
 	}
 }
