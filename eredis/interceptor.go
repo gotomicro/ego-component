@@ -1,69 +1,118 @@
 package eredis
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log"
 	"strings"
 	"time"
 
-	"github.com/go-redis/redis"
-	"github.com/gotomicro/ego/core/eapp"
+	"github.com/go-redis/redis/v8"
 	"github.com/gotomicro/ego/core/elog"
 	"github.com/gotomicro/ego/core/emetric"
 	"github.com/gotomicro/ego/core/util/xdebug"
 )
 
-type CmdHandler func(cmd redis.Cmder) error
+const ctxBegKey = "_cmdResBegin_"
 
-type Interceptor func(oldProcess CmdHandler) CmdHandler
+type interceptor struct {
+	beforeProcess         func(ctx context.Context, cmd redis.Cmder) (context.Context, error)
+	afterProcess          func(ctx context.Context, cmd redis.Cmder) error
+	beforeProcessPipeline func(ctx context.Context, cmds []redis.Cmder) (context.Context, error)
+	afterProcessPipeline  func(ctx context.Context, cmds []redis.Cmder) error
+}
 
-func InterceptorChain(interceptors ...Interceptor) func(oldProcess func(cmd redis.Cmder) error) func(cmd redis.Cmder) error {
-	build := func(interceptor Interceptor, oldProcess CmdHandler) CmdHandler {
-		return interceptor(oldProcess)
-	}
+func (i *interceptor) BeforeProcess(ctx context.Context, cmd redis.Cmder) (context.Context, error) {
+	return i.beforeProcess(ctx, cmd)
+}
 
-	return func(oldProcess func(cmd redis.Cmder) error) func(cmd redis.Cmder) error {
-		chain := oldProcess
-		for i := len(interceptors) - 1; i >= 0; i-- {
-			chain = build(interceptors[i], chain)
-		}
-		return chain
+func (i *interceptor) AfterProcess(ctx context.Context, cmd redis.Cmder) error {
+	return i.afterProcess(ctx, cmd)
+}
+
+func (i *interceptor) BeforeProcessPipeline(ctx context.Context, cmds []redis.Cmder) (context.Context, error) {
+	return i.beforeProcessPipeline(ctx, cmds)
+}
+
+func (i *interceptor) AfterProcessPipeline(ctx context.Context, cmds []redis.Cmder) error {
+	return i.afterProcessPipeline(ctx, cmds)
+}
+
+func newInterceptor(compName string, config *config, logger *elog.Component) *interceptor {
+	return &interceptor{
+		beforeProcess: func(ctx context.Context, cmd redis.Cmder) (context.Context, error) {
+			return ctx, nil
+		},
+		afterProcess: func(ctx context.Context, cmd redis.Cmder) error {
+			return nil
+		},
+		beforeProcessPipeline: func(ctx context.Context, cmds []redis.Cmder) (context.Context, error) {
+			return ctx, nil
+		},
+		afterProcessPipeline: func(ctx context.Context, cmds []redis.Cmder) error {
+			return nil
+		},
 	}
 }
 
-func debugInterceptor(compName string, config *config, logger *elog.Component) Interceptor {
-	return func(oldProcess CmdHandler) CmdHandler {
-		return func(cmd redis.Cmder) error {
-			beg := time.Now()
-			err := oldProcess(cmd)
-			cost := time.Since(beg)
-			if eapp.IsDevelopmentMode() {
-				if err != nil {
-					log.Println("[eredis.response]",
-						xdebug.MakeReqResError(compName, fmt.Sprintf("%v", config.Addrs), cost, fmt.Sprintf("%v", cmd.Args()), err.Error()),
-					)
-				} else {
-					log.Println("[eredis.response]",
-						xdebug.MakeReqResInfo(compName, fmt.Sprintf("%v", config.Addrs), cost, fmt.Sprintf("%v", cmd.Args()), response(cmd)),
-					)
-				}
-			} else {
-				// todo log debug info
+func (i *interceptor) setBeforeProcess(p func(ctx context.Context, cmd redis.Cmder) (context.Context, error)) *interceptor {
+	i.beforeProcess = p
+	return i
+}
+
+func (i *interceptor) setAfterProcess(p func(ctx context.Context, cmd redis.Cmder) error) *interceptor {
+	i.afterProcess = p
+	return i
+}
+
+func (i *interceptor) setBeforeProcessPipeline(p func(ctx context.Context, cmds []redis.Cmder) (context.Context, error)) *interceptor {
+	i.beforeProcessPipeline = p
+	return i
+}
+
+func (i *interceptor) setAfterProcessPipeline(p func(ctx context.Context, cmds []redis.Cmder) error) *interceptor {
+	i.afterProcessPipeline = p
+	return i
+}
+
+func fixedInterceptor(compName string, config *config, logger *elog.Component) *interceptor {
+	return newInterceptor(compName, config, logger).
+		setBeforeProcess(func(ctx context.Context, cmd redis.Cmder) (context.Context, error) {
+			return context.WithValue(ctx, ctxBegKey, time.Now()), nil
+		}).
+		setAfterProcess(func(ctx context.Context, cmd redis.Cmder) error {
+			var err = cmd.Err()
+			if err != nil {
+				err = fmt.Errorf("eredis exec command %s fail, %w", cmd.Name(), err)
 			}
 			return err
-		}
-	}
+		})
 }
 
-func metricInterceptor(compName string, config *config, logger *elog.Component) Interceptor {
-	return func(oldProcess CmdHandler) CmdHandler {
-		return func(cmd redis.Cmder) error {
-			beg := time.Now()
-			err := oldProcess(cmd)
-			cost := time.Since(beg)
-			// error metric
-			if err != nil {
+func debugInterceptor(compName string, config *config, logger *elog.Component) *interceptor {
+	return newInterceptor(compName, config, logger).setAfterProcess(
+		func(ctx context.Context, cmd redis.Cmder) error {
+			cost := time.Since(ctx.Value(ctxBegKey).(time.Time))
+			if err := cmd.Err(); err != nil {
+				log.Println("[eredis.response]",
+					xdebug.MakeReqResError(compName, fmt.Sprintf("%v", config.Addrs), cost, fmt.Sprintf("%v", cmd.Args()), err.Error()),
+				)
+			} else {
+				log.Println("[eredis.response]",
+					xdebug.MakeReqResInfo(compName, fmt.Sprintf("%v", config.Addrs), cost, fmt.Sprintf("%v", cmd.Args()), response(cmd)),
+				)
+			}
+			return nil
+		},
+	)
+}
+
+func metricInterceptor(compName string, config *config, logger *elog.Component) *interceptor {
+	return newInterceptor(compName, config, logger).setAfterProcess(
+		func(ctx context.Context, cmd redis.Cmder) error {
+			cost := time.Since(ctx.Value(ctxBegKey).(time.Time))
+			if err := cmd.Err(); err != nil {
 				if errors.Is(err, redis.Nil) {
 					emetric.ClientHandleCounter.Inc(emetric.TypeRedis, compName, cmd.Name(), strings.Join(config.Addrs, ","), "Empty")
 				} else {
@@ -73,25 +122,23 @@ func metricInterceptor(compName string, config *config, logger *elog.Component) 
 				emetric.ClientHandleCounter.Inc(emetric.TypeRedis, compName, cmd.Name(), strings.Join(config.Addrs, ","), "OK")
 			}
 			emetric.ClientHandleHistogram.WithLabelValues(emetric.TypeRedis, compName, cmd.Name(), strings.Join(config.Addrs, ",")).Observe(cost.Seconds())
-			return err
-		}
-	}
+			return nil
+		},
+	)
 }
 
-func accessInterceptor(compName string, config *config, logger *elog.Component) Interceptor {
-	return func(oldProcess CmdHandler) CmdHandler {
-		return func(cmd redis.Cmder) error {
-			beg := time.Now()
-			err := oldProcess(cmd)
-			cost := time.Since(beg)
-
+func accessInterceptor(compName string, config *config, logger *elog.Component) *interceptor {
+	return newInterceptor(compName, config, logger).setAfterProcess(
+		func(ctx context.Context, cmd redis.Cmder) error {
 			var fields = make([]elog.Field, 0, 15)
+			var err = cmd.Err()
+			cost := time.Since(ctx.Value(ctxBegKey).(time.Time))
 			fields = append(fields, elog.FieldComponentName(compName), elog.FieldMethod(cmd.Name()), elog.FieldCost(cost))
 
 			if config.EnableAccessInterceptorReq {
 				fields = append(fields, elog.Any("req", cmd.Args()))
 			}
-			if config.EnableAccessInterceptorRes && cmd.Err() == nil {
+			if config.EnableAccessInterceptorRes && err == nil {
 				fields = append(fields, elog.Any("res", response(cmd)))
 			}
 			isErrLog := false
@@ -118,8 +165,8 @@ func accessInterceptor(compName string, config *config, logger *elog.Component) 
 				logger.Info("access", fields...)
 			}
 			return err
-		}
-	}
+		},
+	)
 }
 
 func response(cmd redis.Cmder) string {

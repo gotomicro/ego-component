@@ -1,9 +1,10 @@
 package eredis
 
 import (
+	"context"
 	"fmt"
 
-	"github.com/go-redis/redis"
+	"github.com/go-redis/redis/v8"
 	"github.com/gotomicro/ego/core/econf"
 	"github.com/gotomicro/ego/core/elog"
 )
@@ -43,14 +44,15 @@ func (c *Container) Build(options ...Option) *Component {
 		options = make([]Option, 0)
 	}
 
+	options = append(options, withInterceptor(fixedInterceptor(c.name, c.config, c.logger)))
 	if c.config.Debug {
-		options = append(options, WithInterceptor(debugInterceptor(c.name, c.config, c.logger)))
+		options = append(options, withInterceptor(debugInterceptor(c.name, c.config, c.logger)))
 	}
 	if c.config.EnableMetricInterceptor {
-		options = append(options, WithInterceptor(metricInterceptor(c.name, c.config, c.logger)))
+		options = append(options, withInterceptor(metricInterceptor(c.name, c.config, c.logger)))
 	}
 	if c.config.EnableAccessInterceptor {
-		options = append(options, WithInterceptor(accessInterceptor(c.name, c.config, c.logger)))
+		options = append(options, withInterceptor(accessInterceptor(c.name, c.config, c.logger)))
 	}
 	for _, option := range options {
 		option(c)
@@ -103,9 +105,11 @@ func (c *Container) buildCluster() *redis.ClusterClient {
 		IdleTimeout:  c.config.IdleTimeout,
 	})
 
-	clusterClient.WrapProcess(InterceptorChain(c.config.interceptors...))
+	for _, incpt := range c.config.interceptors {
+		clusterClient.AddHook(incpt)
+	}
 
-	if err := clusterClient.Ping().Err(); err != nil {
+	if err := clusterClient.Ping(context.Background()).Err(); err != nil {
 		switch c.config.OnFail {
 		case "panic":
 			c.logger.Panic("start cluster redis", elog.FieldErr(err))
@@ -131,9 +135,11 @@ func (c *Container) buildSentinel() *redis.Client {
 		IdleTimeout:   c.config.IdleTimeout,
 	})
 
-	sentinelClient.WrapProcess(InterceptorChain(c.config.interceptors...))
+	for _, incpt := range c.config.interceptors {
+		sentinelClient.AddHook(incpt)
+	}
 
-	if err := sentinelClient.Ping().Err(); err != nil {
+	if err := sentinelClient.Ping(context.Background()).Err(); err != nil {
 		switch c.config.OnFail {
 		case "panic":
 			c.logger.Panic("start sentinel redis", elog.FieldErr(err))
@@ -158,9 +164,11 @@ func (c *Container) buildStub() *redis.Client {
 		IdleTimeout:  c.config.IdleTimeout,
 	})
 
-	stubClient.WrapProcess(InterceptorChain(c.config.interceptors...))
+	for _, incpt := range c.config.interceptors {
+		stubClient.AddHook(incpt)
+	}
 
-	if err := stubClient.Ping().Err(); err != nil {
+	if err := stubClient.Ping(context.Background()).Err(); err != nil {
 		switch c.config.OnFail {
 		case "panic":
 			c.logger.Panic("start stub redis", elog.FieldErr(err))

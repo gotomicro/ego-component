@@ -1,6 +1,7 @@
 package eredis
 
 import (
+	"context"
 	"strings"
 	"testing"
 
@@ -25,7 +26,7 @@ func newCmp() *Component {
 
 func TestSentinel(t *testing.T) {
 	cmp := newCmp()
-	res, err := cmp.Ping()
+	res, err := cmp.Ping(context.TODO())
 	assert.NoError(t, err)
 	t.Log("ping result", res)
 }

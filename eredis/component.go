@@ -1,7 +1,7 @@
 package eredis
 
 import (
-	"github.com/go-redis/redis"
+	"github.com/go-redis/redis/v8"
 	"github.com/gotomicro/ego/core/elog"
 )
 
@@ -14,7 +14,7 @@ type Component struct {
 	logger *elog.Component
 }
 
-// Client returns a universal redis client(ClusterClient, StubClient or SentinelClient), it depends on you config.
+// Locker returns a universal redis client(ClusterClient, StubClient or SentinelClient), it depends on you config.
 func (r *Component) Client() redis.Cmdable {
 	return r.client
 }

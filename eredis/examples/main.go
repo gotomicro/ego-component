@@ -1,10 +1,15 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"fmt"
+
+	"github.com/go-redis/redis/v8"
 	"github.com/gotomicro/ego"
-	"github.com/gotomicro/ego-component/eredis"
 	"github.com/gotomicro/ego/core/elog"
+
+	"github.com/gotomicro/ego-component/eredis"
 )
 
 // export EGO_DEBUG=true && go run main.go --config=config.toml
@@ -26,14 +31,14 @@ func invokerRedis() error {
 }
 
 func testRedis() error {
-	err := eredisClient.Set("hello", "world", 0)
-	if err != nil {
-		fmt.Println(err)
-	}
-	str, err := eredisClient.GetString("hello")
-	if err != nil {
-		fmt.Println(err)
-	}
-	fmt.Println(str)
+	err := eredisClient.Set(context.Background(), "hello", "world", 0)
+	fmt.Println("set hello", err)
+
+	str, err := eredisClient.Get(context.Background(), "hello")
+	fmt.Println("get hello", str, err)
+
+	str, err = eredisClient.Get(context.Background(), "lee")
+	fmt.Println("Get lee", err, errors.Is(err, redis.Nil))
+
 	return nil
 }

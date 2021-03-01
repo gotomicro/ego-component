@@ -1,12 +1,13 @@
 package etoken
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
-	"github.com/go-redis/redis"
+	"github.com/go-redis/redis/v8"
 	"github.com/gotomicro/ego/core/elog"
 )
 
@@ -38,7 +39,7 @@ func (c *Component) CreateAccessToken(uid int, startTime int64) (resp AccessToke
 		return
 	}
 
-	err = c.client.Set(fmt.Sprintf(c.config.TokenPrefix+tokenKeyPattern, uid), tokenString,
+	err = c.client.Set(context.Background(), fmt.Sprintf(c.config.TokenPrefix+tokenKeyPattern, uid), tokenString,
 		time.Duration(c.config.AccessTokenExpireInterval)*time.Second).Err()
 	if err != nil {
 		return AccessTokenTicket{}, fmt.Errorf("set token error %v", err)
@@ -55,7 +56,7 @@ func (c *Component) CheckAccessToken(tokenStr string) bool {
 	}
 	uid := sc["jti"].(float64)
 	uidInt := int(uid)
-	err = c.client.Get(fmt.Sprintf(c.config.TokenPrefix+tokenKeyPattern, uidInt)).Err()
+	err = c.client.Get(context.Background(), fmt.Sprintf(c.config.TokenPrefix+tokenKeyPattern, uidInt)).Err()
 	if err != nil {
 		return false
 	}
