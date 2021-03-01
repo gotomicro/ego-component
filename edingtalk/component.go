@@ -1,6 +1,7 @@
 package edingtalk
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
@@ -57,7 +58,7 @@ func newComponent(compName string, config *config, logger *elog.Component) *Comp
 // https://ding-doc.dingtalk.com/document#/org-dev-guide/obtain-access_token
 func (c *Component) GetAccessToken() (token string, err error) {
 	var data AccessTokenResponse
-	accessTokenBytes, err := c.eredis.GetBytes(c.config.RedisPrefix + c.config.RedisBaseToken)
+	accessTokenBytes, err := c.eredis.GetBytes(context.Background(), c.config.RedisPrefix+c.config.RedisBaseToken)
 	// 系统错误返回
 	if err != nil && !errors.Is(err, redis.Nil) {
 		return "", fmt.Errorf("refresh access token get redis %w", err)
@@ -78,7 +79,7 @@ func (c *Component) GetAccessToken() (token string, err error) {
 			return "", fmt.Errorf("refresh access token json marshal fail, %w", err)
 		}
 		// -60，可以提前过期，更新token数据
-		err = c.eredis.Set(c.config.RedisPrefix+c.config.RedisBaseToken, string(bytes), time.Duration(data.ExpireTime-60)*time.Second)
+		err = c.eredis.Set(context.Background(), c.config.RedisPrefix+c.config.RedisBaseToken, string(bytes), time.Duration(data.ExpireTime-60)*time.Second)
 		if err != nil {
 			return "", fmt.Errorf("set access token to redis fail, %w", err)
 		}
