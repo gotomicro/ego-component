@@ -15,7 +15,7 @@
 package etoken
 
 import (
-	"github.com/go-redis/redis"
+	"github.com/go-redis/redis/v8"
 	"github.com/gotomicro/ego-component/eredis"
 	"github.com/gotomicro/ego/core/econf"
 	"github.com/gotomicro/ego/core/elog"

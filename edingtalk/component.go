@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-redis/redis"
+	"github.com/go-redis/redis/v8"
 	"github.com/gotomicro/ego-component/eredis"
 	"github.com/gotomicro/ego/client/ehttp"
 	"github.com/gotomicro/ego/core/elog"

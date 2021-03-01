@@ -1,5 +1,9 @@
 package eredis
 
+import (
+	"github.com/go-redis/redis/v8"
+)
+
 // WithStub set mode to "stub"
 func WithStub() Option {
 	return func(c *Container) {
@@ -21,11 +25,11 @@ func WithSentinel() Option {
 	}
 }
 
-// WithInterceptor 注入拦截器
-func WithInterceptor(interceptors ...Interceptor) Option {
+// withInterceptor 注入拦截器
+func withInterceptor(interceptors ...redis.Hook) Option {
 	return func(c *Container) {
 		if c.config.interceptors == nil {
-			c.config.interceptors = make([]Interceptor, 0)
+			c.config.interceptors = make([]redis.Hook, 0, len(interceptors))
 		}
 		c.config.interceptors = append(c.config.interceptors, interceptors...)
 	}

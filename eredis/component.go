@@ -1,7 +1,7 @@
 package eredis
 
 import (
-	"github.com/go-redis/redis"
+	"github.com/go-redis/redis/v8"
 	"github.com/gotomicro/ego/core/elog"
 )
 
