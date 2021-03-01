@@ -1,22 +1,24 @@
 package context
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/go-redis/redis/v8"
 	"sync"
 	"time"
+
+	"github.com/go-redis/redis/v8"
 
 	"github.com/gotomicro/ego-component/ewechat/util"
 )
 
 const (
-	//AccessTokenURL 获取access_token的接口
+	// AccessTokenURL 获取access_token的接口
 	AccessTokenURL = "https://api.weixin.qq.com/cgi-bin/token"
 )
 
-//ResAccessToken struct
+// ResAccessToken struct
 type ResAccessToken struct {
 	util.CommonError
 
@@ -24,20 +26,20 @@ type ResAccessToken struct {
 	ExpiresIn   int64  `json:"expires_in"`
 }
 
-//GetAccessTokenFunc 获取 access token 的函数签名
+// GetAccessTokenFunc 获取 access token 的函数签名
 type GetAccessTokenFunc func(ctx *Context) (accessToken string, err error)
 
-//SetAccessTokenLock 设置读写锁（一个appID一个读写锁）
+// SetAccessTokenLock 设置读写锁（一个appID一个读写锁）
 func (ctx *Context) SetAccessTokenLock(l *sync.RWMutex) {
 	ctx.accessTokenLock = l
 }
 
-//SetGetAccessTokenFunc 设置自定义获取accessToken的方式, 需要自己实现缓存
+// SetGetAccessTokenFunc 设置自定义获取accessToken的方式, 需要自己实现缓存
 func (ctx *Context) SetGetAccessTokenFunc(f GetAccessTokenFunc) {
 	ctx.accessTokenFunc = f
 }
 
-//GetAccessToken 获取access_token
+// GetAccessToken 获取access_token
 func (ctx *Context) GetAccessToken() (accessToken string, err error) {
 	ctx.accessTokenLock.Lock()
 	defer ctx.accessTokenLock.Unlock()
@@ -46,7 +48,7 @@ func (ctx *Context) GetAccessToken() (accessToken string, err error) {
 		return ctx.accessTokenFunc(ctx)
 	}
 	accessTokenCacheKey := fmt.Sprintf("access_token_%s", ctx.AppID)
-	accessToken, err = ctx.Cache.GetString(accessTokenCacheKey)
+	accessToken, err = ctx.Cache.Get(context.Background(), accessTokenCacheKey)
 	if err != nil && !errors.Is(err, redis.Nil) {
 		return "", err
 	}
@@ -54,7 +56,7 @@ func (ctx *Context) GetAccessToken() (accessToken string, err error) {
 		return accessToken, nil
 	}
 
-	//从微信服务器获取
+	// 从微信服务器获取
 	var resAccessToken ResAccessToken
 	resAccessToken, err = ctx.GetAccessTokenFromServer()
 	if err != nil {
@@ -66,7 +68,7 @@ func (ctx *Context) GetAccessToken() (accessToken string, err error) {
 	return
 }
 
-//GetAccessTokenFromServer 强制从微信服务器获取token
+// GetAccessTokenFromServer 强制从微信服务器获取token
 func (ctx *Context) GetAccessTokenFromServer() (resAccessToken ResAccessToken, err error) {
 	url := fmt.Sprintf("%s?grant_type=client_credential&appid=%s&secret=%s", AccessTokenURL, ctx.AppID, ctx.AppSecret)
 	var body []byte
@@ -86,7 +88,7 @@ func (ctx *Context) GetAccessTokenFromServer() (resAccessToken ResAccessToken, e
 
 	accessTokenCacheKey := fmt.Sprintf("access_token_%s", ctx.AppID)
 	expires := resAccessToken.ExpiresIn - 1500
-	err = ctx.Cache.Set(accessTokenCacheKey, resAccessToken.AccessToken, time.Duration(expires)*time.Second)
+	err = ctx.Cache.Set(context.Background(), accessTokenCacheKey, resAccessToken.AccessToken, time.Duration(expires)*time.Second)
 	if err != nil {
 		err = fmt.Errorf("set token error %w", err)
 		return

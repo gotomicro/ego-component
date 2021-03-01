@@ -1,6 +1,7 @@
 package context
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -24,7 +25,7 @@ type ComponentAccessToken struct {
 // GetComponentAccessToken 获取 ComponentAccessToken
 func (ctx *Context) GetComponentAccessToken() (string, error) {
 	accessTokenCacheKey := fmt.Sprintf("component_access_token_%s", ctx.AppID)
-	val, err := ctx.Cache.GetString(accessTokenCacheKey)
+	val, err := ctx.Cache.Get(context.Background(), accessTokenCacheKey)
 	if err != nil {
 		return "", err
 	}
@@ -53,7 +54,7 @@ func (ctx *Context) SetComponentAccessToken(verifyTicket string) (*ComponentAcce
 
 	accessTokenCacheKey := fmt.Sprintf("component_access_token_%s", ctx.AppID)
 	expires := at.ExpiresIn - 1500
-	ctx.Cache.Set(accessTokenCacheKey, at.AccessToken, time.Duration(expires)*time.Second)
+	ctx.Cache.Set(context.Background(), accessTokenCacheKey, at.AccessToken, time.Duration(expires)*time.Second)
 	return at, nil
 }
 
@@ -158,7 +159,7 @@ func (ctx *Context) RefreshAuthrToken(appid, refreshToken string) (*AuthrAccessT
 	}
 
 	authrTokenKey := "authorizer_access_token_" + appid
-	ctx.Cache.Set(authrTokenKey, ret.AccessToken, time.Minute*80)
+	ctx.Cache.Set(context.Background(), authrTokenKey, ret.AccessToken, time.Minute*80)
 
 	return ret, nil
 }
@@ -166,7 +167,7 @@ func (ctx *Context) RefreshAuthrToken(appid, refreshToken string) (*AuthrAccessT
 // GetAuthrAccessToken 获取授权方AccessToken
 func (ctx *Context) GetAuthrAccessToken(appid string) (string, error) {
 	authrTokenKey := "authorizer_access_token_" + appid
-	val, err := ctx.Cache.GetString(authrTokenKey)
+	val, err := ctx.Cache.Get(context.Background(), authrTokenKey)
 	if err != nil {
 		return "", err
 	}

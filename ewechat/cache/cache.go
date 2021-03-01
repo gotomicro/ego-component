@@ -1,11 +1,14 @@
 package cache
 
-import "time"
+import (
+	"context"
+	"time"
+)
 
 // Cache interface
 type Cache interface {
-	GetString(key string) (string, error)
-	Set(key string, value interface{}, expire time.Duration) error
-	Exists(key string) (bool, error)
-	Del(key string) (int64, error)
+	Get(ctx context.Context, key string) (string, error)
+	Set(ctx context.Context, key string, value interface{}, expire time.Duration) error
+	Exists(ctx context.Context, key string) (bool, error)
+	Del(ctx context.Context, key string) (int64, error)
 }
