@@ -84,9 +84,10 @@ func (c *Container) Build(options ...Option) *Component {
 
 	c.logger = c.logger.With(elog.FieldAddr(fmt.Sprintf("%s", c.config.Addrs)))
 	return &Component{
-		config: c.config,
-		client: client,
-		logger: c.logger,
+		config:     c.config,
+		client:     client,
+		lockClient: &lockClient{client: client},
+		logger:     c.logger,
 	}
 }
 

@@ -9,9 +9,10 @@ const PackageName = "component.eredis"
 
 // Component client (cmdable and config)
 type Component struct {
-	config *config
-	client redis.Cmdable
-	logger *elog.Component
+	config     *config
+	client     redis.Cmdable
+	lockClient *lockClient
+	logger     *elog.Component
 }
 
 // Client returns a universal redis client(ClusterClient, StubClient or SentinelClient), it depends on you config.
@@ -41,4 +42,9 @@ func (r *Component) Sentinel() *redis.Client {
 		return c
 	}
 	return nil
+}
+
+// LockClient gets default distributed lock client
+func (r *Component) LockClient() *lockClient {
+	return r.lockClient
 }

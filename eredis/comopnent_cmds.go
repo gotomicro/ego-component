@@ -8,13 +8,6 @@ import (
 	"github.com/go-redis/redis/v8"
 )
 
-// NewLockClient gets a distributed lock client
-func (r *Component) NewLockClient() *lockClient {
-	return &lockClient{
-		client: r.client,
-	}
-}
-
 // Ping
 func (r *Component) Ping(ctx context.Context) (string, error) {
 	return r.client.Ping(ctx).Result()
