@@ -14,7 +14,7 @@ type Component struct {
 	logger *elog.Component
 }
 
-// Locker returns a universal redis client(ClusterClient, StubClient or SentinelClient), it depends on you config.
+// Client returns a universal redis client(ClusterClient, StubClient or SentinelClient), it depends on you config.
 func (r *Component) Client() redis.Cmdable {
 	return r.client
 }

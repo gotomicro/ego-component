@@ -13,9 +13,9 @@ import (
 
 func TestLock(t *testing.T) {
 	cmp := newCmpLock(t)
-	l := cmp.NewLockClient()
+	lockClient := cmp.NewLockClient()
 	ctx := context.Background()
-	lock, err := l.Obtain(ctx, "my-key", 100*time.Millisecond)
+	lock, err := lockClient.Obtain(ctx, "my-key", 100*time.Millisecond)
 	if err == ErrNotObtained {
 		t.Log("Could not obtain lock!")
 	} else if err != nil {
