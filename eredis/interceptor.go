@@ -83,7 +83,9 @@ func fixedInterceptor(compName string, config *config, logger *elog.Component) *
 		}).
 		setAfterProcess(func(ctx context.Context, cmd redis.Cmder) error {
 			var err = cmd.Err()
-			if err != nil {
+			// go-redis script的error做了prefix处理
+			// https://github.com/go-redis/redis/blob/master/script.go#L61
+			if err != nil && !strings.HasPrefix(err.Error(), "NOSCRIPT ") {
 				err = fmt.Errorf("eredis exec command %s fail, %w", cmd.Name(), err)
 			}
 			return err

@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-// RetryStrategy allows to customise the lock retry strategy.
+// RetryStrategy allows to customise the Lock retry strategy.
 type RetryStrategy interface {
 	// NextBackoff returns the next backoff duration.
 	NextBackoff() time.Duration
@@ -23,7 +23,7 @@ func (r linearBackoff) NextBackoff() time.Duration {
 }
 
 // --------------------------------No Retry-----------------------------------
-// NoRetry acquire the lock only once.
+// NoRetry acquire the Lock only once.
 func NoRetry() RetryStrategy {
 	return linearBackoff(0)
 }

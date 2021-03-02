@@ -4,12 +4,11 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/base64"
+	"github.com/go-redis/redis/v8"
 	"io"
 	"strconv"
 	"sync"
 	"time"
-
-	"github.com/go-redis/redis/v8"
 )
 
 var (
@@ -25,9 +24,9 @@ type lockClient struct {
 	tmpMu  sync.Mutex
 }
 
-// Obtain tries to obtain a new lock using a key with the given TTL.
+// Obtain tries to obtain a new Lock using a key with the given TTL.
 // May return ErrNotObtained if not successful.
-func (c *lockClient) Obtain(ctx context.Context, key string, ttl time.Duration, opts ...LockOption) (*lock, error) {
+func (c *lockClient) Obtain(ctx context.Context, key string, ttl time.Duration, opts ...LockOption) (*Lock, error) {
 	// Create a random token
 	token, err := c.randomToken()
 	if err != nil {
@@ -37,23 +36,23 @@ func (c *lockClient) Obtain(ctx context.Context, key string, ttl time.Duration, 
 	for _, o := range opts {
 		o(opt)
 	}
-	if opt.retryStrategy != nil {
+	if opt.retryStrategy == nil {
 		opt.retryStrategy = NoRetry()
 	}
 
 	value := token + opt.metadata
 	retry := opt.retryStrategy
 
-	deadlinectx, cancel := context.WithDeadline(ctx, time.Now().Add(ttl))
+	deadlineCtx, cancel := context.WithDeadline(ctx, time.Now().Add(ttl))
 	defer cancel()
 
 	var timer *time.Timer
 	for {
-		ok, err := c.obtain(deadlinectx, key, value, ttl)
+		ok, err := c.obtain(deadlineCtx, key, value, ttl)
 		if err != nil {
 			return nil, err
 		} else if ok {
-			return &lock{client: c, key: key, value: value}, nil
+			return &Lock{client: c, key: key, value: value}, nil
 		}
 
 		backoff := retry.NextBackoff()
@@ -69,7 +68,7 @@ func (c *lockClient) Obtain(ctx context.Context, key string, ttl time.Duration, 
 		}
 
 		select {
-		case <-deadlinectx.Done():
+		case <-deadlineCtx.Done():
 			return nil, ErrNotObtained
 		case <-timer.C:
 		}
@@ -94,30 +93,30 @@ func (c *lockClient) randomToken() (string, error) {
 	return base64.RawURLEncoding.EncodeToString(c.tmp), nil
 }
 
-// lock represents an obtained, distributed lock.
-type lock struct {
+// Lock represents an obtained, distributed Lock.
+type Lock struct {
 	client *lockClient
 	key    string
 	value  string
 }
 
-// Key returns the redis key used by the lock.
-func (l *lock) Key() string {
+// Key returns the redis key used by the Lock.
+func (l *Lock) Key() string {
 	return l.key
 }
 
-// Token returns the token value set by the lock.
-func (l *lock) Token() string {
+// Token returns the token value set by the Lock.
+func (l *Lock) Token() string {
 	return l.value[:22]
 }
 
-// Metadata returns the metadata of the lock.
-func (l *lock) Metadata() string {
+// Metadata returns the metadata of the Lock.
+func (l *Lock) Metadata() string {
 	return l.value[22:]
 }
 
-// TTL returns the remaining time-to-live. Returns 0 if the lock has expired.
-func (l *lock) TTL(ctx context.Context) (time.Duration, error) {
+// TTL returns the remaining time-to-live. Returns 0 if the Lock has expired.
+func (l *Lock) TTL(ctx context.Context) (time.Duration, error) {
 	res, err := luaPTTL.Run(ctx, l.client.client, []string{l.key}, l.value).Result()
 	if err == redis.Nil {
 		return 0, nil
@@ -131,9 +130,9 @@ func (l *lock) TTL(ctx context.Context) (time.Duration, error) {
 	return 0, nil
 }
 
-// Refresh extends the lock with a new TTL.
+// Refresh extends the Lock with a new TTL.
 // May return ErrNotObtained if refresh is unsuccessful.
-func (l *lock) Refresh(ctx context.Context, ttl time.Duration, opts ...LockOption) error {
+func (l *Lock) Refresh(ctx context.Context, ttl time.Duration, opts ...LockOption) error {
 	ttlVal := strconv.FormatInt(int64(ttl/time.Millisecond), 10)
 	status, err := luaRefresh.Run(ctx, l.client.client, []string{l.key}, l.value, ttlVal).Result()
 	if err != nil {
@@ -144,9 +143,9 @@ func (l *lock) Refresh(ctx context.Context, ttl time.Duration, opts ...LockOptio
 	return ErrNotObtained
 }
 
-// Release manually releases the lock.
+// Release manually releases the Lock.
 // May return ErrLockNotHeld.
-func (l *lock) Release(ctx context.Context) error {
+func (l *Lock) Release(ctx context.Context) error {
 	res, err := luaRelease.Run(ctx, l.client.client, []string{l.key}, l.value).Result()
 	if err == redis.Nil {
 		return ErrLockNotHeld
@@ -162,23 +161,23 @@ func (l *lock) Release(ctx context.Context) error {
 
 type LockOption func(c *lockOption)
 
-// Options describe the options for the lock
+// Options describe the options for the Lock
 type lockOption struct {
-	// retryStrategy allows to customise the lock retry strategy.
+	// retryStrategy allows to customise the Lock retry strategy.
 	// Default: do not retry
 	retryStrategy RetryStrategy
 
-	// metadata string is appended to the lock token.
+	// metadata string is appended to the Lock token.
 	metadata string
 }
 
-func (o *LockOption) WithMetadata(md string) LockOption {
+func WithLockOptionMetadata(md string) LockOption {
 	return func(lo *lockOption) {
 		lo.metadata = md
 	}
 }
 
-func (o *LockOption) WithRetryStrategy(retryStrategy RetryStrategy) LockOption {
+func WithLockOptionRetryStrategy(retryStrategy RetryStrategy) LockOption {
 	return func(lo *lockOption) {
 		lo.retryStrategy = retryStrategy
 	}
