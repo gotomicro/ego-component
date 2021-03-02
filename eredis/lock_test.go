@@ -16,25 +16,25 @@ func TestLock(t *testing.T) {
 	lockClient := cmp.LockClient()
 	ctx := context.Background()
 
-	// try to obtain my lock
+	// try to obtain my Lock
 	lock, err := lockClient.Obtain(ctx, "my-key", 100*time.Millisecond)
 	if err == ErrNotObtained {
-		t.Log("Could not obtain lock!")
+		t.Log("Could not obtain Lock!")
 	} else if err != nil {
 		t.Fatal(err)
 	}
 	defer lock.Release(ctx)
-	t.Log("I have a lock!")
+	t.Log("I have a Lock!")
 
 	// Sleep and check the remaining TTL.
 	time.Sleep(50 * time.Millisecond)
 	if ttl, err := lock.TTL(ctx); err != nil {
 		t.Fatal("check ttl fail,", err)
 	} else if ttl > 0 {
-		t.Log("Yay, I still have my lock!")
+		t.Log("Yay, I still have my Lock!")
 	}
 
-	// Extend my lock.
+	// Extend my Lock.
 	if err := lock.Refresh(ctx, 100*time.Millisecond); err != nil {
 		t.Fatal(err)
 	}
@@ -44,7 +44,7 @@ func TestLock(t *testing.T) {
 	if ttl, err := lock.TTL(ctx); err != nil {
 		t.Fatal(err)
 	} else if ttl == 0 {
-		t.Log("Now, my lock has expired!")
+		t.Log("Now, my Lock has expired!")
 	}
 }
 

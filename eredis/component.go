@@ -44,7 +44,7 @@ func (r *Component) Sentinel() *redis.Client {
 	return nil
 }
 
-// LockClient gets default distributed lock client
+// LockClient gets default distributed Lock client
 func (r *Component) LockClient() *lockClient {
 	return r.lockClient
 }
