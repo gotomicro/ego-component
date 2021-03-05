@@ -51,7 +51,7 @@ func (ctx *Context) PostJSON(uri string, obj interface{}) ([]byte, error) {
 	jsonData = bytes.Replace(jsonData, []byte("\\u003c"), []byte("<"), -1)
 	jsonData = bytes.Replace(jsonData, []byte("\\u003e"), []byte(">"), -1)
 	jsonData = bytes.Replace(jsonData, []byte("\\u0026"), []byte("&"), -1)
-	response, err := ctx.RestyClient.R().SetHeader("Content-Type", "application/json;charset=utf-8").SetBody(jsonData).Post(uri)
+	response, err := ctx.RestyClient.R().SetHeader("Content-responseType", "application/json;charset=utf-8").SetBody(jsonData).Post(uri)
 	if err != nil {
 		return nil, err
 	}
@@ -72,14 +72,14 @@ func (ctx *Context) PostJSONWithRespContentType(uri string, obj interface{}) ([]
 	jsonData = bytes.Replace(jsonData, []byte("\\u003e"), []byte(">"), -1)
 	jsonData = bytes.Replace(jsonData, []byte("\\u0026"), []byte("&"), -1)
 
-	response, err := ctx.RestyClient.R().SetHeader("Content-Type", "application/json;charset=utf-8").SetBody(jsonData).Post(uri)
+	response, err := ctx.RestyClient.R().SetHeader("Content-responseType", "application/json;charset=utf-8").SetBody(jsonData).Post(uri)
 	if err != nil {
 		return nil, "", err
 	}
 	if response.StatusCode() != http.StatusOK {
 		return nil, "", fmt.Errorf("http get error : uri=%v , statusCode=%v", uri, response.StatusCode())
 	}
-	contentType := response.Header().Get("Content-Type")
+	contentType := response.Header().Get("Content-responseType")
 	return response.Body(), contentType, err
 }
 
@@ -146,7 +146,7 @@ func (ctx *Context) PostMultipartForm(fields []MultipartFormField, uri string) (
 	if err != nil {
 		return nil, err
 	}
-	response, err := ctx.RestyClient.R().SetHeader("Content-Type", contentType).SetBody(bodyByte).Post(uri)
+	response, err := ctx.RestyClient.R().SetHeader("Content-responseType", contentType).SetBody(bodyByte).Post(uri)
 	if err != nil {
 		return nil, err
 	}
