@@ -1,6 +1,6 @@
 # Jira API组件使用指南
-
-https://developer.atlassian.com/cloud/jira/platform/rest/v3/intro/#about
+Jira Server REST API 
+https://docs.atlassian.com/software/jira/docs/api/REST/8.8.0
 
 # 安装
 私有化部署下载地址：https://www.atlassian.com/software/jira/download

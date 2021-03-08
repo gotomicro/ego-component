@@ -22,5 +22,8 @@ func invokerJira() error {
 	comp := ejira.Load("jira").Build()
 	userInfo, err := comp.GetUserInfoByUsername("admin")
 	fmt.Println(userInfo, err)
+
+	userList, err := comp.FindUsers(&ejira.UserSearchOption{})
+	fmt.Println(userList, err)
 	return nil
 }
