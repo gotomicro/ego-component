@@ -33,3 +33,10 @@ func newComponent(compName string, config *config, logger *elog.Component) *Comp
 		logger: logger,
 	}
 }
+
+// Bool return bool pointer
+func Bool(v bool) *bool {
+	p := new(bool)
+	*p = v
+	return p
+}
