@@ -6,6 +6,11 @@ const (
 	// APIFindUsers https://docs.atlassian.com/software/jira/docs/api/REST/8.8.0/#api/2/user-findUsers
 	APIFindUsers = "/rest/api/2/user/search"
 
+	// APIGetAllProjects https://docs.atlassian.com/software/jira/docs/api/REST/8.8.0/#api/2/project-getAllProjects
+	APIGetAllProjects = "/rest/api/2/project"
+	// APIProject https://docs.atlassian.com/software/jira/docs/api/REST/8.8.0/#api/2/project
+	APIProject = "/rest/api/2/project/%s"
+
 	// APIGetVersions https://docs.atlassian.com/software/jira/docs/api/REST/8.8.0/#api/2/version-getVersion
 	APIGetVersions = "/rest/api/2/project/%s/versions"
 	// APICreateVersion https://docs.atlassian.com/software/jira/docs/api/REST/8.8.0/#api/2/version-createVersion
