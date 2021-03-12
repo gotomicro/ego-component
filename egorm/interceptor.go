@@ -121,7 +121,7 @@ func traceInterceptor(compName string, dsn *DSN, op string, options *config, log
 					span.SetTag("sql.inner", dsn.DBName)
 					span.SetTag("sql.addr", dsn.Addr)
 					span.SetTag("span.kind", "client")
-					span.SetTag("peer.service", "mysql")
+					span.SetTag("peer.service", "db")
 					span.SetTag("db.instance", dsn.DBName)
 					span.SetTag("peer.address", dsn.Addr)
 					span.SetTag("peer.statement", logSQL(scope.SQL, scope.SQLVars, options.EnableDetailSQL))

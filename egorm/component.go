@@ -2,15 +2,19 @@ package egorm
 
 import (
 	"errors"
+
 	"github.com/gotomicro/ego/core/elog"
 	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/mssql"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
+	_ "github.com/jinzhu/gorm/dialects/postgres"
+	_ "github.com/jinzhu/gorm/dialects/sqlite"
 )
 
 const PackageName = "component.egorm"
 
 var (
-	errSlowCommand = errors.New("mysql slow command")
+	errSlowCommand = errors.New("db slow command")
 	// IsRecordNotFoundError ...
 	IsRecordNotFoundError = gorm.IsRecordNotFoundError
 	// ErrRecordNotFound returns a "record not found error". Occurs only when attempting to query the database with a struct; querying with a slice won't return this error

@@ -37,7 +37,7 @@ func openDB() error {
 		&User{},
 	}
 	gormDB.SingularTable(true)
-	gormDB.Set("gorm:table_options", "ENGINE=InnoDB").AutoMigrate(models...)
+	gormDB.AutoMigrate(models...)
 	gormDB.Create(&User{
 		Nickname: "ego",
 	})

@@ -70,12 +70,12 @@ func (c *Container) Build(options ...Option) *Component {
 	// timeout 1s
 	// readTimeout 5s
 	// writeTimeout 5s
-	c.config.dsnCfg, err = ParseDSN(c.config.DSN)
+	c.config.dsnCfg, err = ParseDSN(c.config.Dialect, c.config.DSN)
 
 	if err == nil {
-		c.logger.Info("start mysql", elog.FieldAddr(c.config.dsnCfg.Addr), elog.FieldName(c.config.dsnCfg.DBName))
+		c.logger.Info("start db", elog.FieldAddr(c.config.dsnCfg.Addr), elog.FieldName(c.config.dsnCfg.DBName))
 	} else {
-		c.logger.Panic("start mysql", elog.FieldErr(err))
+		c.logger.Panic("start db", elog.FieldErr(err))
 	}
 
 	c.logger = c.logger.With(elog.FieldAddr(c.config.dsnCfg.Addr))
@@ -83,16 +83,16 @@ func (c *Container) Build(options ...Option) *Component {
 	component, err := newComponent(c.name, c.config, c.logger)
 	if err != nil {
 		if c.config.OnFail == "panic" {
-			c.logger.Panic("open mysql", elog.FieldErrKind("register err"), elog.FieldErr(err), elog.FieldAddr(c.config.dsnCfg.Addr), elog.FieldValueAny(c.config))
+			c.logger.Panic("open db", elog.FieldErrKind("register err"), elog.FieldErr(err), elog.FieldAddr(c.config.dsnCfg.Addr), elog.FieldValueAny(c.config))
 		} else {
 			emetric.ClientHandleCounter.Inc(emetric.TypeGorm, c.name, c.name+".ping", c.config.dsnCfg.Addr, "open err")
-			c.logger.Error("open mysql", elog.FieldErrKind("register err"), elog.FieldErr(err), elog.FieldAddr(c.config.dsnCfg.Addr), elog.FieldValueAny(c.config))
+			c.logger.Error("open db", elog.FieldErrKind("register err"), elog.FieldErr(err), elog.FieldAddr(c.config.dsnCfg.Addr), elog.FieldValueAny(c.config))
 			return component
 		}
 	}
 
 	if err := component.DB().Ping(); err != nil {
-		c.logger.Panic("ping mysql", elog.FieldErrKind("register err"), elog.FieldErr(err), elog.FieldValueAny(c.config))
+		c.logger.Panic("ping db", elog.FieldErrKind("register err"), elog.FieldErr(err), elog.FieldValueAny(c.config))
 	}
 
 	// store db
