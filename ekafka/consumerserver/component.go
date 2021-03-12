@@ -108,7 +108,7 @@ func (cmp *Component) startSingleMode() error {
 			message, err := consumer.ReadMessage(cmp.serverCtx)
 			if err != nil {
 				cmp.consumptionErrors <- err
-				cmp.logger.Errorf("encountered an error while reading message: %v", err)
+				cmp.logger.Error("encountered an error while reading message", elog.FieldErr(err))
 
 				if kafkaError, ok := err.(kafka.Error); ok {
 					// If this error is unrecoverable, stop consuming.
@@ -125,7 +125,7 @@ func (cmp *Component) startSingleMode() error {
 
 			err = cmp.singleMessageHandler(message)
 			if err != nil {
-				cmp.logger.Errorf("encountered an error while handling message: %v", err)
+				cmp.logger.Error("encountered an error while handling message", elog.FieldErr(err))
 				cmp.consumptionErrors <- err
 			}
 		}
@@ -134,7 +134,7 @@ func (cmp *Component) startSingleMode() error {
 	select {
 	case <-cmp.serverCtx.Done():
 		rootErr := cmp.serverCtx.Err()
-		cmp.logger.Infof("terminating consumer because: %s", rootErr)
+		cmp.logger.Error("terminating consumer because a context error", elog.FieldErr(rootErr))
 
 		err := cmp.closeConsumer(consumer)
 		if err != nil {
@@ -151,7 +151,7 @@ func (cmp *Component) startSingleMode() error {
 			panic("unrecoverableError should receive an error instead of nil")
 		}
 
-		cmp.logger.Fatalf("stopping server because of an unrecoverable error: %s", rootErr)
+		cmp.logger.Fatal("stopping server because of an unrecoverable error", elog.FieldErr(rootErr))
 		cmp.Stop()
 
 		err := cmp.closeConsumer(consumer)
@@ -164,7 +164,7 @@ func (cmp *Component) startSingleMode() error {
 
 func (cmp *Component) closeConsumer(consumer *ekafka.Consumer) error {
 	if err := consumer.Close(); err != nil {
-		cmp.logger.Fatalf("failed to close kafka writer:", err)
+		cmp.logger.Fatal("failed to close kafka writer", elog.FieldErr(err))
 		return err
 	}
 	cmp.logger.Info("consumer server terminated")
