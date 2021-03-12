@@ -24,4 +24,16 @@ const (
 	APICreateComponent = "/rest/api/2/component"
 	// APIComponent https://docs.atlassian.com/software/jira/docs/api/REST/8.8.0/#api/2/component
 	APIComponent = "/rest/api/2/component/%s"
+
+	// APIGetPriorities https://docs.atlassian.com/software/jira/docs/api/REST/8.8.0/#api/2/priority
+	APIGetPriorities = "/rest/api/2/priority"
+
+	// APIGetResolutions https://docs.atlassian.com/software/jira/docs/api/REST/8.8.0/#api/2/resolution
+	APIGetResolutions = "/rest/api/2/resolution"
+
+	// APISearch https://docs.atlassian.com/software/jira/docs/api/REST/8.8.0/#api/2/search-search
+	APISearch = "/rest/api/2/search"
+
+	// APIGetIssueLinkTypes https://docs.atlassian.com/software/jira/docs/api/REST/8.8.0/#api/2/issueLinkType
+	APIGetIssueLinkTypes = "/rest/api/2/issueLinkType"
 )
