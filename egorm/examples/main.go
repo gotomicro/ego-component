@@ -8,7 +8,7 @@ import (
 
 /**
 1.新建一个数据库叫test
-2.执行以下example，export EGO_DEBUG=true && go run main.go --config=config.toml
+2.执行以下example，export EGO_DEBUG=true && go run main.go --config=config.toml 如果是postgres配置文件换成 config_pg.toml
 */
 type User struct {
 	Id       int    `gorm:"not null" json:"id"`
