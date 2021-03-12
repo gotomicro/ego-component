@@ -53,7 +53,15 @@ type consumerConfig struct {
 	// MaxWait 从kafka批量获取数据时，最大等待间隔
 	MaxWait time.Duration `json:"maxWait" toml:"maxWait"`
 	// ReadLagInterval 获取消费者滞后值的时间周期
-	ReadLagInterval time.Duration `json:"readLagInterval" toml:"readLagInterval"`
+	ReadLagInterval   time.Duration `json:"readLagInterval" toml:"readLagInterval"`
+	HeartbeatInterval time.Duration `json:"heartbeatInterval" ,toml:"heartbeatInterval"`
+	CommitInterval    time.Duration `json:"commitInterval" toml:"commitInterval"`
+	SessionTimeout    time.Duration `json:"sessionTimeout" toml:"sessionTimeout"`
+	JoinGroupBackoff  time.Duration `json:"joinGroupBackoff" toml:"joinGroupBackoff"`
+	RetentionTime     time.Duration `json:"retentionTime" toml:"retentionTime"`
+	StartOffset       int64         `json:"startOffset" toml:"startOffset"`
+	ReadBackoffMin    time.Duration `json:"readBackoffMin" toml:"readBackoffMin"`
+	ReadBackoffMax    time.Duration `json:"readBackoffMax" toml:"readBackoffMax"`
 }
 
 const (
