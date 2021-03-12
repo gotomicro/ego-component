@@ -31,12 +31,23 @@ timeout="3s"
 [kafka.consumers.c1]
 topic="sre-infra-test"
 groupID="group-1"
+# 指定 Consumer Group 未曾提交过 offset 时从何处开始消费
+startOffset = -1
 
 [kafkaConsumerServers.s1]
 debug=true
 # 使用 ekafka 中注册的哪一个 consumer，对应 `kafka.consumers.[name]` 配置项
 consumerName="c1"
 ```
+
+#### StartOffset
+
+[Ref](https://github.com/segmentio/kafka-go/blob/882ccd8dc16155638a653defe226d6492b0a9da8/reader.go#L17-L18)
+
+| 配置值 | 说明 |
+|----------|----------|
+|  -1  |  LastOffset 从最新位置  |
+|  -2  |  FirstOffset 从最旧位置  |
 
 ### 示例
 
