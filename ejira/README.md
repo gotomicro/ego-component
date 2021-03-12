@@ -19,3 +19,6 @@ https://docs.atlassian.com/software/jira/docs/api/REST/8.8.0
 * [ x ] [Resolution](./service_resolution.go)
 * [ x ] [IssueLinkType](./service_issuelinktype.go)
 * [ x ] [Issue](./service_issue.go)
+
+## 快速上手
+使用样例可参考 [example](examples/main.go)
