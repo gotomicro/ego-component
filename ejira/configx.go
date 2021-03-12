@@ -33,6 +33,8 @@ const (
 
 	// APISearch https://docs.atlassian.com/software/jira/docs/api/REST/8.8.0/#api/2/search-search
 	APISearch = "/rest/api/2/search"
+	// APICreateIssue https://docs.atlassian.com/software/jira/docs/api/REST/8.8.0/#api/2/issue-createIssue
+	APICreateIssue = "/rest/api/2/issue"
 
 	// APIGetIssueLinkTypes https://docs.atlassian.com/software/jira/docs/api/REST/8.8.0/#api/2/issueLinkType
 	APIGetIssueLinkTypes = "/rest/api/2/issueLinkType"

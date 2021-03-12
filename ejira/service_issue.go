@@ -388,3 +388,19 @@ func (c *Component) FindIssues(jql string, options *SearchOptions) (*[]Issue, er
 
 	return &result.Issues, err
 }
+
+// CreateIssue create issue
+func (c *Component) CreateIssue(issue *Issue) (*Issue, error) {
+	var respIssue Issue
+	resp, err := c.ehttp.R().SetBasicAuth(c.config.Username, c.config.Password).SetBody(issue).SetResult(&respIssue).Post(fmt.Sprintf(APICreateIssue))
+	if err != nil {
+		return nil, fmt.Errorf("create component request fail, %w", err)
+	}
+
+	var respError Error
+	_ = json.Unmarshal(resp.Body(), &respError)
+	if resp.StatusCode() != 201 {
+		return nil, fmt.Errorf("create component fail, %s", respError.LongError())
+	}
+	return &respIssue, err
+}
