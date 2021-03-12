@@ -47,7 +47,7 @@ consumerName="c1"
 | 配置值 | 说明 |
 |----------|----------|
 |  -1  |  LastOffset 从最新位置  |
-|  -2  |  FirstOffset 从最旧位置  |
+|  -2  |  FirstOffset 从最旧位置 (default)  |
 
 ### 示例
 
