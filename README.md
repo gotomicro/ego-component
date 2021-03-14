@@ -16,9 +16,10 @@ EGO 的客户端组件最佳实践。
 * [ x ] [OAuth2](./eoauth2)
 * [ x ] [JIRA](./ejira)
 
-## Contributors ✨
+## Contributors
 
 Thanks for these wonderful people:
+
 <!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
 <!-- prettier-ignore-start -->
 <!-- markdownlint-disable -->
