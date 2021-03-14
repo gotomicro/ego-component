@@ -55,20 +55,24 @@ consumerName="c1"
 package main
 
 import (
-    "github.com/gotomicro/ego"
+	"fmt"
+
+	"github.com/gotomicro/ego"
 	"github.com/gotomicro/ego-component/ekafka"
 	"github.com/gotomicro/ego-component/ekafka/consumerserver"
 	"github.com/gotomicro/ego/core/elog"
+	"github.com/gotomicro/ego/server/egovernor"
+	"github.com/segmentio/kafka-go"
 )
 
 func main() {
-    app := ego.New().Serve(
-        // 可以搭配其他服务模块一起使用
+	app := ego.New().Serve(
+		// 可以搭配其他服务模块一起使用
 		egovernor.Load("server.governor").Build(),
 
-        // 初始化 Consumer Server
+		// 初始化 Consumer Server
 		func() *consumerserver.Component {
-            // 依赖 `ekafka` 管理 Kafka consumer
+			// 依赖 `ekafka` 管理 Kafka consumer
 			ec := ekafka.Load("kafka").Build()
 			cs := consumerserver.Load("kafkaConsumerServers.s1").Build(
 				consumerserver.WithEkafka(ec),
@@ -80,16 +84,16 @@ func main() {
 			// 注册处理消息的回调函数
 			cs.EachMessage(consumptionErrors, func(message kafka.Message) error {
 				fmt.Printf("got a message: %s\n", string(message.Value))
-                // 如果返回错误则会被转发给 `consumptionErrors`
+				// 如果返回错误则会被转发给 `consumptionErrors`
 				return nil
 			})
 
-            return cs
-        }(),
-        // 还可以启动多个 Consumer Server
-    )
-    if err := app.Run(); err != nil {
-        elog.Panic("startup", elog.Any("err", err))
-    }
+			return cs
+		}(),
+		// 还可以启动多个 Consumer Server
+	)
+	if err := app.Run(); err != nil {
+		elog.Panic("startup", elog.Any("err", err))
+	}
 }
 ```
