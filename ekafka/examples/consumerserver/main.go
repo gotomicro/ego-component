@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -54,7 +55,7 @@ func main() {
 			consumptionErrors := make(chan error)
 
 			// 注册处理消息的回调函数
-			cs.EachMessage(consumptionErrors, func(message kafka.Message) error {
+			cs.OnEachMessage(consumptionErrors, func(ctx context.Context, message kafka.Message) error {
 				fmt.Printf("got a message: %s\n", string(message.Value))
 				// 如果返回错误则会被转发给 `consumptionErrors`
 				return nil
