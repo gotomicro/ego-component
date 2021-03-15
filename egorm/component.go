@@ -75,6 +75,11 @@ func newComponent(compName string, config *config, elogger *elog.Component) (*Co
 		processor.Replace(callbackName, handler)
 	}
 
+	// before gorm:query
+	db.Callback().Query().Before("gorm:query").Register("ego_disable_raise_record_not_found", func(d *gorm.DB) {
+		d.Statement.RaiseErrorOnNotFound = config.RaiseErrorOnNotFound
+	})
+
 	replace(db.Callback().Create(), "gorm:create", config.interceptors...)
 	replace(db.Callback().Update(), "gorm:update", config.interceptors...)
 	replace(db.Callback().Delete(), "gorm:delete", config.interceptors...)

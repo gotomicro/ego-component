@@ -2,6 +2,8 @@ package egorm
 
 import (
 	"sync"
+
+	"github.com/gotomicro/ego/core/elog"
 )
 
 var instances = sync.Map{}
@@ -30,7 +32,11 @@ func stats() (stats map[string]interface{}) {
 		name := key.(string)
 		db := val.(*Component)
 
-		sqlDB, _ := db.DB()
+		sqlDB, err := db.DB()
+		if err != nil {
+			elog.EgoLogger.With(elog.FieldComponent(PackageName)).Panic("stats db error", elog.FieldErr(err))
+			return false
+		}
 		stats[name] = sqlDB.Stats()
 		return true
 	})

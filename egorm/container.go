@@ -95,7 +95,10 @@ func (c *Container) Build(options ...Option) *Component {
 		}
 	}
 
-	sqlDB, _ := component.DB()
+	sqlDB, err := component.DB()
+	if err != nil {
+		c.logger.Panic("ping mysql", elog.FieldErrKind("register err"), elog.FieldErr(err), elog.FieldValueAny(c.config))
+	}
 	if err := sqlDB.Ping(); err != nil {
 		c.logger.Panic("ping mysql", elog.FieldErrKind("register err"), elog.FieldErr(err), elog.FieldValueAny(c.config))
 	}

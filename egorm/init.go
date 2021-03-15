@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/gotomicro/ego/core/elog"
 	"github.com/gotomicro/ego/core/emetric"
 	"github.com/gotomicro/ego/server/egovernor"
 	jsoniter "github.com/json-iterator/go"
@@ -27,7 +28,12 @@ func monitor() {
 	for {
 		time.Sleep(time.Second * 10)
 		iterate(func(name string, db *Component) bool {
-			sqlDB, _ := db.DB()
+			sqlDB, err := db.DB()
+			if err != nil {
+				elog.EgoLogger.With(elog.FieldComponent(PackageName)).Panic("monitor db error", elog.FieldErr(err))
+				return false
+			}
+
 			stats := sqlDB.Stats()
 			emetric.LibHandleSummary.Observe(float64(stats.Idle), name, "idle")
 			emetric.LibHandleSummary.Observe(float64(stats.InUse), name, "inuse")
