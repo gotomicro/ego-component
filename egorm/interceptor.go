@@ -12,28 +12,36 @@ import (
 	"github.com/gotomicro/ego/core/emetric"
 	"github.com/gotomicro/ego/core/etrace"
 	"github.com/gotomicro/ego/core/util/xdebug"
+
+	"gorm.io/gorm"
 )
 
 // Handler ...
-type Handler func(*Scope)
+type Handler func(*gorm.DB)
+
+// Processor ...
+type Processor interface {
+	Get(name string) func(*gorm.DB)
+	Replace(name string, handler func(*gorm.DB)) error
+}
 
 // Interceptor ...
 type Interceptor func(string, *DSN, string, *config, *elog.Component) func(next Handler) Handler
 
 func debugInterceptor(compName string, dsn *DSN, op string, options *config, logger *elog.Component) func(Handler) Handler {
 	return func(next Handler) Handler {
-		return func(scope *Scope) {
+		return func(db *gorm.DB) {
 			beg := time.Now()
-			next(scope)
+			next(db)
 			cost := time.Since(beg)
 			if eapp.IsDevelopmentMode() {
-				if scope.HasError() {
+				if db.Error != nil {
 					log.Println("[egorm.response]",
-						xdebug.MakeReqResError(compName, fmt.Sprintf("%v", dsn.Addr+"/"+dsn.DBName), cost, logSQL(scope.SQL, scope.SQLVars, true), scope.DB().Error.Error()),
+						xdebug.MakeReqResError(compName, fmt.Sprintf("%v", dsn.Addr+"/"+dsn.DBName), cost, logSQL(db.Statement.SQL.String(), db.Statement.Vars, true), db.Error.Error()),
 					)
 				} else {
 					log.Println("[egorm.response]",
-						xdebug.MakeReqResInfo(compName, fmt.Sprintf("%v", dsn.Addr+"/"+dsn.DBName), cost, logSQL(scope.SQL, scope.SQLVars, true), fmt.Sprintf("%v", scope.Value)),
+						xdebug.MakeReqResInfo(compName, fmt.Sprintf("%v", dsn.Addr+"/"+dsn.DBName), cost, logSQL(db.Statement.SQL.String(), db.Statement.Vars, true), fmt.Sprintf("%v", db.Statement.Dest)),
 					)
 				}
 			} else {
@@ -45,37 +53,37 @@ func debugInterceptor(compName string, dsn *DSN, op string, options *config, log
 
 func metricInterceptor(compName string, dsn *DSN, op string, config *config, logger *elog.Component) func(Handler) Handler {
 	return func(next Handler) Handler {
-		return func(scope *Scope) {
+		return func(db *gorm.DB) {
 			beg := time.Now()
-			next(scope)
+			next(db)
 			cost := time.Since(beg)
 			var fields = make([]elog.Field, 0, 15)
-			fields = append(fields, elog.FieldMethod(op), elog.FieldName(dsn.DBName+"."+scope.TableName()), elog.FieldCost(cost))
+			fields = append(fields, elog.FieldMethod(op), elog.FieldName(dsn.DBName+"."+db.Statement.Table), elog.FieldCost(cost))
 			if config.EnableAccessInterceptorReq {
-				fields = append(fields, elog.String("req", logSQL(scope.SQL, scope.SQLVars, config.EnableDetailSQL)))
+				fields = append(fields, elog.String("req", logSQL(db.Statement.SQL.String(), db.Statement.Vars, config.EnableDetailSQL)))
 			}
 			if config.EnableAccessInterceptorRes {
-				fields = append(fields, elog.Any("res", scope.Value))
+				fields = append(fields, elog.Any("res", db.Statement.Dest))
 			}
 
 			isErrLog := false
 			isSlowLog := false
 			// error metric
-			if scope.HasError() {
-				fields = append(fields, elog.FieldEvent("error"), elog.FieldErr(scope.DB().Error))
-				if errors.Is(scope.DB().Error, ErrRecordNotFound) {
+			if db.Error != nil {
+				fields = append(fields, elog.FieldEvent("error"), elog.FieldErr(db.Error))
+				if errors.Is(db.Error, ErrRecordNotFound) {
 					logger.Warn("access", fields...)
-					emetric.ClientHandleCounter.Inc(emetric.TypeGorm, compName, dsn.DBName+"."+scope.TableName(), dsn.Addr, "Empty")
+					emetric.ClientHandleCounter.Inc(emetric.TypeGorm, compName, dsn.DBName+"."+db.Statement.Table, dsn.Addr, "Empty")
 				} else {
 					logger.Error("access", fields...)
-					emetric.ClientHandleCounter.Inc(emetric.TypeGorm, compName, dsn.DBName+"."+scope.TableName(), dsn.Addr, "Error")
+					emetric.ClientHandleCounter.Inc(emetric.TypeGorm, compName, dsn.DBName+"."+db.Statement.Table, dsn.Addr, "Error")
 				}
 				isErrLog = true
 			} else {
-				emetric.ClientHandleCounter.Inc(emetric.TypeGorm, compName, dsn.DBName+"."+scope.TableName(), dsn.Addr, "OK")
+				emetric.ClientHandleCounter.Inc(emetric.TypeGorm, compName, dsn.DBName+"."+db.Statement.Table, dsn.Addr, "OK")
 			}
 
-			emetric.ClientHandleHistogram.WithLabelValues(emetric.TypeGorm, compName, dsn.DBName+"."+scope.TableName(), dsn.Addr).Observe(cost.Seconds())
+			emetric.ClientHandleHistogram.WithLabelValues(emetric.TypeGorm, compName, dsn.DBName+"."+db.Statement.Table, dsn.Addr).Observe(cost.Seconds())
 
 			if config.SlowLogThreshold > time.Duration(0) && config.SlowLogThreshold < cost {
 				fields = append(fields,
@@ -104,8 +112,8 @@ func logSQL(sql string, args []interface{}, containArgs bool) string {
 
 func traceInterceptor(compName string, dsn *DSN, op string, options *config, logger *elog.Component) func(Handler) Handler {
 	return func(next Handler) Handler {
-		return func(scope *Scope) {
-			if val, ok := scope.Get("_context"); ok {
+		return func(db *gorm.DB) {
+			if val, ok := db.Get("_context"); ok {
 				if ctx, ok := val.(context.Context); ok {
 					span, _ := etrace.StartSpanFromContext(
 						ctx,
@@ -116,7 +124,7 @@ func traceInterceptor(compName string, dsn *DSN, op string, options *config, log
 					defer span.Finish()
 
 					// 延迟执行 scope.CombinedConditionSql() 避免sqlVar被重复追加
-					next(scope)
+					next(db)
 
 					span.SetTag("sql.inner", dsn.DBName)
 					span.SetTag("sql.addr", dsn.Addr)
@@ -124,12 +132,12 @@ func traceInterceptor(compName string, dsn *DSN, op string, options *config, log
 					span.SetTag("peer.service", "mysql")
 					span.SetTag("db.instance", dsn.DBName)
 					span.SetTag("peer.address", dsn.Addr)
-					span.SetTag("peer.statement", logSQL(scope.SQL, scope.SQLVars, options.EnableDetailSQL))
+					span.SetTag("peer.statement", logSQL(db.Statement.SQL.String(), db.Statement.Vars, options.EnableDetailSQL))
 					return
 				}
 			}
 
-			next(scope)
+			next(db)
 		}
 	}
 }

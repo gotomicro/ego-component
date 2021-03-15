@@ -36,7 +36,10 @@ func openDB() error {
 	models := []interface{}{
 		&User{},
 	}
-	gormDB.SingularTable(true)
+
+	gormDB.Config.NamingStrategy = &egorm.NamingStrategy{
+		SingularTable: true,
+	}
 	gormDB.Set("gorm:table_options", "ENGINE=InnoDB").AutoMigrate(models...)
 	gormDB.Create(&User{
 		Nickname: "ego",
@@ -46,7 +49,7 @@ func openDB() error {
 
 func testDB() error {
 	var user User
-	err := gormDB.Where("id = ?", 100).Find(&user).Error
+	err := gormDB.Where("id = ?", 100).First(&user).Error
 	elog.Info("user info", elog.String("name", user.Nickname))
 	return err
 }

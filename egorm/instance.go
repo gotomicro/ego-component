@@ -30,7 +30,8 @@ func stats() (stats map[string]interface{}) {
 		name := key.(string)
 		db := val.(*Component)
 
-		stats[name] = db.DB().Stats()
+		sqlDB, _ := db.DB()
+		stats[name] = sqlDB.Stats()
 		return true
 	})
 

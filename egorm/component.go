@@ -2,117 +2,85 @@ package egorm
 
 import (
 	"errors"
+
 	"github.com/gotomicro/ego/core/elog"
-	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/mysql"
+
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
+	"gorm.io/gorm/schema"
 )
 
+// PackageName ...
 const PackageName = "component.egorm"
 
 var (
 	errSlowCommand = errors.New("mysql slow command")
-	// IsRecordNotFoundError ...
-	IsRecordNotFoundError = gorm.IsRecordNotFoundError
 	// ErrRecordNotFound returns a "record not found error". Occurs only when attempting to query the database with a struct; querying with a slice won't return this error
 	ErrRecordNotFound = gorm.ErrRecordNotFound
-	// ErrInvalidSQL occurs when you attempt a query with invalid SQL
-	ErrInvalidSQL = gorm.ErrInvalidSQL
 	// ErrInvalidTransaction occurs when you are trying to `Commit` or `Rollback`
 	ErrInvalidTransaction = gorm.ErrInvalidTransaction
-	// ErrCantStartTransaction can't start transaction when you are trying to start one with `Begin`
-	ErrCantStartTransaction = gorm.ErrCantStartTransaction
-	// ErrUnaddressable unaddressable value
-	ErrUnaddressable = gorm.ErrUnaddressable
 )
 
-// SQLCommon ...
 type (
-	// SQLCommon alias of gorm.SQLCommon
-	SQLCommon = gorm.SQLCommon
-	// Callback alias of gorm.Callback
-	Callback = gorm.Callback
-	// CallbackProcessor alias of gorm.CallbackProcessor
-	CallbackProcessor = gorm.CallbackProcessor
-	// Dialect alias of gorm.Dialect
-	Dialect = gorm.Dialect
-	// Scope ...
-	Scope = gorm.Scope
+	// DB ...
+	DB gorm.DB
+	// Dialector ...
+	Dialector = gorm.Dialector
 	// Model ...
 	Model = gorm.Model
-	// ModelStruct ...
-	ModelStruct = gorm.ModelStruct
 	// Field ...
-	Field = gorm.Field
-	// FieldStruct ...
-	StructField = gorm.StructField
-	// RowQueryResult ...
-	RowQueryResult = gorm.RowQueryResult
-	// RowsQueryResult ...
-	RowsQueryResult = gorm.RowsQueryResult
+	Field = schema.Field
 	// Association ...
 	Association = gorm.Association
-	// Errors ...
-	Errors = gorm.Errors
-	// logger ...
-	Logger = gorm.Logger
+	// NamingStrategy ...
+	NamingStrategy = schema.NamingStrategy
+	// Logger ...
+	Logger = logger.Interface
 )
 
 // Component ...
 type Component = gorm.DB
 
 // newComponent ...
-func newComponent(compName string, config *config, logger *elog.Component) (*Component, error) {
-	gormDB, err := gorm.Open(config.Dialect, config.DSN)
+func newComponent(compName string, config *config, elogger *elog.Component) (*Component, error) {
+	db, err := gorm.Open(mysql.Open(config.DSN), &gorm.Config{})
 	if err != nil {
 		return nil, err
 	}
 
 	if config.RawDebug {
-		gormDB = gormDB.Debug()
+		db = db.Debug()
+	}
+
+	gormDB, err := db.DB()
+	if err != nil {
+		return nil, err
 	}
 
 	// 设置默认连接配置
-	gormDB.DB().SetMaxIdleConns(config.MaxIdleConns)
-	gormDB.DB().SetMaxOpenConns(config.MaxOpenConns)
+	gormDB.SetMaxIdleConns(config.MaxIdleConns)
+	gormDB.SetMaxOpenConns(config.MaxOpenConns)
 
 	if config.ConnMaxLifetime != 0 {
-		gormDB.DB().SetConnMaxLifetime(config.ConnMaxLifetime)
+		gormDB.SetConnMaxLifetime(config.ConnMaxLifetime)
 	}
 
-	replace := func(processor func() *gorm.CallbackProcessor, callbackName string, interceptors ...Interceptor) {
-		old := processor().Get(callbackName)
-		var handler = old
-		for _, interceptor := range interceptors {
-			handler = interceptor(compName, config.dsnCfg, callbackName, config, logger)(handler)
+	replace := func(processor Processor, callbackName string, interceptors ...Interceptor) {
+		handler := processor.Get(callbackName)
+		for _, interceptor := range config.interceptors {
+			handler = interceptor(compName, config.dsnCfg, callbackName, config, elogger)(handler)
 		}
-		processor().Replace(callbackName, handler)
+
+		processor.Replace(callbackName, handler)
 	}
 
-	replace(
-		gormDB.Callback().Delete,
-		"gorm:delete",
-		config.interceptors...,
-	)
-	replace(
-		gormDB.Callback().Update,
-		"gorm:update",
-		config.interceptors...,
-	)
-	replace(
-		gormDB.Callback().Create,
-		"gorm:create",
-		config.interceptors...,
-	)
-	replace(
-		gormDB.Callback().Query,
-		"gorm:query",
-		config.interceptors...,
-	)
-	replace(
-		gormDB.Callback().RowQuery,
-		"gorm:row_query",
-		config.interceptors...,
-	)
+	replace(db.Callback().Create(), "gorm:create", config.interceptors...)
+	replace(db.Callback().Update(), "gorm:update", config.interceptors...)
+	replace(db.Callback().Delete(), "gorm:delete", config.interceptors...)
+	replace(db.Callback().Query(), "gorm:query", config.interceptors...)
+	//replace(db.Callback().Row(), "gorm:row", config.interceptors...)
+	replace(db.Callback().Raw(), "gorm:raw", config.interceptors...)
 
-	return gormDB, nil
+	return db, nil
 }

@@ -27,7 +27,8 @@ func monitor() {
 	for {
 		time.Sleep(time.Second * 10)
 		iterate(func(name string, db *Component) bool {
-			stats := db.DB().Stats()
+			sqlDB, _ := db.DB()
+			stats := sqlDB.Stats()
 			emetric.LibHandleSummary.Observe(float64(stats.Idle), name, "idle")
 			emetric.LibHandleSummary.Observe(float64(stats.InUse), name, "inuse")
 			emetric.LibHandleSummary.Observe(float64(stats.WaitCount), name, "wait")
