@@ -1,6 +1,7 @@
 package egorm
 
 import (
+	"context"
 	"errors"
 
 	"github.com/gotomicro/ego/core/elog"
@@ -41,6 +42,12 @@ type (
 
 // Component ...
 type Component = gorm.DB
+
+// WithContext ...
+func WithContext(ctx context.Context, db *Component) *Component {
+	db.Statement.Context = ctx
+	return db
+}
 
 // newComponent ...
 func newComponent(compName string, config *config, elogger *elog.Component) (*Component, error) {

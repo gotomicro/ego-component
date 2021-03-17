@@ -1,7 +1,6 @@
 package egorm
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"log"
@@ -113,28 +112,27 @@ func logSQL(sql string, args []interface{}, containArgs bool) string {
 func traceInterceptor(compName string, dsn *DSN, op string, options *config, logger *elog.Component) func(Handler) Handler {
 	return func(next Handler) Handler {
 		return func(db *gorm.DB) {
-			if val, ok := db.Get("_context"); ok {
-				if ctx, ok := val.(context.Context); ok {
-					span, _ := etrace.StartSpanFromContext(
-						ctx,
-						"GORM", // TODO this op value is op or GORM
-						etrace.TagComponent("mysql"),
-						etrace.TagSpanKind("client"),
-					)
-					defer span.Finish()
+			if db.Statement.Context != nil {
+				span, _ := etrace.StartSpanFromContext(
+					db.Statement.Context,
+					"GORM", // TODO this op value is op or GORM
+					etrace.TagComponent("mysql"),
+					etrace.TagSpanKind("client"),
+				)
 
-					// 延迟执行 scope.CombinedConditionSql() 避免sqlVar被重复追加
-					next(db)
+				defer span.Finish()
 
-					span.SetTag("sql.inner", dsn.DBName)
-					span.SetTag("sql.addr", dsn.Addr)
-					span.SetTag("span.kind", "client")
-					span.SetTag("peer.service", "mysql")
-					span.SetTag("db.instance", dsn.DBName)
-					span.SetTag("peer.address", dsn.Addr)
-					span.SetTag("peer.statement", logSQL(db.Statement.SQL.String(), db.Statement.Vars, options.EnableDetailSQL))
-					return
-				}
+				// 延迟执行 scope.CombinedConditionSql() 避免sqlVar被重复追加
+				next(db)
+
+				span.SetTag("sql.inner", dsn.DBName)
+				span.SetTag("sql.addr", dsn.Addr)
+				span.SetTag("span.kind", "client")
+				span.SetTag("peer.service", "mysql")
+				span.SetTag("db.instance", dsn.DBName)
+				span.SetTag("peer.address", dsn.Addr)
+				span.SetTag("peer.statement", logSQL(db.Statement.SQL.String(), db.Statement.Vars, options.EnableDetailSQL))
+				return
 			}
 
 			next(db)
