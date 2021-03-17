@@ -53,7 +53,7 @@ func debugInterceptor(compName string, c *config) func(processFn) processFn {
 			} else {
 				// todo log debug info
 			}
-			return nil
+			return err
 		}
 	}
 }
@@ -64,7 +64,6 @@ func metricInterceptor(compName string, c *config, logger *elog.Component) func(
 			beg := time.Now()
 			err := oldProcess(cmd)
 			cost := time.Since(beg)
-
 			if err != nil {
 				if errors.Is(err, mongo.ErrNoDocuments) {
 					emetric.ClientHandleCounter.Inc(metricType, compName, cmd.name, c.DSN, "Empty")
@@ -121,7 +120,7 @@ func accessInterceptor(compName string, c *config, logger *elog.Component) func(
 				fields = append(fields, elog.FieldEvent("normal"))
 				logger.Info("access", fields...)
 			}
-			return nil
+			return err
 		}
 	}
 }
