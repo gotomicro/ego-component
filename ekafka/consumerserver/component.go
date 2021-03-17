@@ -109,10 +109,10 @@ func (cmp *Component) OnStart(handler OnStartHandler) error {
 func isErrorUnrecoverable(err error) bool {
 	if kafkaError, ok := err.(kafka.Error); ok {
 		if kafkaError.Temporary() {
-			return true
+			return false
 		}
 	}
-	return false
+	return true
 }
 
 func (cmp *Component) startManualMode() error {
@@ -171,38 +171,54 @@ func (cmp *Component) startSingleMode() error {
 	unrecoverableError := make(chan error)
 	go func() {
 		for {
+			if cmp.ServerCtx.Err() != nil {
+				return
+			}
+
 			message, err := consumer.FetchMessage(cmp.ServerCtx)
 			if err != nil {
 				cmp.consumptionErrors <- err
 				cmp.logger.Error("encountered an error while fetching message", elog.FieldErr(err))
 
 				// If this error is unrecoverable, stop consuming.
-				if isErrorUnrecoverable(err) == false {
+				if isErrorUnrecoverable(err) {
 					unrecoverableError <- err
 					return
 				}
-			}
-
-			if cmp.ServerCtx.Err() != nil {
-				return
+				// Otherwise, try to fetch message again.
+				continue
 			}
 
 			err = cmp.onEachMessageHandler(cmp.ServerCtx, message)
 			if err != nil {
 				cmp.logger.Error("encountered an error while handling message", elog.FieldErr(err))
 				cmp.consumptionErrors <- err
+				// Any error that returned from the handler should be considered as an unrecoverable
+				// error, developers should write their own retry logic in the handler.
+				unrecoverableError <- err
+				return
 			}
+
+		COMMIT:
 
 			err = consumer.CommitMessages(cmp.ServerCtx, message)
 			if err != nil {
 				cmp.consumptionErrors <- err
 				cmp.logger.Error("encountered an error while committing message", elog.FieldErr(err))
 
-				// If this error is unrecoverable, stop consuming.
-				if isErrorUnrecoverable(err) == false {
+				// If this error is unrecoverable, stop retry and consuming.
+				if isErrorUnrecoverable(err) {
 					unrecoverableError <- err
 					return
 				}
+
+				if cmp.ServerCtx.Err() != nil {
+					return
+				}
+
+				// Try to commit this message again.
+				cmp.logger.Debug("try to commit message again")
+				goto COMMIT
 			}
 		}
 	}()
