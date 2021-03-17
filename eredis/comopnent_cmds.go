@@ -151,6 +151,11 @@ func (r *Component) Decr(ctx context.Context, key string) (int64, error) {
 	return r.client.Decr(ctx, key).Result()
 }
 
+// Decr redis自减特定的值
+func (r *Component) DecrBy(ctx context.Context, key string, decrement int64) (int64, error) {
+	return r.client.DecrBy(ctx, key, decrement).Result()
+}
+
 // Type ...
 func (r *Component) Type(ctx context.Context, key string) (string, error) {
 	return r.client.Type(ctx, key).Result()
