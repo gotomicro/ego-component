@@ -54,7 +54,7 @@ func debugInterceptor(compName string, c *config) func(processFn) processFn {
 			} else {
 				// todo log debug info
 			}
-			return nil
+			return err
 		}
 	}
 }
