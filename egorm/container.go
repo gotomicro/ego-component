@@ -6,14 +6,17 @@ import (
 	"github.com/gotomicro/ego/core/emetric"
 )
 
+// Option ...
 type Option func(c *Container)
 
+// Container ...
 type Container struct {
 	config *config
 	name   string
 	logger *elog.Component
 }
 
+// DefaultContainer ...
 func DefaultContainer() *Container {
 	return &Container{
 		config: DefaultConfig(),
@@ -21,6 +24,7 @@ func DefaultContainer() *Container {
 	}
 }
 
+// Load ...
 func Load(key string) *Container {
 	c := DefaultContainer()
 	if err := econf.UnmarshalKey(key, &c.config); err != nil {
@@ -91,7 +95,11 @@ func (c *Container) Build(options ...Option) *Component {
 		}
 	}
 
-	if err := component.DB().Ping(); err != nil {
+	sqlDB, err := component.DB()
+	if err != nil {
+		c.logger.Panic("ping mysql", elog.FieldErrKind("register err"), elog.FieldErr(err), elog.FieldValueAny(c.config))
+	}
+	if err := sqlDB.Ping(); err != nil {
 		c.logger.Panic("ping mysql", elog.FieldErrKind("register err"), elog.FieldErr(err), elog.FieldValueAny(c.config))
 	}
 
