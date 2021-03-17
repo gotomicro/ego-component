@@ -36,6 +36,7 @@ type config struct {
 	SlowLogThreshold           time.Duration // 慢日志门限值，超过该门限值的请求，将被记录到慢日志中
 	OnFail                     string        // OnFail panic|error
 	EnableMetricInterceptor    bool          // 是否开启监控，默认开启
+	EnableTraceInterceptor     bool          // 是否开启链路，默认开启
 	EnableAccessInterceptor    bool          // 是否开启，记录请求数据
 	EnableAccessInterceptorReq bool          // 是否开启记录请求参数
 	EnableAccessInterceptorRes bool          // 是否开启记录响应参数
@@ -57,6 +58,7 @@ func DefaultConfig() *config {
 		ReadOnly:                false,
 		Debug:                   false,
 		EnableMetricInterceptor: true,
+		EnableTraceInterceptor:  true,
 		SlowLogThreshold:        xtime.Duration("250ms"),
 		OnFail:                  "panic",
 	}

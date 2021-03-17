@@ -11,7 +11,9 @@ import (
 	"github.com/go-redis/redis/v8"
 	"github.com/gotomicro/ego/core/elog"
 	"github.com/gotomicro/ego/core/emetric"
+	"github.com/gotomicro/ego/core/etrace"
 	"github.com/gotomicro/ego/core/util/xdebug"
+	"github.com/opentracing/opentracing-go"
 )
 
 const ctxBegKey = "_cmdResBegin_"
@@ -116,17 +118,17 @@ func metricInterceptor(compName string, config *config, logger *elog.Component) 
 		func(ctx context.Context, cmd redis.Cmder) error {
 			cost := time.Since(ctx.Value(ctxBegKey).(time.Time))
 			err := cmd.Err()
+			emetric.ClientHandleHistogram.WithLabelValues(emetric.TypeRedis, compName, cmd.Name(), strings.Join(config.Addrs, ",")).Observe(cost.Seconds())
 			if err != nil {
 				if errors.Is(err, redis.Nil) {
 					emetric.ClientHandleCounter.Inc(emetric.TypeRedis, compName, cmd.Name(), strings.Join(config.Addrs, ","), "Empty")
-				} else {
-					emetric.ClientHandleCounter.Inc(emetric.TypeRedis, compName, cmd.Name(), strings.Join(config.Addrs, ","), "Error")
+					return err
 				}
-			} else {
-				emetric.ClientHandleCounter.Inc(emetric.TypeRedis, compName, cmd.Name(), strings.Join(config.Addrs, ","), "OK")
+				emetric.ClientHandleCounter.Inc(emetric.TypeRedis, compName, cmd.Name(), strings.Join(config.Addrs, ","), "Error")
+				return err
 			}
-			emetric.ClientHandleHistogram.WithLabelValues(emetric.TypeRedis, compName, cmd.Name(), strings.Join(config.Addrs, ",")).Observe(cost.Seconds())
-			return err
+			emetric.ClientHandleCounter.Inc(emetric.TypeRedis, compName, cmd.Name(), strings.Join(config.Addrs, ","), "OK")
+			return nil
 		},
 	)
 }
@@ -145,26 +147,28 @@ func accessInterceptor(compName string, config *config, logger *elog.Component) 
 			if config.EnableAccessInterceptorRes && err == nil {
 				fields = append(fields, elog.Any("res", response(cmd)))
 			}
-			isErrLog := false
-			isSlowLog := false
-			// error metric
-			if err != nil {
-				fields = append(fields, elog.FieldEvent("error"), elog.FieldErr(err))
-				isErrLog = true
-				if errors.Is(err, redis.Nil) {
-					logger.Warn("access", fields...)
-				} else {
-					logger.Error("access", fields...)
-				}
+
+			// 开启了链路，那么就记录链路id
+			if config.EnableTraceInterceptor && opentracing.IsGlobalTracerRegistered() {
+				fields = append(fields, elog.FieldTid(etrace.ExtractTraceID(ctx)))
 			}
 
 			if config.SlowLogThreshold > time.Duration(0) && cost > config.SlowLogThreshold {
-				fields = append(fields, elog.FieldEvent("slow"))
-				logger.Info("access", fields...)
-				isSlowLog = true
+				logger.Warn("slow", fields...)
 			}
 
-			if config.EnableAccessInterceptor && !isSlowLog && !isErrLog {
+			// error metric
+			if err != nil {
+				fields = append(fields, elog.FieldEvent("error"), elog.FieldErr(err))
+				if errors.Is(err, redis.Nil) {
+					logger.Warn("access", fields...)
+					return err
+				}
+				logger.Error("access", fields...)
+				return err
+			}
+
+			if config.EnableAccessInterceptor {
 				fields = append(fields, elog.FieldEvent("normal"))
 				logger.Info("access", fields...)
 			}

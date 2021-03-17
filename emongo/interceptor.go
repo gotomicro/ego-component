@@ -99,28 +99,25 @@ func accessInterceptor(compName string, c *config, logger *elog.Component) func(
 				fields = append(fields, elog.Any("res", cmd.res))
 			}
 
-			isErrLog := false
-			isSlowLog := false
-			if err != nil {
-				fields = append(fields, elog.FieldEvent("error"), elog.FieldErr(err))
-				isErrLog = true
-				if errors.Is(err, mongo.ErrNoDocuments) {
-					logger.Warn("access", fields...)
-				} else {
-					logger.Error("access", fields...)
-				}
+			if c.SlowLogThreshold > time.Duration(0) && cost > c.SlowLogThreshold {
+				logger.Warn("slow", fields...)
 			}
 
-			if c.SlowLogThreshold > time.Duration(0) && cost > c.SlowLogThreshold {
-				fields = append(fields, elog.FieldEvent("slow"))
-				logger.Info("access", fields...)
-				isSlowLog = true
+			if err != nil {
+				fields = append(fields, elog.FieldEvent("error"), elog.FieldErr(err))
+				if errors.Is(err, mongo.ErrNoDocuments) {
+					logger.Warn("access", fields...)
+					return err
+				}
+				logger.Error("access", fields...)
+				return err
 			}
-			if c.EnableAccessInterceptor && !isSlowLog && !isErrLog {
+
+			if c.EnableAccessInterceptor {
 				fields = append(fields, elog.FieldEvent("normal"))
 				logger.Info("access", fields...)
 			}
-			return err
+			return nil
 		}
 	}
 }

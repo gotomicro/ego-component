@@ -11,7 +11,7 @@ import (
 	"github.com/gotomicro/ego/core/emetric"
 	"github.com/gotomicro/ego/core/etrace"
 	"github.com/gotomicro/ego/core/util/xdebug"
-
+	"github.com/opentracing/opentracing-go"
 	"gorm.io/gorm"
 )
 
@@ -65,39 +65,40 @@ func metricInterceptor(compName string, dsn *DSN, op string, config *config, log
 				fields = append(fields, elog.Any("res", db.Statement.Dest))
 			}
 
-			isErrLog := false
-			isSlowLog := false
-			// error metric
+			// 开启了链路，那么就记录链路id
+			if config.EnableTraceInterceptor && opentracing.IsGlobalTracerRegistered() {
+				fields = append(fields, elog.FieldTid(etrace.ExtractTraceID(db.Statement.Context)))
+			}
+			// 记录监控耗时
+			emetric.ClientHandleHistogram.WithLabelValues(emetric.TypeGorm, compName, dsn.DBName+"."+db.Statement.Table, dsn.Addr).Observe(cost.Seconds())
+
+			// 如果有慢日志，就记录
+			if config.SlowLogThreshold > time.Duration(0) && config.SlowLogThreshold < cost {
+				logger.Warn("slow", fields...)
+			}
+
+			// 如果有错误，记录错误信息
 			if db.Error != nil {
 				fields = append(fields, elog.FieldEvent("error"), elog.FieldErr(db.Error))
 				if errors.Is(db.Error, ErrRecordNotFound) {
 					logger.Warn("access", fields...)
 					emetric.ClientHandleCounter.Inc(emetric.TypeGorm, compName, dsn.DBName+"."+db.Statement.Table, dsn.Addr, "Empty")
-				} else {
-					logger.Error("access", fields...)
-					emetric.ClientHandleCounter.Inc(emetric.TypeGorm, compName, dsn.DBName+"."+db.Statement.Table, dsn.Addr, "Error")
+					return
 				}
-				isErrLog = true
-			} else {
-				emetric.ClientHandleCounter.Inc(emetric.TypeGorm, compName, dsn.DBName+"."+db.Statement.Table, dsn.Addr, "OK")
+				logger.Error("access", fields...)
+				emetric.ClientHandleCounter.Inc(emetric.TypeGorm, compName, dsn.DBName+"."+db.Statement.Table, dsn.Addr, "Error")
+				return
 			}
 
-			emetric.ClientHandleHistogram.WithLabelValues(emetric.TypeGorm, compName, dsn.DBName+"."+db.Statement.Table, dsn.Addr).Observe(cost.Seconds())
-
-			if config.SlowLogThreshold > time.Duration(0) && config.SlowLogThreshold < cost {
-				fields = append(fields,
-					elog.FieldEvent("slow"),
-				)
-				logger.Warn("access", fields...)
-			}
-
-			if config.EnableAccessInterceptor && !isSlowLog && !isErrLog {
+			emetric.ClientHandleCounter.Inc(emetric.TypeGorm, compName, dsn.DBName+"."+db.Statement.Table, dsn.Addr, "OK")
+			// 开启了记录日志信息，那么就记录access
+			// event normal和error，代表全部access的请求数
+			if config.EnableAccessInterceptor {
 				fields = append(fields,
 					elog.FieldEvent("normal"),
 				)
 				logger.Info("access", fields...)
 			}
-
 		}
 	}
 }
