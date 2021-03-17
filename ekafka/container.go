@@ -90,6 +90,7 @@ func (c *Container) Build(options ...Option) *Component {
 	// 初始化consumers
 	cmp.consumers = make(map[string]*Consumer)
 	l := &logger{cmp.logger}
+	el := &errorLogger{cmp.logger}
 	for name, cg := range c.config.Consumers {
 		r := &Consumer{
 			r: kafka.NewReader(kafka.ReaderConfig{
@@ -104,7 +105,8 @@ func (c *Container) Build(options ...Option) *Component {
 				RebalanceTimeout:       cg.RebalanceTimeout,
 				MaxWait:                cg.MaxWait,
 				ReadLagInterval:        cg.ReadLagInterval,
-				ErrorLogger:            l,
+				Logger:                 l,
+				ErrorLogger:            el,
 				HeartbeatInterval:      cg.HeartbeatInterval,
 				CommitInterval:         cg.CommitInterval,
 				SessionTimeout:         cg.SessionTimeout,
@@ -129,5 +131,13 @@ type logger struct {
 }
 
 func (l *logger) Printf(tmpl string, args ...interface{}) {
+	l.Debugf(tmpl, args...)
+}
+
+type errorLogger struct {
+	*elog.Component
+}
+
+func (l *errorLogger) Printf(tmpl string, args ...interface{}) {
 	l.Errorf(tmpl, args...)
 }

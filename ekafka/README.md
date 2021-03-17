@@ -14,6 +14,8 @@
 
 ## Consumer Server 组件
 
+> 必须配置 ConsumerGroup 使用。
+
 基本组件通常是搭配其他服务模块（如 [HTTP 服务](https://ego.gocn.vip/frame/server/http.html)）一起使用的，如果只想使用 Ego 做单纯的 Kafka 消费应用，可以使用 [Consumer Server 组件](consumerserver/)。
 
 Consumer Server 组件依赖于基本组件提供 Kafka 消费者实例，同时实现了 `ego.Server` 接口以达到常驻运行的目的，并且和 Ego 框架共享生命周期。
