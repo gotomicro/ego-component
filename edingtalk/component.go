@@ -43,7 +43,7 @@ func newComponent(compName string, config *config, logger *elog.Component) *Comp
 		ehttp.WithReadTimeout(config.ReadTimeout),
 		ehttp.WithSlowLogThreshold(config.SlowLogThreshold),
 		ehttp.WithEnableAccessInterceptor(config.EnableAccessInterceptor),
-		ehttp.WithEnableAccessInterceptorReply(config.EnableAccessInterceptorReply),
+		ehttp.WithEnableAccessInterceptorRes(config.EnableAccessInterceptorRes),
 	)
 
 	return &Component{

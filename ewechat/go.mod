@@ -5,8 +5,8 @@ go 1.16
 require (
 	github.com/frankban/quicktest v1.11.3 // indirect
 	github.com/go-redis/redis/v8 v8.6.0
-	github.com/gotomicro/ego v0.3.8
-	github.com/gotomicro/ego-component/eredis v0.1.5-0.20210301102617-a45f200f21c4
+	github.com/gotomicro/ego v0.3.13
+	github.com/gotomicro/ego-component/eredis v0.2.1
 	github.com/mitchellh/mapstructure v1.4.1 // indirect
 	github.com/prometheus/client_golang v1.9.0 // indirect
 	github.com/prometheus/procfs v0.6.0 // indirect
