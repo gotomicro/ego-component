@@ -22,7 +22,6 @@ type config struct {
 	DSN                        string        // DSN地址: mysql://root:secret@tcp(127.0.0.1:3306)/mysql?charset=utf8mb4&collation=utf8mb4_general_ci&parseTime=True&loc=Local&timeout=1s&readTimeout=3s&writeTimeout=3s
 	Debug                      bool          // 是否开启调试，默认不开启，开启后并加上export EGO_DEBUG=true，可以看到每次请求，配置名、地址、耗时、请求数据、响应数据
 	RawDebug                   bool          // 是否开启原生调试开关，默认不开启
-	RaiseErrorOnNotFound       bool          // 是否抛出ErrRecordNotFound错误
 	MaxIdleConns               int           // 最大空闲连接数，默认10
 	MaxOpenConns               int           // 最大活动连接数，默认100
 	ConnMaxLifetime            time.Duration // 连接的最大存活时间，默认300s
@@ -44,7 +43,6 @@ func DefaultConfig() *config {
 		DSN:                     "",
 		Dialect:                 "mysql",
 		Debug:                   false,
-		RaiseErrorOnNotFound:    true,
 		MaxIdleConns:            10,
 		MaxOpenConns:            100,
 		ConnMaxLifetime:         xtime.Duration("300s"),
