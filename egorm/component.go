@@ -5,9 +5,7 @@ import (
 	"errors"
 
 	"github.com/gotomicro/ego-component/egorm/dsn"
-
 	"github.com/gotomicro/ego/core/elog"
-
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 	"gorm.io/gorm/schema"

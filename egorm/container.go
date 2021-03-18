@@ -54,7 +54,7 @@ func WithInterceptor(is ...Interceptor) Option {
 		c.config.interceptors = append(c.config.interceptors, is...)
 	}
 }
-func (c *Container) setDSNParserIfNotExistsByDialect(dialect string) error {
+func (c *Container) setDSNParserIfNotExists(dialect string) error {
 	switch dialect {
 	case DialectMysql:
 		c.dsnParser = dsn.DefaultMysqlDSNParser
@@ -93,9 +93,9 @@ func (c *Container) Build(options ...Option) *Component {
 	// timeout 1s
 	// readTimeout 5s
 	// writeTimeout 5s
-	err = c.setDSNParserIfNotExistsByDialect(c.config.Dialect)
+	err = c.setDSNParserIfNotExists(c.config.Dialect)
 	if err != nil {
-		c.logger.Panic("setDSNParserIfNotExistsByDialect err", elog.String("dialect", c.config.Dialect), elog.FieldErr(err))
+		c.logger.Panic("setDSNParserIfNotExists err", elog.String("dialect", c.config.Dialect), elog.FieldErr(err))
 	}
 	c.config.dsnCfg, err = c.dsnParser.ParseDSN(c.config.DSN)
 

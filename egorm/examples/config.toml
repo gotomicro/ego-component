@@ -30,7 +30,7 @@
 #   enableAccessInterceptorReply = true
 
 [other.test]
-   dialect = ""
+   dialect = "other"
    debug = true # ego重写gorm debug，打开后可以看到，配置名、地址、耗时、请求数据、响应数据
 #   rawDebug = true 原生gorm debug
    dsn = "user=root password=root dbname=test port=5432 sslmode=disable"
