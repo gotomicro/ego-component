@@ -55,6 +55,9 @@ func WithInterceptor(is ...Interceptor) Option {
 	}
 }
 func (c *Container) setDSNParserIfNotExists(dialect string) error {
+	if c.dsnParser != nil {
+		return nil
+	}
 	switch dialect {
 	case DialectMysql:
 		c.dsnParser = dsn.DefaultMysqlDSNParser
