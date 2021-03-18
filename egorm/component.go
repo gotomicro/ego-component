@@ -4,11 +4,12 @@ import (
 	"context"
 	"errors"
 
-	"github.com/gotomicro/ego-component/egorm/dsn"
 	"github.com/gotomicro/ego/core/elog"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 	"gorm.io/gorm/schema"
+
+	"github.com/gotomicro/ego-component/egorm/dsn"
 )
 
 // PackageName ...
@@ -81,16 +82,11 @@ func newComponent(compName string, dsnParser dsn.DSNParser, config *config, elog
 		processor.Replace(callbackName, handler)
 	}
 
-	// before gorm:query
-	db.Callback().Query().Before("gorm:query").Register("ego_disable_raise_record_not_found", func(d *gorm.DB) {
-		d.Statement.RaiseErrorOnNotFound = config.RaiseErrorOnNotFound
-	})
-
 	replace(db.Callback().Create(), "gorm:create", config.interceptors...)
 	replace(db.Callback().Update(), "gorm:update", config.interceptors...)
 	replace(db.Callback().Delete(), "gorm:delete", config.interceptors...)
 	replace(db.Callback().Query(), "gorm:query", config.interceptors...)
-	//replace(db.Callback().Row(), "gorm:row", config.interceptors...)
+	// replace(db.Callback().Row(), "gorm:row", config.interceptors...)
 	replace(db.Callback().Raw(), "gorm:raw", config.interceptors...)
 
 	return db, nil

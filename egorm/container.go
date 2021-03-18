@@ -1,20 +1,15 @@
 package egorm
 
 import (
-	"github.com/gotomicro/ego-component/egorm/dsn"
 	"github.com/gotomicro/ego/core/econf"
 	"github.com/gotomicro/ego/core/elog"
 	"github.com/gotomicro/ego/core/emetric"
+
+	"github.com/gotomicro/ego-component/egorm/dsn"
 )
 
 // Option ...
 type Option func(c *Container)
-
-func WithCustomDSNParser(parser dsn.DSNParser) Option {
-	return func(c *Container) {
-		c.dsnParser = parser
-	}
-}
 
 // Container ...
 type Container struct {
@@ -45,23 +40,14 @@ func Load(key string) *Container {
 	return c
 }
 
-// WithInterceptor ...
-func WithInterceptor(is ...Interceptor) Option {
-	return func(c *Container) {
-		if c.config.interceptors == nil {
-			c.config.interceptors = make([]Interceptor, 0)
-		}
-		c.config.interceptors = append(c.config.interceptors, is...)
-	}
-}
 func (c *Container) setDSNParserIfNotExists(dialect string) error {
 	if c.dsnParser != nil {
 		return nil
 	}
 	switch dialect {
-	case DialectMysql:
+	case dialectMysql:
 		c.dsnParser = dsn.DefaultMysqlDSNParser
-	case DialectPostgres:
+	case dialectPostgres:
 		c.dsnParser = dsn.DefaultPostgresDSNParser
 	default:
 		return errSupportDialect
