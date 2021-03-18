@@ -3,12 +3,14 @@ package main
 import (
 	"github.com/gotomicro/ego"
 	"github.com/gotomicro/ego-component/egorm"
+	"github.com/gotomicro/ego-component/egorm/dsn"
 	"github.com/gotomicro/ego/core/elog"
 )
 
 /**
 1.新建一个数据库叫test
 2.执行以下example，export EGO_DEBUG=true && go run main.go --config=config.toml
+2.执行以下example，export EGO_DEBUG=true && go run main.go --config=config.toml 如果是postgres配置文件换成 config_pg.toml
 */
 type User struct {
 	Id       int    `gorm:"not null" json:"id"`
@@ -29,27 +31,35 @@ func main() {
 	}
 }
 
-var gormDB *egorm.Component
+var DBs []*egorm.Component
 
 func openDB() error {
-	gormDB = egorm.Load("mysql.test").Build()
+	DBs = []*egorm.Component{
+		egorm.Load("mysql.test").Build(),
+		egorm.Load("pg.test").Build(),
+		egorm.Load("other.test").Build(egorm.WithCustomDSNParser(dsn.DefaultPostgresDSNParser)),
+	}
 	models := []interface{}{
 		&User{},
 	}
-
-	gormDB.Config.NamingStrategy = &egorm.NamingStrategy{
-		SingularTable: true,
+	for _, db := range DBs {
+		db.Config.NamingStrategy = &egorm.NamingStrategy{
+			SingularTable: true,
+		}
+		db.AutoMigrate(models...)
+		db.Create(&User{
+			Nickname: "ego",
+		})
 	}
-	gormDB.Set("gorm:table_options", "ENGINE=InnoDB").AutoMigrate(models...)
-	gormDB.Create(&User{
-		Nickname: "ego",
-	})
+
 	return nil
 }
 
 func testDB() error {
 	var user User
-	err := gormDB.Where("id = ?", 100).First(&user).Error
-	elog.Info("user info", elog.String("name", user.Nickname))
-	return err
+	for _, db := range DBs {
+		err := db.Where("id = ?", 100).First(&user).Error
+		elog.Info("user info", elog.String("name", user.Nickname), elog.FieldErr(err))
+	}
+	return nil
 }

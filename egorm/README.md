@@ -1,7 +1,7 @@
 # ekafka 组件使用指南
 
 
-## 简介 
+## 简介
 
 对 [gorm](https://github.com/jinzhu/gorm) 进行了轻量封装，并提供了以下功能：
 
@@ -13,5 +13,5 @@
 
 ## 快速上手
 
-生产者消费者使用样例可参考 [example](examples/main.go)
+数据库使用样例可参考 [example](examples/main.go)
 
