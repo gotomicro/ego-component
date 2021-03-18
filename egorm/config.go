@@ -1,10 +1,19 @@
 package egorm
 
 import (
+	"errors"
 	"time"
 
+	"github.com/gotomicro/ego-component/egorm/dsn"
 	"github.com/gotomicro/ego/core/util/xtime"
 )
+
+const (
+	DialectMysql    = "mysql"
+	DialectPostgres = "postgres"
+)
+
+var errSupportDialect = errors.New("invalid support Dialect")
 
 // config options
 type config struct {
@@ -25,7 +34,7 @@ type config struct {
 	EnableAccessInterceptorReq bool          // 是否开启记录请求参数
 	EnableAccessInterceptorRes bool          // 是否开启记录响应参数
 	interceptors               []Interceptor
-	dsnCfg                     *DSN
+	dsnCfg                     *dsn.DSN
 }
 
 // DefaultConfig 返回默认配置

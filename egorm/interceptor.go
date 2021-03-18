@@ -6,6 +6,8 @@ import (
 	"log"
 	"time"
 
+	"github.com/gotomicro/ego-component/egorm/dsn"
+
 	"github.com/gotomicro/ego/core/eapp"
 	"github.com/gotomicro/ego/core/elog"
 	"github.com/gotomicro/ego/core/emetric"
@@ -25,9 +27,9 @@ type Processor interface {
 }
 
 // Interceptor ...
-type Interceptor func(string, *DSN, string, *config, *elog.Component) func(next Handler) Handler
+type Interceptor func(string, *dsn.DSN, string, *config, *elog.Component) func(next Handler) Handler
 
-func debugInterceptor(compName string, dsn *DSN, op string, options *config, logger *elog.Component) func(Handler) Handler {
+func debugInterceptor(compName string, dsn *dsn.DSN, op string, options *config, logger *elog.Component) func(Handler) Handler {
 	return func(next Handler) Handler {
 		return func(db *gorm.DB) {
 			beg := time.Now()
@@ -50,7 +52,7 @@ func debugInterceptor(compName string, dsn *DSN, op string, options *config, log
 	}
 }
 
-func metricInterceptor(compName string, dsn *DSN, op string, config *config, logger *elog.Component) func(Handler) Handler {
+func metricInterceptor(compName string, dsn *dsn.DSN, op string, config *config, logger *elog.Component) func(Handler) Handler {
 	return func(next Handler) Handler {
 		return func(db *gorm.DB) {
 			beg := time.Now()
@@ -110,7 +112,7 @@ func logSQL(sql string, args []interface{}, containArgs bool) string {
 	return sql
 }
 
-func traceInterceptor(compName string, dsn *DSN, op string, options *config, logger *elog.Component) func(Handler) Handler {
+func traceInterceptor(compName string, dsn *dsn.DSN, op string, options *config, logger *elog.Component) func(Handler) Handler {
 	return func(next Handler) Handler {
 		return func(db *gorm.DB) {
 			if db.Statement.Context != nil {

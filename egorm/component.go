@@ -4,9 +4,8 @@ import (
 	"context"
 	"errors"
 
+	"github.com/gotomicro/ego-component/egorm/dsn"
 	"github.com/gotomicro/ego/core/elog"
-
-	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 	"gorm.io/gorm/schema"
@@ -50,8 +49,8 @@ func WithContext(ctx context.Context, db *Component) *Component {
 }
 
 // newComponent ...
-func newComponent(compName string, config *config, elogger *elog.Component) (*Component, error) {
-	db, err := gorm.Open(mysql.Open(config.DSN), &gorm.Config{})
+func newComponent(compName string, dsnParser dsn.DSNParser, config *config, elogger *elog.Component) (*Component, error) {
+	db, err := gorm.Open(dsnParser.GetDialector(config.DSN), &gorm.Config{})
 	if err != nil {
 		return nil, err
 	}
