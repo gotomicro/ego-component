@@ -2,15 +2,14 @@ package main
 
 import (
 	"github.com/gotomicro/ego"
+	"github.com/gotomicro/ego/core/elog"
+
 	"github.com/gotomicro/ego-component/egorm"
 	"github.com/gotomicro/ego-component/egorm/dsn"
-	"github.com/gotomicro/ego/core/elog"
 )
 
-/**
-1.新建一个数据库叫test
-2.执行以下example，export EGO_DEBUG=true && go run main.go --config=config.toml
-*/
+// 1.新建一个数据库叫test
+// 2.执行以下example，export EGO_DEBUG=true && go run main.go --config=config.toml
 type User struct {
 	Id       int    `gorm:"not null" json:"id"`
 	Nickname string `gorm:"not null" json:"name"`
@@ -36,7 +35,7 @@ func openDB() error {
 	DBs = []*egorm.Component{
 		egorm.Load("mysql.test").Build(),
 		egorm.Load("pg.test").Build(),
-		egorm.Load("other.test").Build(egorm.WithCustomDSNParser(dsn.DefaultPostgresDSNParser)),
+		egorm.Load("other.test").Build(egorm.WithDSNParser(dsn.DefaultPostgresDSNParser)),
 	}
 	models := []interface{}{
 		&User{},

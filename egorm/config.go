@@ -4,13 +4,14 @@ import (
 	"errors"
 	"time"
 
-	"github.com/gotomicro/ego-component/egorm/dsn"
 	"github.com/gotomicro/ego/core/util/xtime"
+
+	"github.com/gotomicro/ego-component/egorm/dsn"
 )
 
 const (
-	DialectMysql    = "mysql"
-	DialectPostgres = "postgres"
+	dialectMysql    = "mysql"
+	dialectPostgres = "postgres"
 )
 
 var errSupportDialect = errors.New("invalid support Dialect")
