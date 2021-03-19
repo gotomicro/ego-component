@@ -13,11 +13,11 @@ type Component struct {
 	name   string
 	config *Config
 	logger *elog.Component
-	client eredis.ERedis
+	client *eredis.Component
 	mutuex sync.RWMutex
 }
 
-func newComponent(name string, config *Config, logger *elog.Component, client eredis.ERedis) *Component {
+func newComponent(name string, config *Config, logger *elog.Component, client *eredis.Component) *Component {
 	reg := &Component{
 		name:   name,
 		logger: logger,

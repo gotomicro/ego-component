@@ -12,13 +12,13 @@ import (
 
 type redisLock struct {
 	mutex  sync.Mutex
-	client eredis.ERedis
+	client *eredis.Component
 	key    string
 	locker *eredis.Lock
 	logger *elog.Component
 }
 
-func newRedisLock(client eredis.ERedis, key string, logger *elog.Component) *redisLock {
+func newRedisLock(client *eredis.Component, key string, logger *elog.Component) *redisLock {
 	return &redisLock{
 		mutex:  sync.Mutex{},
 		client: client,

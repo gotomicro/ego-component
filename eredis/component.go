@@ -7,14 +7,6 @@ import (
 
 const PackageName = "component.eredis"
 
-type ERedis interface {
-	Client() redis.Cmdable
-	Cluster() *redis.ClusterClient
-	Stub() *redis.Client
-	Sentinel() *redis.Client
-	LockClient() *lockClient
-}
-
 // Component client (cmdable and config)
 type Component struct {
 	config     *config
