@@ -1,5 +1,9 @@
 package registry
 
+import (
+	"github.com/gotomicro/ego-component/ek8s"
+)
+
 // Config ...
 type Config struct {
 	Kind         string
@@ -9,6 +13,6 @@ type Config struct {
 // DefaultConfig ...
 func DefaultConfig() *Config {
 	return &Config{
-		Kind: "Pod",
+		Kind: ek8s.KindEndpoints,
 	}
 }
