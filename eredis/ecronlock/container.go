@@ -1,9 +1,9 @@
 package ecronlock
 
 import (
-	"github.com/gotomicro/ego-component/eredis"
-	"github.com/gotomicro/ego/core/econf"
 	"github.com/gotomicro/ego/core/elog"
+
+	"github.com/gotomicro/ego-component/eredis"
 )
 
 type Option func(c *Container)
@@ -24,19 +24,18 @@ func DefaultContainer() *Container {
 
 func Load(key string) *Container {
 	c := DefaultContainer()
-	if err := econf.UnmarshalKey(key, &c.config); err != nil {
-		c.logger.Panic("parse config error", elog.FieldErr(err), elog.FieldKey(key))
-		return c
-	}
+
+	//
+	//config has not been used. so the code below is commented
+	//
+	//if err := econf.UnmarshalKey(key, &c.config); err != nil {
+	//	c.logger.Panic("parse Config error", elog.FieldErr(err), elog.FieldKey(key))
+	//	return c
+	//}
+
 	c.logger = c.logger.With(elog.FieldComponentName(key))
 	c.name = key
 	return c
-}
-
-func WithClientRedis(kubernetes *eredis.Component) Option {
-	return func(c *Container) {
-		c.client = kubernetes
-	}
 }
 
 // Build ...
@@ -45,11 +44,7 @@ func (c *Container) Build(options ...Option) *Component {
 		option(c)
 	}
 	if c.client == nil {
-		if c.config.OnFailHandle == "panic" {
-			c.logger.Panic("client redis nil", elog.FieldKey("use WithClientRedis method"))
-		} else {
-			c.logger.Error("client redis nil", elog.FieldKey("use WithClientRedis method"))
-		}
+		c.logger.Panic("client redis nil", elog.FieldKey("use WithClient method"))
 	}
 	return newComponent(c.name, c.config, c.logger, c.client)
 }
