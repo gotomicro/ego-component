@@ -3,9 +3,8 @@ module github.com/gotomicro/ego-component/ewechat
 go 1.16
 
 require (
-	github.com/frankban/quicktest v1.11.3 // indirect
 	github.com/go-redis/redis/v8 v8.6.0
-	github.com/gotomicro/ego v0.3.13
+	github.com/gotomicro/ego v0.4.1
 	github.com/gotomicro/ego-component/eredis v0.2.1
 	github.com/mitchellh/mapstructure v1.4.1 // indirect
 	github.com/prometheus/client_golang v1.9.0 // indirect

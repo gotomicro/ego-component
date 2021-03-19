@@ -3,20 +3,23 @@ package registry
 import (
 	"context"
 	"fmt"
-	"github.com/gotomicro/ego-component/ek8s"
+	"strings"
+	"sync"
+
 	"github.com/gotomicro/ego/core/elog"
 	"github.com/gotomicro/ego/core/eregistry"
 	"github.com/gotomicro/ego/server"
+	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/watch"
-	"strings"
-	"sync"
+
+	"github.com/gotomicro/ego-component/ek8s"
 )
 
 type Component struct {
 	name   string
 	client *ek8s.Component
 	kvs    sync.Map
-	Config *Config
+	config *Config
 	cancel context.CancelFunc
 	rmu    *sync.RWMutex
 	logger *elog.Component
@@ -27,7 +30,7 @@ func newComponent(name string, config *Config, logger *elog.Component, client *e
 		name:   name,
 		logger: logger,
 		client: client,
-		Config: config,
+		config: config,
 		kvs:    sync.Map{},
 		rmu:    &sync.RWMutex{},
 	}
@@ -51,16 +54,39 @@ func (reg *Component) ListServices(ctx context.Context, addr string, scheme stri
 		return nil, err
 	}
 
-	getResp, getErr := reg.client.ListPod(appName)
-	if getErr != nil {
-		reg.logger.Error("watch request err", elog.FieldErrKind("request err"), elog.FieldErr(getErr), elog.FieldAddr(appName))
-		return nil, getErr
-	}
+	switch reg.config.Kind {
+	case ek8s.KindPod:
+		getResp, getErr := reg.client.ListPod(appName)
+		if getErr != nil {
+			reg.logger.Error("watch request err", elog.FieldErrKind("request err"), elog.FieldErr(getErr), elog.FieldAddr(appName))
+			return nil, getErr
+		}
 
-	for _, kv := range getResp {
-		var service server.ServiceInfo
-		service.Address = kv.Status.PodIP + ":" + port
-		services = append(services, &service)
+		for _, kv := range getResp {
+			var service server.ServiceInfo
+			service.Address = kv.Status.PodIP + ":" + port
+			services = append(services, &service)
+		}
+		return
+	case ek8s.KindEndpoints:
+		getResp, getErr := reg.client.ListEndpoints(appName)
+		if getErr != nil {
+			reg.logger.Error("watch request err", elog.FieldErrKind("request err"), elog.FieldErr(getErr), elog.FieldAddr(appName))
+			return nil, getErr
+		}
+		for _, kv := range getResp {
+			for _, subsets := range kv.Subsets {
+				for _, address := range subsets.Addresses {
+					var service server.ServiceInfo
+					service.Address = address.IP + ":" + port
+					services = append(services, &service)
+				}
+			}
+		}
+		elog.Debug("ListServices", zap.Any("services", services))
+		return
+	default:
+		elog.Error("list services error", zap.String("kind", reg.config.Kind))
 	}
 	return
 }
@@ -72,7 +98,7 @@ func (reg *Component) WatchServices(ctx context.Context, addr string, scheme str
 		return nil, err
 	}
 
-	err = reg.client.WatchPrefix(ctx, appName)
+	err = reg.client.WatchPrefix(ctx, appName, reg.config.Kind)
 	if err != nil {
 		return nil, err
 	}
@@ -90,21 +116,34 @@ func (reg *Component) WatchServices(ctx context.Context, addr string, scheme str
 	var addresses = make(chan eregistry.Endpoints, 10)
 
 	for _, svc := range svcs {
-		reg.updateAddrList(al, svc.Address)
+		reg.addAddrList(al, []string{svc.Address})
 	}
 
 	addresses <- *al.DeepCopy()
 	go func() {
-
 		for reg.client.ProcessWorkItem(func(info *ek8s.KubernetesEvent) error {
 			switch info.EventType {
 			case watch.Added:
-				reg.updateAddrList(al, info.Pod.Status.PodIP+":"+port)
+				addrs := make([]string, 0)
+				for _, ip := range info.IPs {
+					addrs = append(addrs, ip+":"+port)
+				}
+				reg.addAddrList(al, addrs)
 			case watch.Deleted:
-				reg.deleteAddrList(al, info.Pod.Status.PodIP+":"+port)
+				addrs := make([]string, 0)
+				for _, ip := range info.IPs {
+					addrs = append(addrs, ip+":"+port)
+				}
+				reg.deleteAddrList(al, addrs)
+			case watch.Modified:
+				addrs := make([]string, 0)
+				for _, ip := range info.IPs {
+					addrs = append(addrs, ip+":"+port)
+				}
+				reg.updateAddrList(al, addrs)
 			}
-
 			out := al.DeepCopy()
+			reg.logger.Debug("update addresses", zap.Any("addresses", *out))
 			select {
 			case addresses <- *out:
 			default:
@@ -126,13 +165,26 @@ func (reg *Component) Close() error {
 	return nil
 }
 
-func (reg *Component) deleteAddrList(al *eregistry.Endpoints, addr string) {
-	delete(al.Nodes, addr)
+func (reg *Component) deleteAddrList(al *eregistry.Endpoints, addrs []string) {
+	for _, addr := range addrs {
+		delete(al.Nodes, addr)
+	}
 }
 
-func (reg *Component) updateAddrList(al *eregistry.Endpoints, addr string) {
-	al.Nodes[addr] = server.ServiceInfo{
-		Address: addr,
+func (reg *Component) addAddrList(al *eregistry.Endpoints, addrs []string) {
+	for _, addr := range addrs {
+		al.Nodes[addr] = server.ServiceInfo{
+			Address: addr,
+		}
+	}
+}
+
+func (reg *Component) updateAddrList(al *eregistry.Endpoints, addrs []string) {
+	al.Nodes = make(map[string]server.ServiceInfo)
+	for _, addr := range addrs {
+		al.Nodes[addr] = server.ServiceInfo{
+			Address: addr,
+		}
 	}
 }
 

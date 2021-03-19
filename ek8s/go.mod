@@ -4,9 +4,8 @@ go 1.16
 
 require (
 	github.com/davecgh/go-spew v1.1.1
-	github.com/frankban/quicktest v1.11.3 // indirect
 	github.com/golang/protobuf v1.4.2
-	github.com/gotomicro/ego v0.3.13
+	github.com/gotomicro/ego v0.4.0
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9 // indirect
 	golang.org/x/net v0.0.0-20201224014010-6772e930b67b
 	google.golang.org/grpc v1.29.1

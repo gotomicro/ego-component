@@ -20,9 +20,7 @@ func main() {
 }
 
 func invokerGrpc() error {
-	kubClient := ek8s.Load("kubernetes").Build()
-	kubeRegistry := registry.Load("registry").Build(registry.WithClientKubernetes(kubClient))
-	resolver.Register("kubernetes", kubeRegistry)
+	resolver.Register("k8s",  registry.Load("registry").Build(registry.WithClientK8s(ek8s.Load("k8s").Build())))
 	grpcConn := egrpc.Load("grpc.test").Build()
 	grpcComp := helloworld.NewGreeterClient(grpcConn.ClientConn)
 	fmt.Printf("client--------------->"+"%+v\n", grpcComp)

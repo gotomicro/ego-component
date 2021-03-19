@@ -1,5 +1,8 @@
 package ek8s
 
+// Option 可选项
+type Option func(c *Container)
+
 func WithAddr(addr string) Option {
 	return func(c *Container) {
 		c.config.Addr = addr
