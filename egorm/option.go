@@ -4,6 +4,9 @@ import (
 	"github.com/gotomicro/ego-component/egorm/dsn"
 )
 
+// Option 可选项
+type Option func(c *Container)
+
 // WithDSNParser 设置自定义dsnParser
 func WithDSNParser(parser dsn.DSNParser) Option {
 	return func(c *Container) {

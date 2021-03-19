@@ -1,9 +1,10 @@
 package registry
 
 import (
-	"github.com/gotomicro/ego-component/ek8s"
 	"github.com/gotomicro/ego/core/econf"
 	"github.com/gotomicro/ego/core/elog"
+
+	"github.com/gotomicro/ego-component/ek8s"
 )
 
 type Option func(c *Container)
@@ -25,7 +26,7 @@ func DefaultContainer() *Container {
 func Load(key string) *Container {
 	c := DefaultContainer()
 	if err := econf.UnmarshalKey(key, &c.config); err != nil {
-		c.logger.Panic("parse Config error", elog.FieldErr(err), elog.FieldKey(key))
+		c.logger.Panic("parse config error", elog.FieldErr(err), elog.FieldKey(key))
 		return c
 	}
 	c.logger = c.logger.With(elog.FieldComponentName(key))
@@ -33,9 +34,9 @@ func Load(key string) *Container {
 	return c
 }
 
-func WithClientKubernetes(kubernetes *ek8s.Component) Option {
+func WithClientK8s(k8s *ek8s.Component) Option {
 	return func(c *Container) {
-		c.client = kubernetes
+		c.client = k8s
 	}
 }
 

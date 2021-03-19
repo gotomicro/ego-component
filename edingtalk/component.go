@@ -122,10 +122,10 @@ func (c *Component) Oauth2SnsAuthorize(state string) string {
 	//	elog.Error("Generating state string failed", zap.Error(err))
 	//	return
 	// }
-	// hashedState := c.hashStateCode(state, c.Config.Oauth2AppSecret)
+	// hashedState := c.hashStateCode(state, c.config.Oauth2AppSecret)
 	// 最大300s
-	// ctx.SetCookie(c.Config.Oauth2StateCookieName, url.QueryEscape(hashedState), 300, "/", "", false, true)
-	// ctx.Redirect(http.StatusFound, fmt.Sprintf(Addr+ApiOauth2Redirect, c.Config.Oauth2AppKey, state, c.Config.Oauth2RedirectUri))
+	// ctx.SetCookie(c.config.Oauth2StateCookieName, url.QueryEscape(hashedState), 300, "/", "", false, true)
+	// ctx.Redirect(http.StatusFound, fmt.Sprintf(Addr+ApiOauth2Redirect, c.config.Oauth2AppKey, state, c.config.Oauth2RedirectUri))
 	return fmt.Sprintf(Addr+ApiOauth2SnsAuthorize, c.config.Oauth2AppKey, state, c.config.Oauth2RedirectUri)
 }
 

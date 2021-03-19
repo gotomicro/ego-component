@@ -75,8 +75,10 @@ github.com/google/go-cmp v0.5.4/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/
 github.com/google/gofuzz v1.0.0/go.mod h1:dBl0BpW6vV/+mYPU4Po3pmUjxk6FQPldtuIdl/M65Eg=
 github.com/google/renameio v0.1.0/go.mod h1:KWCgfxg9yswjAJkECMjeO8J8rahYeXnNhOm40UhjYkI=
 github.com/gorilla/websocket v1.4.2/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=
-github.com/gotomicro/ego v0.3.11 h1:4gVOuk7wYbDUYMJuKwt8nICwPy0A5l3Q0WsuK6RZHR4=
-github.com/gotomicro/ego v0.3.11/go.mod h1:VgUNz9Gb8v02YLnlYpB+TJkHT9TbqGc81REIm8JQA70=
+github.com/gotomicro/ego v0.4.0 h1:D686DIDgnrw678Syrq0HyVKUOitdbbfySFAAr13B/Oc=
+github.com/gotomicro/ego v0.4.0/go.mod h1:PbTpO+i6LTFP9DwGvbo5PqKrVbEVkambVcoF48wFjeQ=
+github.com/gotomicro/ego v0.4.1 h1:OL5WDdXaXBdHYkRyoKh+ywSpXSiSNeJcuMxLbriwF2M=
+github.com/gotomicro/ego v0.4.1/go.mod h1:PbTpO+i6LTFP9DwGvbo5PqKrVbEVkambVcoF48wFjeQ=
 github.com/jackc/chunkreader v1.0.0 h1:4s39bBR8ByfqH+DKm8rQA3E1LHZWB9XWcrz8fqaZbe0=
 github.com/jackc/chunkreader v1.0.0/go.mod h1:RT6O25fNZIuasFJRyZ4R/Y2BbhasbmZXF9QQ7T3kePo=
 github.com/jackc/chunkreader/v2 v2.0.0/go.mod h1:odVSm741yZoC3dpHEUXIqA9tQRhFrgOHwnPIn9lDKlk=

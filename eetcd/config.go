@@ -6,7 +6,7 @@ import (
 	"github.com/gotomicro/ego/core/util/xtime"
 )
 
-// Config ...
+// config ...
 type config struct {
 	Addrs            []string      `json:"endpoints"`
 	CertFile         string        `json:"certFile"`

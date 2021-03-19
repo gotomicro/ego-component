@@ -25,7 +25,7 @@ func DefaultContainer() *Container {
 func Load(key string) *Container {
 	c := DefaultContainer()
 	if err := econf.UnmarshalKey(key, &c.config); err != nil {
-		c.logger.Panic("parse Config error", elog.FieldErr(err), elog.FieldKey(key))
+		c.logger.Panic("parse config error", elog.FieldErr(err), elog.FieldKey(key))
 		return c
 	}
 	c.logger = c.logger.With(elog.FieldComponentName(key))

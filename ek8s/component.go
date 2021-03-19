@@ -3,7 +3,10 @@ package ek8s
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/gotomicro/ego/core/elog"
+	"go.uber.org/zap"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -12,11 +15,14 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
-	"time"
 )
 
 const PackageName = "component.ek8s"
 const defaultResync = 5 * time.Minute
+const (
+	KindPod       = "Pod"
+	KindEndpoints = "Endpoints"
+)
 
 // Component ...
 type Component struct {
@@ -66,7 +72,7 @@ func (c *Component) ListPod(appName string) (pods []v1.Pod, err error) {
 	return
 }
 
-func (c *Component) WatchPrefix(ctx context.Context, appName string) (err error) {
+func (c *Component) WatchPrefix(ctx context.Context, appName string, kind string) (err error) {
 	for _, ns := range c.config.Namespaces {
 		label, err := c.getSelector(ns, appName)
 		if err != nil {
@@ -80,15 +86,32 @@ func (c *Component) WatchPrefix(ctx context.Context, appName string) (err error)
 				options.LabelSelector = label
 				// todo
 				options.ResourceVersion = "0"
+				//options.Kind = "Endpoints"
 			}),
 		)
-		podInformer := informersFactory.Core().V1().Pods()
 
-		podInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-			AddFunc:    c.addPod,
-			UpdateFunc: c.updatePod,
-			DeleteFunc: c.deletePod,
-		})
+		switch kind {
+		case KindPod:
+			podInformer := informersFactory.Core().V1().Pods()
+			c.logger.Debug("k8s watch prefix", zap.String("appname", appName), zap.String("kind", kind))
+			podInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+				AddFunc:    c.addPod,
+				UpdateFunc: c.updatePod,
+				DeleteFunc: c.deletePod,
+			})
+		case KindEndpoints:
+			podInformer := informersFactory.Core().V1().Endpoints()
+			c.logger.Debug("k8s watch prefix", zap.String("appname", appName), zap.String("kind", kind))
+			podInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+				AddFunc:    c.addPod,
+				UpdateFunc: c.updatePod,
+				DeleteFunc: c.deletePod,
+			})
+		default:
+			c.logger.Error("k8s watch prefix error", zap.String("appname", appName), zap.String("kind", kind))
+		}
+		// 启动该命名空间里监听
+		go informersFactory.Start(ctx.Done())
 	}
 	return nil
 }
@@ -105,6 +128,7 @@ func (c *Component) ProcessWorkItem(f func(info *KubernetesEvent) error) bool {
 }
 
 func (c *Component) addPod(obj interface{}) {
+	c.logger.Debug("addPod", zap.Any("obj", obj))
 	p, ok := obj.(*v1.Pod)
 	if !ok {
 		c.logger.Warnf("pod-informer got object %T not *v1.Pod", obj)
@@ -117,6 +141,8 @@ func (c *Component) addPod(obj interface{}) {
 }
 
 func (c *Component) updatePod(oldObj, newObj interface{}) {
+	c.logger.Debug("updatePod", zap.Any("oldObj", oldObj), zap.Any("newObj", newObj))
+
 	op, ok := oldObj.(*v1.Pod)
 	if !ok {
 		c.logger.Warnf("pod-informer got object %T not *v1.Pod", oldObj)
@@ -137,6 +163,7 @@ func (c *Component) updatePod(oldObj, newObj interface{}) {
 }
 
 func (c *Component) deletePod(obj interface{}) {
+	c.logger.Debug("deletePod", zap.Any("obj", obj))
 	p, ok := obj.(*v1.Pod)
 	if !ok {
 		c.logger.Warnf("pod-informer got object %T not *v1.Pod", obj)

@@ -8,9 +8,6 @@ import (
 	"github.com/gotomicro/ego-component/egorm/dsn"
 )
 
-// Option ...
-type Option func(c *Container)
-
 // Container ...
 type Container struct {
 	config    *config
@@ -55,12 +52,8 @@ func (c *Container) setDSNParserIfNotExists(dialect string) error {
 	return nil
 }
 
-// Build ...
+// Build 构建组件
 func (c *Container) Build(options ...Option) *Component {
-	if options == nil {
-		options = make([]Option, 0)
-	}
-
 	if c.config.Debug {
 		options = append(options, WithInterceptor(debugInterceptor))
 	}

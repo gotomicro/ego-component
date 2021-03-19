@@ -80,7 +80,7 @@ func newComponent(name string, config *config, logger *elog.Component) *Componen
 	if config.CertFile != "" && config.KeyFile != "" {
 		tlsCert, err := tls.LoadX509KeyPair(config.CertFile, config.KeyFile)
 		if err != nil {
-			logger.Panic("load CertFile or KeyFile failed", elog.Any("Config", config), elog.Any("err", err))
+			logger.Panic("load CertFile or KeyFile failed", elog.Any("config", config), elog.Any("err", err))
 		}
 		tlsConfig.Certificates = []tls.Certificate{tlsCert}
 		tlsEnabled = true

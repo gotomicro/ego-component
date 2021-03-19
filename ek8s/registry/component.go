@@ -3,20 +3,23 @@ package registry
 import (
 	"context"
 	"fmt"
-	"github.com/gotomicro/ego-component/ek8s"
+	"strings"
+	"sync"
+
 	"github.com/gotomicro/ego/core/elog"
 	"github.com/gotomicro/ego/core/eregistry"
 	"github.com/gotomicro/ego/server"
+	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/watch"
-	"strings"
-	"sync"
+
+	"github.com/gotomicro/ego-component/ek8s"
 )
 
 type Component struct {
 	name   string
 	client *ek8s.Component
 	kvs    sync.Map
-	Config *Config
+	config *Config
 	cancel context.CancelFunc
 	rmu    *sync.RWMutex
 	logger *elog.Component
@@ -27,7 +30,7 @@ func newComponent(name string, config *Config, logger *elog.Component, client *e
 		name:   name,
 		logger: logger,
 		client: client,
-		Config: config,
+		config: config,
 		kvs:    sync.Map{},
 		rmu:    &sync.RWMutex{},
 	}
@@ -72,7 +75,7 @@ func (reg *Component) WatchServices(ctx context.Context, addr string, scheme str
 		return nil, err
 	}
 
-	err = reg.client.WatchPrefix(ctx, appName)
+	err = reg.client.WatchPrefix(ctx, appName,reg.config.Kind)
 	if err != nil {
 		return nil, err
 	}
@@ -103,8 +106,8 @@ func (reg *Component) WatchServices(ctx context.Context, addr string, scheme str
 			case watch.Deleted:
 				reg.deleteAddrList(al, info.Pod.Status.PodIP+":"+port)
 			}
-
 			out := al.DeepCopy()
+			reg.logger.Debug("update addresses", zap.Any("addresses", *out))
 			select {
 			case addresses <- *out:
 			default:
