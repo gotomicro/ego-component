@@ -4,8 +4,10 @@ addr = "127.0.0.1:6379"
 enableAccessInterceptor = true
 enableAccessInterceptorReq = true
 enableAccessInterceptorRes = true
+
 [cron.default]
-withSeconds = false
-concurrentDelay = 1
-immediatelyRun = false
-distributedTask = true
+spec = "*/3 * * * * *"
+enableSeconds = true
+enableDistributedTask = true
+
+[trace.jaeger]
