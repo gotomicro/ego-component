@@ -31,6 +31,25 @@ type producerConfig struct {
 	Topic string `json:"topic" toml:"topic"`
 	// Balancer 指定使用哪种Balancer，可选：hash\roundRobin
 	Balancer string `json:"balancer" toml:"balancer"`
+	// MaxAttempts 最大重试次数，默认10次
+	MaxAttempts int `json:"maxAttempts" toml:"maxAttempts"`
+	// BatchSize 批量发送的消息数量，默认100条
+	BatchSize int `json:"batchSize" toml:"batchSize"`
+	// BatchBytes 批量发送的消息大小，默认1MB
+	BatchBytes int64 `json:"batchBytes" toml:"batchBytes"`
+	// BatchTimeout 批量发送消息的周期，默认1s
+	BatchTimeout time.Duration `json:"batchTimeout" toml:"batchTimeout"`
+	// ReadTimeout 读超时
+	ReadTimeout time.Duration `json:"readTimeout" toml:"readTimeout"`
+	// WriteTimeout 写超时
+	WriteTimeout time.Duration `json:"writeTimeout" toml:"writeTimeout"`
+	// RequiredAcks ACK配置
+	// RequireNone (0) fire-and-forget，producer不等待来自broker同步完成的确认后，就可以发送下一批消息
+	// RequireOne  (1) producer在leader已成功收到的数据并得到确认后，才发送下一批消息
+	// RequireAll  (-1) producer在所有follower副本确认接收到数据后，才发送下一批消息
+	RequiredAcks kafka.RequiredAcks `json:"requiredAcks" toml:"requiredAcks"`
+	// Async 设置成true时会导致WriteMessages非阻塞，会导致调用WriteMessages方法获取不到error
+	Async bool `json:"async" toml:"async"`
 }
 
 type consumerConfig struct {
