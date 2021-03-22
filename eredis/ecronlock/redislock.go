@@ -11,7 +11,7 @@ import (
 )
 
 type redisLock struct {
-	mutex  sync.Mutex
+	mutex  sync.RWMutex
 	client *eredis.Component
 	key    string
 	locker *eredis.Lock
@@ -20,7 +20,7 @@ type redisLock struct {
 
 func newRedisLock(client *eredis.Component, key string, logger *elog.Component) *redisLock {
 	return &redisLock{
-		mutex:  sync.Mutex{},
+		mutex:  sync.RWMutex{},
 		client: client,
 		key:    key,
 		locker: nil,
@@ -41,9 +41,9 @@ func (c *redisLock) Lock(ctx context.Context, ttl time.Duration) error {
 }
 
 func (c *redisLock) Unlock(ctx context.Context) error {
-	c.mutex.Lock()
+	c.mutex.RLock()
 	locker := c.locker
-	c.mutex.Unlock()
+	c.mutex.RUnlock()
 	if locker == nil {
 		return nil
 	}
@@ -56,9 +56,9 @@ func (c *redisLock) Unlock(ctx context.Context) error {
 }
 
 func (c *redisLock) Refresh(ctx context.Context, ttl time.Duration) error {
-	c.mutex.Lock()
+	c.mutex.RLock()
 	locker := c.locker
-	c.mutex.Unlock()
+	c.mutex.RUnlock()
 	if locker == nil {
 		return nil
 	}
