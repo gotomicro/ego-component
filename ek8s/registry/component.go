@@ -6,6 +6,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/gotomicro/ego/client/egrpc/resolver"
 	"github.com/gotomicro/ego/core/elog"
 	"github.com/gotomicro/ego/core/eregistry"
 	"github.com/gotomicro/ego/server"
@@ -34,6 +35,8 @@ func newComponent(name string, config *Config, logger *elog.Component, client *e
 		kvs:    sync.Map{},
 		rmu:    &sync.RWMutex{},
 	}
+	// 注册到grpc的resolver里
+	resolver.Register("k8s", reg)
 	return reg
 }
 
@@ -143,7 +146,7 @@ func (reg *Component) WatchServices(ctx context.Context, addr string, scheme str
 				reg.updateAddrList(al, addrs)
 			}
 			out := al.DeepCopy()
-			reg.logger.Info("update addresses",zap.String("appName",appName), zap.Any("addresses", *out))
+			reg.logger.Info("update addresses", zap.String("appName", appName), zap.Any("addresses", *out))
 			select {
 			case addresses <- *out:
 			default:
