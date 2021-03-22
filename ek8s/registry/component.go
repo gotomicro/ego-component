@@ -98,7 +98,7 @@ func (reg *Component) WatchServices(ctx context.Context, addr string, scheme str
 		return nil, err
 	}
 
-	err = reg.client.WatchPrefix(ctx, appName, reg.config.Kind)
+	app, err := reg.client.NewWatcherApp(ctx, appName, reg.config.Kind)
 	if err != nil {
 		return nil, err
 	}
@@ -121,7 +121,7 @@ func (reg *Component) WatchServices(ctx context.Context, addr string, scheme str
 
 	addresses <- *al.DeepCopy()
 	go func() {
-		for reg.client.ProcessWorkItem(func(info *ek8s.KubernetesEvent) error {
+		for app.ProcessWorkItem(func(info *ek8s.KubernetesEvent) error {
 			switch info.EventType {
 			case watch.Added:
 				addrs := make([]string, 0)
@@ -143,7 +143,7 @@ func (reg *Component) WatchServices(ctx context.Context, addr string, scheme str
 				reg.updateAddrList(al, addrs)
 			}
 			out := al.DeepCopy()
-			reg.logger.Debug("update addresses", zap.Any("addresses", *out))
+			reg.logger.Info("update addresses",zap.String("appName",appName), zap.Any("addresses", *out))
 			select {
 			case addresses <- *out:
 			default:
