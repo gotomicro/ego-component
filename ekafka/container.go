@@ -76,9 +76,17 @@ func (c *Container) Build(options ...Option) *Component {
 		}
 		w := &Producer{
 			w: &kafka.Writer{
-				Addr:     kafka.TCP(c.config.Brokers...),
-				Topic:    producer.Topic,
-				Balancer: b,
+				Addr:         kafka.TCP(c.config.Brokers...),
+				Topic:        producer.Topic,
+				Balancer:     b,
+				MaxAttempts:  producer.MaxAttempts,
+				BatchSize:    producer.BatchSize,
+				BatchBytes:   producer.BatchBytes,
+				BatchTimeout: producer.BatchTimeout,
+				ReadTimeout:  producer.ReadTimeout,
+				WriteTimeout: producer.WriteTimeout,
+				RequiredAcks: producer.RequiredAcks,
+				Async:        producer.Async,
 			},
 			processor: defaultProcessor,
 			logMode:   c.config.Debug,
