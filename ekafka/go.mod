@@ -4,7 +4,7 @@ go 1.15
 
 require (
 	github.com/BurntSushi/toml v0.3.1
-	github.com/gotomicro/ego v0.4.1
+	github.com/gotomicro/ego v0.4.3-0.20210325095314-1c7eb82de631
 	github.com/segmentio/kafka-go v0.4.8
 	github.com/stretchr/testify v1.6.1
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9 // indirect
