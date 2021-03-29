@@ -321,6 +321,11 @@ func (r *Component) SIsMember(ctx context.Context, key string, member interface{
 	return r.client.SIsMember(ctx, key, member).Result()
 }
 
+// SRem ...
+func (r *Component) SRem(ctx context.Context, key string, member interface{}) (int64, error) {
+	return r.client.SRem(ctx, key, member).Result()
+}
+
 // HKeys 获取hash的所有域
 func (r *Component) HKeys(ctx context.Context, key string) ([]string, error) {
 	return r.client.HKeys(ctx, key).Result()
