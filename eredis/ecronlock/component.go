@@ -28,5 +28,5 @@ func newComponent(name string, config *Config, logger *elog.Component, client *e
 }
 
 func (c *Component) NewLock(key string) ecron.Lock {
-	return newRedisLock(c.client, key, c.logger)
+	return newRedisLock(c.client, c.config.Prefix+key, c.logger)
 }
