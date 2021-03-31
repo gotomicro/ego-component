@@ -190,6 +190,11 @@ func (r *Component) ZRangeWithScores(ctx context.Context, key string, start, sto
 	return r.client.ZRangeWithScores(ctx, key, start, stop).Result()
 }
 
+// ZRangeByScoreWithScores ...
+func (r *Component) ZRangeByScoreWithScores(ctx context.Context, key string, opt *redis.ZRangeBy) ([]redis.Z, error) {
+	return r.client.ZRangeByScoreWithScores(ctx, key, opt).Result()
+}
+
 // ZRevRank ...
 func (r *Component) ZRevRank(ctx context.Context, key string, member string) (int64, error) {
 	return r.client.ZRevRank(ctx, key, member).Result()
