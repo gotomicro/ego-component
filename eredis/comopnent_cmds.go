@@ -22,6 +22,15 @@ func (r *Component) Get(ctx context.Context, key string) (string, error) {
 	return reply, err
 }
 
+// GETEX
+func (r *Component) GetEx(ctx context.Context, key string,  expire time.Duration) (string, error) {
+	reply, err := r.client.GetEx(ctx, key, expire).Result()
+	if err != nil {
+		return reply, fmt.Errorf("eredis get string error %w", err)
+	}
+	return reply, err
+}
+
 // GetBytes
 func (r *Component) GetBytes(ctx context.Context, key string) ([]byte, error) {
 	c, err := r.client.Get(ctx, key).Bytes()
@@ -174,6 +183,11 @@ func (r *Component) ZRevRangeWithScores(ctx context.Context, key string, start, 
 // ZRange ...
 func (r *Component) ZRange(ctx context.Context, key string, start, stop int64) ([]string, error) {
 	return r.client.ZRange(ctx, key, start, stop).Result()
+}
+
+// ZRangeWithScores ...
+func (r *Component) ZRangeWithScores(ctx context.Context, key string, start, stop int64) ([]redis.Z, error) {
+	return r.client.ZRangeWithScores(ctx, key, start, stop).Result()
 }
 
 // ZRevRank ...
