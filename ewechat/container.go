@@ -56,7 +56,7 @@ func (con *Container) Build(options ...Option) *Component {
 		ehttp.WithReadTimeout(cfg.ReadTimeout),
 		ehttp.WithSlowLogThreshold(cfg.SlowLogThreshold),
 		ehttp.WithEnableAccessInterceptor(cfg.EnableAccessInterceptor),
-		ehttp.WithEnableAccessInterceptorReply(cfg.EnableAccessInterceptorReply),
+		ehttp.WithEnableAccessInterceptorRes(cfg.EnableAccessInterceptorRes),
 	)
 
 	for _, option := range options {
