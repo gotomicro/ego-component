@@ -6,7 +6,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1
 	github.com/golang/protobuf v1.4.2
 	github.com/googleapis/gnostic v0.4.0 // indirect
-	github.com/gotomicro/ego v0.4.2
+	github.com/gotomicro/ego v0.4.4
 	go.uber.org/zap v1.15.0 // indirect
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9 // indirect
 	golang.org/x/net v0.0.0-20201224014010-6772e930b67b
