@@ -1,6 +1,7 @@
 package ecronlock
 
 import (
+	"github.com/gotomicro/ego/core/econf"
 	"github.com/gotomicro/ego/core/elog"
 
 	"github.com/gotomicro/ego-component/eredis"
@@ -24,14 +25,10 @@ func DefaultContainer() *Container {
 
 func Load(key string) *Container {
 	c := DefaultContainer()
-
-	//
-	//config has not been used. so the code below is commented
-	//
-	//if err := econf.UnmarshalKey(key, &c.config); err != nil {
-	//	c.logger.Panic("parse Config error", elog.FieldErr(err), elog.FieldKey(key))
-	//	return c
-	//}
+	if err := econf.UnmarshalKey(key, &c.config); err != nil {
+		c.logger.Panic("parse Config error", elog.FieldErr(err), elog.FieldKey(key))
+		return c
+	}
 
 	c.logger = c.logger.With(elog.FieldComponentName(key))
 	c.name = key
