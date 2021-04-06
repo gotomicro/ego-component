@@ -52,11 +52,11 @@ func (fp *dataSource) Parse(path string, watch bool) econf.ConfigType {
 		opts = append(opts, eetcd.WithEnableSecure(true))
 	}
 
-	opts = append(opts, eetcd.WithCaCert(urlInfo.Query().Get("certFile")))
-	opts = append(opts, eetcd.WithCaCert(urlInfo.Query().Get("keyFile")))
+	opts = append(opts, eetcd.WithCertFile(urlInfo.Query().Get("certFile")))
+	opts = append(opts, eetcd.WithKeyFile(urlInfo.Query().Get("keyFile")))
 	opts = append(opts, eetcd.WithCaCert(urlInfo.Query().Get("caCert")))
-	opts = append(opts, eetcd.WithCaCert(urlInfo.Query().Get("username")))
-	opts = append(opts, eetcd.WithCaCert(urlInfo.Query().Get("password")))
+	opts = append(opts, eetcd.WithUserName(urlInfo.Query().Get("username")))
+	opts = append(opts, eetcd.WithPassword(urlInfo.Query().Get("password")))
 	fp.etcd = eetcd.DefaultContainer().Build(opts...)
 
 	if urlInfo.Query().Get("configKey") == "" {
