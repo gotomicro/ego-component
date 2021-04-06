@@ -54,7 +54,7 @@ func newComponent(name string, config *Config, logger *elog.Component) *Componen
 func (c *Component) ListPod(appName string) (pods []*v1.Pod, err error) {
 	pods = make([]*v1.Pod, 0)
 	for _, ns := range c.config.Namespaces {
-		v1Pods, err := c.CoreV1().Pods(ns).Get(c.getDeploymentName(appName), metav1.GetOptions{})
+		v1Pods, err := c.CoreV1().Pods(ns).Get(context.Background(), c.getDeploymentName(appName), metav1.GetOptions{})
 
 		if err != nil {
 			return nil, fmt.Errorf("list pods in namespace (%s), err: %w", ns, err)
@@ -67,7 +67,7 @@ func (c *Component) ListPod(appName string) (pods []*v1.Pod, err error) {
 func (c *Component) ListEndpoints(appName string) (pods []*v1.Endpoints, err error) {
 	pods = make([]*v1.Endpoints, 0)
 	for _, ns := range c.config.Namespaces {
-		v1Pods, err := c.CoreV1().Endpoints(ns).Get(c.getDeploymentName(appName), metav1.GetOptions{})
+		v1Pods, err := c.CoreV1().Endpoints(ns).Get(context.Background(), c.getDeploymentName(appName), metav1.GetOptions{})
 		if err != nil {
 			return nil, fmt.Errorf("list pods in namespace (%s), err: %w", ns, err)
 		}
