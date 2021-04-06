@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/gotomicro/ego/core/util/xcast"
 	"go.etcd.io/etcd/clientv3"
 	"go.etcd.io/etcd/mvcc/mvccpb"
 
@@ -41,40 +42,37 @@ func (fp *dataSource) Parse(path string, watch bool) econf.ConfigType {
 		fp.logger.Panic("new datasource", elog.FieldErr(err))
 		return ""
 	}
-	opts := make([]eetcd.Option, 0)
-	opts = append(opts, eetcd.WithAddrs([]string{urlInfo.Host}))
 
-	if urlInfo.Query().Get("basicAuth") == "true" {
-		opts = append(opts, eetcd.WithEnableBasicAuth(true))
-	}
+	configKey := urlInfo.Query().Get("configKey")
+	configType := urlInfo.Query().Get("configType")
 
-	if urlInfo.Query().Get("secure") == "true" {
-		opts = append(opts, eetcd.WithEnableSecure(true))
-	}
-
-	opts = append(opts, eetcd.WithCertFile(urlInfo.Query().Get("certFile")))
-	opts = append(opts, eetcd.WithKeyFile(urlInfo.Query().Get("keyFile")))
-	opts = append(opts, eetcd.WithCaCert(urlInfo.Query().Get("caCert")))
-	opts = append(opts, eetcd.WithUserName(urlInfo.Query().Get("username")))
-	opts = append(opts, eetcd.WithPassword(urlInfo.Query().Get("password")))
-	fp.etcd = eetcd.DefaultContainer().Build(opts...)
-
-	if urlInfo.Query().Get("configKey") == "" {
+	if configKey == "" {
 		fp.logger.Panic("key is empty")
 	}
 
-	if urlInfo.Query().Get("configType") == "" {
+	if configType == "" {
 		fp.logger.Panic("configType is empty")
 	}
 
-	fp.key = urlInfo.Query().Get("configKey")
+	fp.etcd = eetcd.DefaultContainer().Build(
+		eetcd.WithAddrs([]string{urlInfo.Host}),
+		eetcd.WithEnableBasicAuth(xcast.ToBool(urlInfo.Query().Get("basicAuth"))),
+		eetcd.WithEnableSecure(xcast.ToBool(urlInfo.Query().Get("secure"))),
+		eetcd.WithCertFile(urlInfo.Query().Get("certFile")),
+		eetcd.WithKeyFile(urlInfo.Query().Get("keyFile")),
+		eetcd.WithCaCert(urlInfo.Query().Get("caCert")),
+		eetcd.WithUserName(urlInfo.Query().Get("username")),
+		eetcd.WithPassword(urlInfo.Query().Get("password")),
+	)
+
+	fp.key = configKey
 	fp.enableWatch = watch
 
 	if watch {
 		fp.changed = make(chan struct{}, 1)
 		xgo.Go(fp.watch)
 	}
-	return econf.ConfigType(urlInfo.Query().Get("configType"))
+	return econf.ConfigType(configType)
 }
 
 // ReadConfig ...
