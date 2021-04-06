@@ -106,7 +106,7 @@ func (c *WatcherApp) ProcessWorkItem(f func(info *KubernetesEvent) error) bool {
 }
 
 func (c *WatcherApp) getDeploymentsSelector(namespace string, appName string) (label string, err error) {
-	deployment, err := c.AppsV1().Deployments(namespace).Get(c.getDeploymentName(appName), metav1.GetOptions{})
+	deployment, err := c.AppsV1().Deployments(namespace).Get(context.Background(), c.getDeploymentName(appName), metav1.GetOptions{})
 	if err != nil {
 		return "", fmt.Errorf("get deployments in namespace (%s), err: %w", namespace, err)
 	}
@@ -115,7 +115,7 @@ func (c *WatcherApp) getDeploymentsSelector(namespace string, appName string) (l
 }
 
 func (c *WatcherApp) getServicesSelector(namespace string, appName string) (label string, err error) {
-	service, err := c.CoreV1().Services(namespace).Get(c.getDeploymentName(appName), metav1.GetOptions{})
+	service, err := c.CoreV1().Services(namespace).Get(context.Background(), c.getDeploymentName(appName), metav1.GetOptions{})
 	if err != nil {
 		return "", fmt.Errorf("get services in namespace (%s), err: %w", namespace, err)
 	}
