@@ -5,8 +5,6 @@ import (
 	"github.com/gotomicro/ego/core/elog"
 )
 
-type Option func(c *Container)
-
 type Container struct {
 	config *config
 	name   string
