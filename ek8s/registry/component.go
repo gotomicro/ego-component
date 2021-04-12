@@ -16,27 +16,32 @@ import (
 	"github.com/gotomicro/ego-component/ek8s"
 )
 
+var _ eregistry.Registry = &Component{}
+
 type Component struct {
-	name   string
-	client *ek8s.Component
-	kvs    sync.Map
-	config *Config
-	cancel context.CancelFunc
-	rmu    *sync.RWMutex
-	logger *elog.Component
+	name             string
+	client           *ek8s.Component
+	kvs              sync.Map
+	config           *Config
+	cancel           context.CancelFunc
+	rmu              *sync.RWMutex
+	logger           *elog.Component
+	fallbackRegistry eregistry.Registry
 }
 
 func newComponent(name string, config *Config, logger *elog.Component, client *ek8s.Component) *Component {
-	reg := &Component{
-		name:   name,
-		logger: logger,
-		client: client,
-		config: config,
-		kvs:    sync.Map{},
-		rmu:    &sync.RWMutex{},
+	var reg *Component
+	reg = &Component{
+		name:             name,
+		logger:           logger,
+		client:           client,
+		config:           config,
+		kvs:              sync.Map{},
+		rmu:              &sync.RWMutex{},
+		fallbackRegistry: nil,
 	}
-	// 注册到grpc的resolver里
-	resolver.Register("k8s", reg)
+	// 注册为grpc的resolver
+	resolver.Register(config.Scheme, reg)
 	return reg
 }
 
@@ -51,8 +56,8 @@ func (reg *Component) UnregisterService(ctx context.Context, info *server.Servic
 }
 
 // ListServices list service registered in registry with name `name`
-func (reg *Component) ListServices(ctx context.Context, addr string, scheme string) (services []*server.ServiceInfo, err error) {
-	appName, port, err := getAppnameAndPort(addr)
+func (reg *Component) ListServices(ctx context.Context, t eregistry.Target) (services []*server.ServiceInfo, err error) {
+	appName, port, err := getAppnameAndPort(t.Endpoint)
 	if err != nil {
 		return nil, err
 	}
@@ -95,8 +100,8 @@ func (reg *Component) ListServices(ctx context.Context, addr string, scheme stri
 }
 
 // WatchServices watch service change event, then return address list
-func (reg *Component) WatchServices(ctx context.Context, addr string, scheme string) (chan eregistry.Endpoints, error) {
-	appName, port, err := getAppnameAndPort(addr)
+func (reg *Component) WatchServices(ctx context.Context, t eregistry.Target) (chan eregistry.Endpoints, error) {
+	appName, port, err := getAppnameAndPort(t.Endpoint)
 	if err != nil {
 		return nil, err
 	}
@@ -106,7 +111,7 @@ func (reg *Component) WatchServices(ctx context.Context, addr string, scheme str
 		return nil, err
 	}
 
-	svcs, err := reg.ListServices(ctx, addr, scheme)
+	svcs, err := reg.ListServices(ctx, t)
 	if err != nil {
 		return nil, err
 	}
@@ -158,6 +163,10 @@ func (reg *Component) WatchServices(ctx context.Context, addr string, scheme str
 	}()
 
 	return addresses, nil
+}
+
+func (reg *Component) SyncServices(context.Context, eregistry.SyncServicesOptions) error {
+	return nil
 }
 
 // Close ...

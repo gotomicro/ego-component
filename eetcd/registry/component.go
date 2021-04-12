@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gotomicro/ego-component/eetcd"
+	"github.com/gotomicro/ego/client/egrpc/resolver"
 	"github.com/gotomicro/ego/core/constant"
 	"github.com/gotomicro/ego/core/elog"
 	"github.com/gotomicro/ego/core/eregistry"
@@ -19,7 +19,11 @@ import (
 	"go.etcd.io/etcd/clientv3"
 	"go.etcd.io/etcd/clientv3/concurrency"
 	"go.etcd.io/etcd/mvcc/mvccpb"
+
+	"github.com/gotomicro/ego-component/eetcd"
 )
+
+var _ eregistry.Registry = &Component{}
 
 type Component struct {
 	name     string
@@ -33,7 +37,6 @@ type Component struct {
 }
 
 func newComponent(name string, config *Config, logger *elog.Component, client *eetcd.Component) *Component {
-	logger = logger.With(elog.FieldAddr(fmt.Sprintf("%v", client.Config.Addrs)))
 	reg := &Component{
 		name:     name,
 		logger:   logger,
@@ -43,6 +46,7 @@ func newComponent(name string, config *Config, logger *elog.Component, client *e
 		rmu:      &sync.RWMutex{},
 		sessions: make(map[string]*concurrency.Session),
 	}
+	resolver.Register(config.Scheme, reg)
 	return reg
 }
 
@@ -61,11 +65,11 @@ func (reg *Component) UnregisterService(ctx context.Context, info *server.Servic
 }
 
 // ListServices list service registered in registry with name `name`
-func (reg *Component) ListServices(ctx context.Context, name string, scheme string) (services []*server.ServiceInfo, err error) {
-	target := fmt.Sprintf("/%s/%s/providers/%s://", reg.Config.Prefix, name, scheme)
-	getResp, getErr := reg.client.Get(ctx, target, clientv3.WithPrefix())
+func (reg *Component) ListServices(ctx context.Context, t eregistry.Target) (services []*server.ServiceInfo, err error) {
+	key := fmt.Sprintf("/%s/%s/providers/%s://", reg.Config.Prefix, t.Endpoint, t.Protocol)
+	getResp, getErr := reg.client.Get(ctx, key, clientv3.WithPrefix())
 	if getErr != nil {
-		reg.logger.Error("watch request err", elog.FieldErrKind("request err"), elog.FieldErr(getErr), elog.FieldAddr(target))
+		reg.logger.Error("watch request err", elog.FieldErrKind("request err"), elog.FieldErr(getErr), elog.FieldAddr(t.Endpoint))
 		return nil, getErr
 	}
 
@@ -82,8 +86,8 @@ func (reg *Component) ListServices(ctx context.Context, name string, scheme stri
 }
 
 // WatchServices watch service change event, then return address list
-func (reg *Component) WatchServices(ctx context.Context, name string, scheme string) (chan eregistry.Endpoints, error) {
-	prefix := fmt.Sprintf("/%s/%s/", reg.Config.Prefix, name)
+func (reg *Component) WatchServices(ctx context.Context, t eregistry.Target) (chan eregistry.Endpoints, error) {
+	prefix := fmt.Sprintf("/%s/%s/", reg.Config.Prefix, t.Endpoint)
 	watch, err := reg.client.WatchPrefix(context.Background(), prefix)
 	if err != nil {
 		return nil, err
@@ -98,7 +102,7 @@ func (reg *Component) WatchServices(ctx context.Context, name string, scheme str
 	}
 
 	for _, kv := range watch.IncipientKeyValues() {
-		reg.updateAddrList(al, prefix, scheme, kv)
+		reg.updateAddrList(al, prefix, t.Protocol, kv)
 	}
 
 	addresses <- *al.DeepCopy()
@@ -106,9 +110,9 @@ func (reg *Component) WatchServices(ctx context.Context, name string, scheme str
 		for event := range watch.C() {
 			switch event.Type {
 			case mvccpb.PUT:
-				reg.updateAddrList(al, prefix, scheme, event.Kv)
+				reg.updateAddrList(al, prefix, t.Protocol, event.Kv)
 			case mvccpb.DELETE:
-				reg.deleteAddrList(al, prefix, scheme, event.Kv)
+				reg.deleteAddrList(al, prefix, t.Protocol, event.Kv)
 			}
 
 			out := al.DeepCopy()
@@ -121,6 +125,10 @@ func (reg *Component) WatchServices(ctx context.Context, name string, scheme str
 	})
 
 	return addresses, nil
+}
+
+func (reg *Component) SyncServices(context.Context, eregistry.SyncServicesOptions) error {
+	return nil
 }
 
 func (reg *Component) unregister(ctx context.Context, key string) error {
