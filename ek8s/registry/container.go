@@ -3,17 +3,17 @@ package registry
 import (
 	"github.com/gotomicro/ego/core/econf"
 	"github.com/gotomicro/ego/core/elog"
+	"google.golang.org/grpc/resolver"
 
 	"github.com/gotomicro/ego-component/ek8s"
 )
 
-type Option func(c *Container)
-
 type Container struct {
-	config *Config
-	name   string
-	logger *elog.Component
-	client *ek8s.Component
+	config     *Config
+	name       string
+	logger     *elog.Component
+	client     *ek8s.Component
+	fallbackRB resolver.Builder
 }
 
 func DefaultContainer() *Container {

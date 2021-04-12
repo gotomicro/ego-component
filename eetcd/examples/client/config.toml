@@ -9,6 +9,8 @@ addr = "etcd:///main"
 
 [etcd]
 addrs=["127.0.0.1:2379"]
-[registry]
 connectTimeout = "1s"
 secure = false
+
+[registry]
+scheme = "etcd" # grpc resolver默认scheme为"etcd"，你可以自行修改
