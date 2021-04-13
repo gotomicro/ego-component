@@ -11,6 +11,7 @@ import (
 	"github.com/gotomicro/ego/core/eregistry"
 	"github.com/gotomicro/ego/server"
 	"go.uber.org/zap"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
 
 	"github.com/gotomicro/ego-component/ek8s"
@@ -63,8 +64,8 @@ func (reg *Component) ListServices(ctx context.Context, t eregistry.Target) (ser
 	}
 
 	switch reg.config.Kind {
-	case ek8s.KindPod:
-		getResp, getErr := reg.client.ListPod(appName)
+	case ek8s.KindPods:
+		getResp, getErr := reg.client.ListPods(appName)
 		if getErr != nil {
 			reg.logger.Error("watch request err", elog.FieldErrKind("request err"), elog.FieldErr(getErr), elog.FieldAddr(appName))
 			return nil, getErr
@@ -174,6 +175,31 @@ func (reg *Component) Close() error {
 	if reg.cancel != nil {
 		reg.cancel()
 	}
+	return nil
+}
+
+// IsValid 判断k8s Registry是否有效
+func (reg *Component) IsValid(ctx context.Context) error {
+	if reg.config.Kind == ek8s.KindPods {
+		for _, ns := range reg.client.Config().Namespaces {
+			if _, err := reg.client.CoreV1().Pods(ns).List(ctx, metav1.ListOptions{}); err != nil {
+				return fmt.Errorf("k8s component list pod fail, %w", err)
+			}
+			if _, err := reg.client.CoreV1().Pods(ns).Watch(ctx, metav1.ListOptions{}); err != nil {
+				return fmt.Errorf("k8s component watch pod fail, %w", err)
+			}
+		}
+	} else if reg.config.Kind == ek8s.KindEndpoints {
+		for _, ns := range reg.client.Config().Namespaces {
+			if _, err := reg.client.CoreV1().Endpoints(ns).List(ctx, metav1.ListOptions{}); err != nil {
+				return fmt.Errorf("k8s component list endpoints fail, %w", err)
+			}
+			if _, err := reg.client.CoreV1().Endpoints(ns).Watch(ctx, metav1.ListOptions{}); err != nil {
+				return fmt.Errorf("k8s component watch endpoints fail, %w", err)
+			}
+		}
+	}
+
 	return nil
 }
 
