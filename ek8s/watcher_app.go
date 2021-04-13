@@ -36,7 +36,7 @@ func newWatcherApp(clientSet *kubernetes.Clientset, appName string, kind string,
 
 func (c *WatcherApp) watch(ctx context.Context, ns string) error {
 	switch c.kind {
-	case KindPod:
+	case KindPods:
 		label, err := c.getDeploymentsSelector(ns, c.appName)
 		if err != nil {
 			return err

@@ -15,9 +15,10 @@ import (
 
 const PackageName = "component.ek8s"
 const defaultResync = 5 * time.Minute
+
 const (
-	KindPod       = "Pod"
-	KindEndpoints = "Endpoints"
+	KindPods      = "pods"
+	KindEndpoints = "endpoints"
 )
 
 // Component ...
@@ -28,7 +29,6 @@ type Component struct {
 	logger   *elog.Component
 	watchApp map[string]*WatcherApp
 	locker   sync.RWMutex
-	//queue  workqueue.Interface
 }
 
 type KubernetesEvent struct {
@@ -51,7 +51,11 @@ func newComponent(name string, config *Config, logger *elog.Component) *Componen
 	}
 }
 
-func (c *Component) ListPod(appName string) (pods []*v1.Pod, err error) {
+func (c *Component) Config() Config {
+	return *c.config
+}
+
+func (c *Component) ListPods(appName string) (pods []*v1.Pod, err error) {
 	pods = make([]*v1.Pod, 0)
 	for _, ns := range c.config.Namespaces {
 		v1Pods, err := c.CoreV1().Pods(ns).Get(context.Background(), c.getDeploymentName(appName), metav1.GetOptions{})

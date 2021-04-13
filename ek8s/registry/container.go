@@ -34,12 +34,6 @@ func Load(key string) *Container {
 	return c
 }
 
-func WithClientK8s(k8s *ek8s.Component) Option {
-	return func(c *Container) {
-		c.client = k8s
-	}
-}
-
 // Build ...
 func (c *Container) Build(options ...Option) *Component {
 	for _, option := range options {
