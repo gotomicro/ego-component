@@ -12,12 +12,14 @@ const PackageName = "component.ekafka"
 
 // Component kafka 组件，包含Client、Producers、Consumers
 type Component struct {
-	config    *config
-	logger    *elog.Component
-	client    *Client
-	consumers map[string]*Consumer
-	producers map[string]*Producer
-	mu        sync.Mutex
+	config     *config
+	logger     *elog.Component
+	client     *Client
+	consumers  map[string]*Consumer
+	producers  map[string]*Producer
+	clientMu   sync.Mutex
+	consumerMu sync.Mutex
+	producerMu sync.Mutex
 }
 
 func (cmp *Component) interceptorChain() func(oldProcess processFn) processFn {
@@ -26,8 +28,12 @@ func (cmp *Component) interceptorChain() func(oldProcess processFn) processFn {
 
 // Producer 返回指定名称的kafka Producer
 func (cmp *Component) Producer(name string) *Producer {
-	cmp.mu.Lock()
-	defer cmp.mu.Unlock()
+	if producer, ok := cmp.producers[name]; ok {
+		return producer
+	}
+
+	cmp.producerMu.Lock()
+	defer cmp.producerMu.Unlock()
 
 	if _, ok := cmp.producers[name]; !ok {
 		config, ok := cmp.config.Producers[name]
@@ -74,8 +80,12 @@ func (cmp *Component) Producer(name string) *Producer {
 
 // Consumer 返回指定名称的kafka Consumer
 func (cmp *Component) Consumer(name string) *Consumer {
-	cmp.mu.Lock()
-	defer cmp.mu.Unlock()
+	if consumer, ok := cmp.consumers[name]; ok {
+		return consumer
+	}
+
+	cmp.consumerMu.Lock()
+	defer cmp.consumerMu.Unlock()
 
 	if _, ok := cmp.consumers[name]; !ok {
 		config, ok := cmp.config.Consumers[name]
@@ -122,8 +132,12 @@ func (cmp *Component) Consumer(name string) *Consumer {
 
 // Client 返回kafka Client
 func (cmp *Component) Client() *Client {
-	cmp.mu.Lock()
-	defer cmp.mu.Unlock()
+	if cmp.client != nil {
+		return cmp.client
+	}
+
+	cmp.clientMu.Lock()
+	defer cmp.clientMu.Unlock()
 
 	if cmp.client == nil {
 		cmp.client = &Client{
