@@ -148,3 +148,17 @@ func main() {
 	}
 }
 ```
+
+## 测试
+
+### E2E 测试
+
+> 运行 E2E 测试需要 Kafka 环境。
+
+首先将 `test/e2e/config/example.toml` 复制为 `test/e2e/config/e2e.toml` 并按实际情况修改，该文件即是运行 E2E 测试的配置文件。
+
+在模块目录下执行命令运行测试：
+
+```
+$ make test-e2e
+```
