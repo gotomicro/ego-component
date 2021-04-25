@@ -32,7 +32,42 @@ topic = "my-topic"
 ```
 
 ```go
+package main
 
+import "github.com/gotomicro/ego-component/ekafka"
+
+func main() {
+	cmp := ekafka.Load("kafka").Build()
+	// 获取实例（第一次调用时初始化，再次获取时会复用）
+	cg := cmp.ConsumerGroup("cg1")
+
+	for {
+		pollCtx, _ := context.WithTimeout(ctx, 1*time.Minute)
+		// 拉取事件，可能是消息、Rebalancing 事件或者错误等
+		event, err := consumerGroup.Poll(pollCtx)
+		if err != nil {
+			elog.Panic("poll error")
+			return
+		}
+		switch e := event.(type) {
+		case ekafka.Message:
+			// 按需处理消息
+		case ekafka.AssignedPartitions:
+			// 在 Kafka 完成分区分配时触发一次
+		case ekafka.RevokedPartitions:
+			// 在当前 Generation 结束时触发一次
+		case error:
+			// 错误处理
+
+			// 结束
+			if err := cg.Close(); err != nil {
+				elog.Panic("关闭ConsumerGroup失败")
+			}
+		default:
+			// ...
+		}
+	}
+}
 ```
 
 ## Consumer Server 组件
