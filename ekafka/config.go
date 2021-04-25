@@ -16,9 +16,11 @@ type config struct {
 	// Producers 多个消费者，用于生产消息
 	Producers map[string]producerConfig `json:"producers" toml:"producers"`
 	// Consumers 多个生产者，用于消费消息
-	Consumers    map[string]consumerConfig `json:"consumers" toml:"consumers"`
-	interceptors []Interceptor
-	balancers    map[string]Balancer
+	Consumers map[string]consumerConfig `json:"consumers" toml:"consumers"`
+	// ConsumerGroups 多个消费组，用于消费消息
+	ConsumerGroups map[string]consumerGroupConfig `json:"consumerGroups" toml:"consumerGroups"`
+	interceptors   []Interceptor
+	balancers      map[string]Balancer
 }
 
 type clientConfig struct {
@@ -81,6 +83,28 @@ type consumerConfig struct {
 	StartOffset       int64         `json:"startOffset" toml:"startOffset"`
 	ReadBackoffMin    time.Duration `json:"readBackoffMin" toml:"readBackoffMin"`
 	ReadBackoffMax    time.Duration `json:"readBackoffMax" toml:"readBackoffMax"`
+}
+
+type consumerGroupConfig struct {
+	GroupID                string                `json:"groupID" toml:"groupID"`
+	Topic                  string                `json:"topic" toml:"topic"`
+	GroupBalancers         []kafka.GroupBalancer `json:"groupBalancers" toml:"groupBalancers"`
+	HeartbeatInterval      time.Duration         `json:"heartbeatInterval" toml:"heartbeatInterval"`
+	PartitionWatchInterval time.Duration         `json:"partitionWatchInterval" toml:"partitionWatchInterval"`
+	WatchPartitionChanges  bool                  `json:"watchPartitionChanges" toml:"watchPartitionChanges"`
+	SessionTimeout         time.Duration         `json:"sessionTimeout" toml:"sessionTimeout"`
+	RebalanceTimeout       time.Duration         `json:"rebalanceTimeout" toml:"rebalanceTimeout"`
+	JoinGroupBackoff       time.Duration         `json:"joinGroupBackoff" toml:"joinGroupBackoff"`
+	StartOffset            int64                 `json:"startOffset" toml:"startOffset"`
+	RetentionTime          time.Duration         `json:"retentionTime" toml:"retentionTime"`
+	// Reader otpions:
+	MinBytes        int           `json:"minBytes" toml:"minBytes"`
+	MaxBytes        int           `json:"maxBytes" toml:"maxBytes"`
+	MaxWait         time.Duration `json:"maxWait" toml:"maxWait"`
+	ReadLagInterval time.Duration `json:"readLagInterval" toml:"readLagInterval"`
+	CommitInterval  time.Duration `json:"commitInterval" toml:"commitInterval"`
+	ReadBackoffMin  time.Duration `json:"readBackoffMin" toml:"readBackoffMin"`
+	ReadBackoffMax  time.Duration `json:"readBackoffMax" toml:"readBackoffMax"`
 }
 
 const (

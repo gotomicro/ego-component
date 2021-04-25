@@ -10,30 +10,21 @@ import (
 )
 
 // 写入一条随机内容的消息然后验证是否能消费到
-func Test_ProduceAndConsume(t *testing.T) {
+func Test_ConsumeWithConsumer(t *testing.T) {
 	cmp := ekafka.Load("kafka").Build(
 		ekafka.WithRegisterBalancer("my-balancer", &kafka.Hash{}),
 	)
 
 	randomMessage := RandomString(16)
-	consumed := make(chan struct{}, 1)
 
 	// 写一条随机字符串消息
-	go func() {
-		producer := cmp.Producer("p1")
-		err := producer.WriteMessages(
-			context.Background(),
-			ekafka.Message{Value: []byte(randomMessage)},
-		)
-		if err != nil {
-			panic(err)
-		}
-		if err := producer.Close(); err != nil {
-			panic(err)
-		}
-	}()
+	producer := cmp.Producer("p1")
+	producerErr := make(chan error, 1)
+	go writeMessage(producer, randomMessage, producerErr)
 
 	// 尝试消费 producer 推送的随机字符串消息
+	consumed := make(chan struct{}, 1)
+	consumerGroupErr := make(chan error, 1)
 	go func() {
 		ctx, _ := context.WithTimeout(
 			context.Background(),
@@ -43,18 +34,27 @@ func Test_ProduceAndConsume(t *testing.T) {
 		for {
 			msg, err := consumer.ReadMessage(ctx)
 			if err != nil {
-				panic(err)
+				consumerGroupErr <- err
+				return
 			}
 			received := string(msg.Value)
 			if received == randomMessage {
 				consumed <- struct{}{}
 				if err := consumer.Close(); err != nil {
-					panic(err)
+					consumerGroupErr <- err
+					return
 				}
 				return
 			}
 		}
 	}()
 
-	<-consumed
+	select {
+	case <-consumed:
+		// 成功
+	case err := <-consumerGroupErr:
+		t.Errorf("消费者发生错误: %s", err)
+	case err := <-producerErr:
+		t.Errorf("生产者发生错误: %s", err)
+	}
 }

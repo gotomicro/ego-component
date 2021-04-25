@@ -12,6 +12,29 @@
 
 生产者消费者使用样例可参考 [example](examples/main.go)
 
+## ConsumerGroup
+
+相对于 Consumer（对 [kafka-go](https://github.com/segmentio/kafka-go) 的封装）来说，ConsumerGroup 则提供了更加易用的 API。这是一个简单的例子：
+
+首先添加所需配置：
+
+```yaml
+[kafka]
+brokers = ["127.0.0.1:9092", "127.0.0.1:9093", "127.0.0.1:9094"]
+
+[kafka.client]
+timeout = "3s"
+
+[kafka.consumerGroups.cg1]
+JoinGroupBackoff = "1s"
+groupID = "group-1"
+topic = "my-topic"
+```
+
+```go
+
+```
+
 ## Consumer Server 组件
 
 > 必须配置 ConsumerGroup 使用。
@@ -153,11 +176,11 @@ func main() {
 
 ### E2E 测试
 
-> 运行 E2E 测试需要 Kafka 环境。
+> 运行 E2E 测试需要准备 Kafka 环境，推荐 3 个 broker、每 topic 3 个 partition，否则有些测试会报错。
 
 首先将 `test/e2e/config/example.toml` 复制为 `test/e2e/config/e2e.toml` 并按实际情况修改，该文件即是运行 E2E 测试的配置文件。
 
-在模块目录下执行命令运行测试：
+在 `ekafka/` 目录下执行命令运行测试：
 
 ```
 $ make test-e2e

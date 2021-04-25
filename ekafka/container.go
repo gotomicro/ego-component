@@ -50,10 +50,11 @@ func (c *Container) Build(options ...Option) *Component {
 
 	c.logger = c.logger.With(elog.FieldAddr(fmt.Sprintf("%s", c.config.Brokers)))
 	cmp := &Component{
-		config:    c.config,
-		logger:    c.logger,
-		producers: make(map[string]*Producer),
-		consumers: make(map[string]*Consumer),
+		config:         c.config,
+		logger:         c.logger,
+		producers:      make(map[string]*Producer),
+		consumers:      make(map[string]*Consumer),
+		consumerGroups: make(map[string]*ConsumerGroup),
 	}
 
 	return cmp
