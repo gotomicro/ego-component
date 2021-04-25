@@ -126,8 +126,8 @@ func Test_ConsumeWithConsumerGroup(t *testing.T) {
 		// 只要消费成功则关闭所有消费者
 		cancelConsume()
 
-		// 因为有两个 ConsumerGroup 实例，所以应该收到：
-		// - 2 次 AssignedPartitions Event
+		// 因为有两个 ConsumerGroup 实例，一个先启动、一个后启动，所以应该收到：
+		// - 3 次 AssignedPartitions Event
 		// - 1 次 RevokedPartitions Event
 		assert.Equal(t, int32(3), assignedPartitionsEventCount)
 		assert.Equal(t, int32(1), revokedPartitionsEventCount)
