@@ -70,6 +70,98 @@ func main() {
 }
 ```
 
+### 配置说明
+
+```yaml
+[kafka.consumerGroups.cg1]
+# GroupID is the name of the consumer group.
+groupID = "group-1"
+# The topic to read messages from.
+topic = "my-topic"
+# HeartbeatInterval sets the optional frequency at which the reader sends the consumer
+# group heartbeat update.
+#
+# Default: 3s
+heartbeatInterval = "3s"
+# PartitionWatchInterval indicates how often a reader checks for partition changes.
+# If a reader sees a partition change (such as a partition add) it will rebalance the group
+# picking up new partitions.
+#
+# Default: 5s
+partitionWatchInterval = "5s"
+# WatchForPartitionChanges is used to inform kafka-go that a consumer group should be
+# polling the brokers and rebalancing if any partition changes happen to the topic.
+watchPartitionChanges = false
+# SessionTimeout optionally sets the length of time that may pass without a heartbeat
+# before the coordinator considers the consumer dead and initiates a rebalance.
+#
+# Default: 30s
+sessionTimeout = "30s"
+# RebalanceTimeout optionally sets the length of time the coordinator will wait
+# for members to join as part of a rebalance.  For kafka servers under higher
+# load, it may be useful to set this value higher.
+#
+# Default: 30s
+rebalanceTimeout = "30s"
+# JoinGroupBackoff optionally sets the length of time to wait before re-joining
+# the consumer group after an error.
+#
+# Default: 5s
+joinGroupBackoff = "5s"
+# StartOffset determines from whence the consumer group should begin
+# consuming when it finds a partition without a committed offset.  If
+# non-zero, it must be set to one of FirstOffset or LastOffset.
+#
+# Default: `-2` (FirstOffset)
+startOffset = "-2"
+# RetentionTime optionally sets the length of time the consumer group will
+# be saved by the broker.  -1 will disable the setting and leave the
+# retention up to the broker's offsets.retention.minutes property.  By
+# default, that setting is 1 day for kafka < 2.0 and 7 days for kafka >=
+# 2.0.
+#
+# Default: -1
+retentionTime = "-1"
+# MinBytes indicates to the broker the minimum batch size that the consumer
+# will accept. Setting a high minimum when consuming from a low-volume topic
+# may result in delayed delivery when the broker does not have enough data to
+# satisfy the defined minimum.
+#
+# Default: 1
+minBytes = 1
+# MaxBytes indicates to the broker the maximum batch size that the consumer
+# will accept. The broker will truncate a message to satisfy this maximum, so
+# choose a value that is high enough for your largest message size.
+#
+# Default: 1MB
+maxBytes = 1048576
+# Maximum amount of time to wait for new data to come when fetching batches
+# of messages from kafka.
+#
+# Default: 10s
+maxWait = "10s"
+# ReadLagInterval sets the frequency at which the reader lag is updated.
+# Setting this field to a negative value disables lag reporting.
+#
+# Default: 60s
+readLagInterval = "60s"
+# CommitInterval indicates the interval at which offsets are committed to
+# the broker.  If 0, commits will be handled synchronously.
+#
+# Default: 0
+commitInterval = "0"
+# BackoffDelayMin optionally sets the smallest amount of time the reader will wait before
+# polling for new messages
+#
+# Default: 100ms
+readBackoffMin = "100ms"
+# BackoffDelayMax optionally sets the maximum amount of time the reader will wait before
+# polling for new messages
+#
+# Default: 1s
+readBackoffMax = "1s"
+```
+
 ## Consumer Server 组件
 
 > 必须配置 ConsumerGroup 使用。
