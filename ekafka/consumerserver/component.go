@@ -21,22 +21,24 @@ const PackageName = "component.ekafka.consumerserver"
 type consumptionMode int
 
 const (
-	consumptionModeManual consumptionMode = iota + 1
-	consumptionModeSingle
+	consumptionModeOnConsumerStart consumptionMode = iota + 1
+	consumptionModeOnConsumerEachMessage
+	consumptionModeOnConsumerGroupStart
 )
 
 // Component starts an Ego server for message consuming.
 type Component struct {
-	ServerCtx             context.Context
-	stopServer            context.CancelFunc
-	config                *config
-	name                  string
-	ekafkaComponent       *ekafka.Component
-	logger                *elog.Component
-	mode                  consumptionMode
-	onEachMessageHandler  OnEachMessageHandler
-	onStartMessageHandler OnStartHandler
-	consumptionErrors     chan<- error
+	ServerCtx                   context.Context
+	stopServer                  context.CancelFunc
+	config                      *config
+	name                        string
+	ekafkaComponent             *ekafka.Component
+	logger                      *elog.Component
+	mode                        consumptionMode
+	onEachMessageHandler        OnEachMessageHandler
+	onConsumerStartHandler      OnStartHandler
+	onConsumerGroupStartHandler OnConsumerGroupStartHandler
+	consumptionErrors           chan<- error
 }
 
 // PackageName returns the package name.
@@ -77,32 +79,46 @@ func (cmp *Component) Name() string {
 // Start will start consuming.
 func (cmp *Component) Start() error {
 	switch cmp.mode {
-	case consumptionModeManual:
-		return cmp.startManualMode()
-	case consumptionModeSingle:
-		return cmp.startSingleMode()
+	case consumptionModeOnConsumerStart:
+		return cmp.launchOnConsumerStart()
+	case consumptionModeOnConsumerGroupStart:
+		return cmp.launchOnConsumerGroupStart()
+	case consumptionModeOnConsumerEachMessage:
+		return cmp.launchOnConsumerEachMessage()
 	default:
 		return fmt.Errorf("undefined consumption mode: %v", cmp.mode)
 	}
 }
 
-// GetConsumer returns the default consumer.
+// GetConsumer returns the default Consumer.
 func (cmp *Component) GetConsumer() *ekafka.Consumer {
 	return cmp.ekafkaComponent.Consumer(cmp.config.ConsumerName)
 }
 
-// OnEachMessage registers a single message handler.
+// GetConsumerGroup returns the default ConsumerGroup.
+func (cmp *Component) GetConsumerGroup() *ekafka.ConsumerGroup {
+	return cmp.ekafkaComponent.ConsumerGroup(cmp.config.ConsumerGroupName)
+}
+
+// OnEachMessage ...
 func (cmp *Component) OnEachMessage(consumptionErrors chan<- error, handler OnEachMessageHandler) error {
 	cmp.consumptionErrors = consumptionErrors
-	cmp.mode = consumptionModeSingle
+	cmp.mode = consumptionModeOnConsumerEachMessage
 	cmp.onEachMessageHandler = handler
 	return nil
 }
 
-// OnStart registers a manual message handler.
+// OnStart ...
 func (cmp *Component) OnStart(handler OnStartHandler) error {
-	cmp.mode = consumptionModeManual
-	cmp.onStartMessageHandler = handler
+	cmp.mode = consumptionModeOnConsumerStart
+	cmp.onConsumerStartHandler = handler
+	return nil
+}
+
+// OnConsumerGroupStart ...
+func (cmp *Component) OnConsumerGroupStart(handler OnConsumerGroupStartHandler) error {
+	cmp.mode = consumptionModeOnConsumerGroupStart
+	cmp.onConsumerGroupStartHandler = handler
 	return nil
 }
 
@@ -115,16 +131,16 @@ func isErrorUnrecoverable(err error) bool {
 	return true
 }
 
-func (cmp *Component) startManualMode() error {
-	consumer := cmp.GetConsumer()
+func (cmp *Component) launchOnConsumerGroupStart() error {
+	consumerGroup := cmp.GetConsumerGroup()
 
-	if cmp.onStartMessageHandler == nil {
+	if cmp.onConsumerGroupStartHandler == nil {
 		return errors.New("you must define a MessageHandler first")
 	}
 
 	handlerExit := make(chan error)
 	go func() {
-		handlerExit <- cmp.onStartMessageHandler(cmp.ServerCtx, consumer)
+		handlerExit <- cmp.onConsumerGroupStartHandler(cmp.ServerCtx, consumerGroup)
 		close(handlerExit)
 	}()
 
@@ -132,26 +148,26 @@ func (cmp *Component) startManualMode() error {
 	select {
 	case originErr := <-handlerExit:
 		if originErr != nil {
-			cmp.logger.Error("terminating consumer because an error", elog.FieldErr(originErr))
+			cmp.logger.Error("terminating ConsumerServer because an error", elog.FieldErr(originErr))
 		} else {
-			cmp.logger.Info("message handler exited without any error, terminating consumer server")
+			cmp.logger.Info("message handler exited without any error, terminating ConsumerServer")
 		}
 		cmp.stopServer()
 	case <-cmp.ServerCtx.Done():
 		originErr := cmp.ServerCtx.Err()
-		cmp.logger.Error("terminating consumer because a context error", elog.FieldErr(originErr))
+		cmp.logger.Error("terminating ConsumerServer because a context error", elog.FieldErr(originErr))
 
 		err := <-handlerExit
 		if err != nil {
-			cmp.logger.Error("terminating consumer because an error", elog.FieldErr(err))
+			cmp.logger.Error("terminating ConsumerServer because an error", elog.FieldErr(err))
 		} else {
 			cmp.logger.Info("message handler exited without any error")
 		}
 	}
 
-	err := cmp.closeConsumer(consumer)
+	err := cmp.closeConsumerGroup(consumerGroup)
 	if err != nil {
-		return fmt.Errorf("encountered an error while closing consumer: %w", err)
+		return fmt.Errorf("encountered an error while closing ConsumerGroup: %w", err)
 	}
 
 	if errors.Is(originErr, context.Canceled) {
@@ -161,7 +177,53 @@ func (cmp *Component) startManualMode() error {
 	return originErr
 }
 
-func (cmp *Component) startSingleMode() error {
+func (cmp *Component) launchOnConsumerStart() error {
+	consumer := cmp.GetConsumer()
+
+	if cmp.onConsumerStartHandler == nil {
+		return errors.New("you must define a MessageHandler first")
+	}
+
+	handlerExit := make(chan error)
+	go func() {
+		handlerExit <- cmp.onConsumerStartHandler(cmp.ServerCtx, consumer)
+		close(handlerExit)
+	}()
+
+	var originErr error
+	select {
+	case originErr := <-handlerExit:
+		if originErr != nil {
+			cmp.logger.Error("terminating ConsumerGroup because an error", elog.FieldErr(originErr))
+		} else {
+			cmp.logger.Info("message handler exited without any error, terminating ConsumerGroup")
+		}
+		cmp.stopServer()
+	case <-cmp.ServerCtx.Done():
+		originErr := cmp.ServerCtx.Err()
+		cmp.logger.Error("terminating ConsumerGroup because a context error", elog.FieldErr(originErr))
+
+		err := <-handlerExit
+		if err != nil {
+			cmp.logger.Error("terminating ConsumerGroup because an error", elog.FieldErr(err))
+		} else {
+			cmp.logger.Info("message handler exited without any error")
+		}
+	}
+
+	err := cmp.closeConsumer(consumer)
+	if err != nil {
+		return fmt.Errorf("encountered an error while closing Consumer: %w", err)
+	}
+
+	if errors.Is(originErr, context.Canceled) {
+		return nil
+	}
+
+	return originErr
+}
+
+func (cmp *Component) launchOnConsumerEachMessage() error {
 	consumer := cmp.GetConsumer()
 
 	if cmp.onEachMessageHandler == nil {
@@ -256,10 +318,19 @@ func (cmp *Component) startSingleMode() error {
 
 func (cmp *Component) closeConsumer(consumer *ekafka.Consumer) error {
 	if err := consumer.Close(); err != nil {
-		cmp.logger.Fatal("failed to close kafka writer", elog.FieldErr(err))
+		cmp.logger.Fatal("failed to close Consumer", elog.FieldErr(err))
 		return err
 	}
-	cmp.logger.Info("consumer server terminated")
+	cmp.logger.Info("Consumer closed")
+	return nil
+}
+
+func (cmp *Component) closeConsumerGroup(consumerGroup *ekafka.ConsumerGroup) error {
+	if err := consumerGroup.Close(); err != nil {
+		cmp.logger.Fatal("failed to close ConsumerGroup", elog.FieldErr(err))
+		return err
+	}
+	cmp.logger.Info("ConsumerGroup closed")
 	return nil
 }
 
@@ -273,6 +344,6 @@ func NewConsumerServerComponent(name string, config *config, ekafkaComponent *ek
 		config:          config,
 		ekafkaComponent: ekafkaComponent,
 		logger:          logger,
-		mode:            consumptionModeSingle,
+		mode:            consumptionModeOnConsumerEachMessage,
 	}
 }

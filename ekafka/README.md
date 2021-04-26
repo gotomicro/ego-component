@@ -164,7 +164,7 @@ readBackoffMax = "1s"
 
 ## Consumer Server 组件
 
-> 必须配置 ConsumerGroup 使用。
+> 必须配合 ConsumerGroup 使用。
 
 基本组件通常是搭配其他服务模块（如 [HTTP 服务](https://ego.gocn.vip/frame/server/http.html)）一起使用的，如果只想使用 Ego 做单纯的 Kafka 消费应用，可以使用 [Consumer Server 组件](consumerserver/)。
 
@@ -193,10 +193,21 @@ startOffset = -1
 # 默认为同步提交，可以配置自动批量提交间隔来提高性能
 commitInterval = "1s"
 
+[kafka.consumerGroups.cg1]
+topic="sre-infra-test"
+groupID="group-1"
+# 指定 Consumer Group 未曾提交过 offset 时从何处开始消费
+startOffset = -1
+# 默认为同步提交，可以配置自动批量提交间隔来提高性能
+commitInterval = "1s"
+
 [kafkaConsumerServers.s1]
 debug=true
-# 使用 ekafka 中注册的哪一个 consumer，对应 `kafka.consumers.[name]` 配置项
+# 使用 ekafka 中注册的哪一个 Consumer，对应 `kafka.consumers.[name]` 配置项
 consumerName="c1"
+# 也可以配合 ConsumerGroup 使用
+consumerGroupName="cg1"
+
 ```
 
 #### StartOffset
@@ -249,7 +260,7 @@ func main() {
 
 			return cs
 		}(),
-		// 还可以启动多个 Consumer Server
+		// 还可以启动多个 ConsumerServer
 	)
 	if err := app.Run(); err != nil {
 		elog.Panic("startup", elog.Any("err", err))
@@ -257,7 +268,7 @@ func main() {
 }
 ```
 
-手动消费：
+获取 Consumer 实例后手动消费：
 
 ```go
 package main
@@ -274,9 +285,9 @@ func main() {
 		// 可以搭配其他服务模块一起使用
 		egovernor.Load("server.governor").Build(),
 
-		// 初始化 Consumer Server
+		// 初始化 ConsumerServer
 		func() *consumerserver.Component {
-			// 依赖 `ekafka` 管理 Kafka consumer
+			// 依赖 `ekafka` 管理 Kafka Consumer
 			ec := ekafka.Load("kafka").Build()
 			cs := consumerserver.Load("kafkaConsumerServers.s1").Build(
 				consumerserver.WithEkafka(ec),
@@ -291,7 +302,49 @@ func main() {
 
 			return cs
 		}(),
-		// 还可以启动多个 Consumer Server
+		// 还可以启动多个 ConsumerServer
+	)
+	if err := app.Run(); err != nil {
+		elog.Panic("startup", elog.Any("err", err))
+	}
+}
+```
+
+获取 ConsumerGroup 实例后手动消费：
+
+```go
+package main
+
+import (
+	"github.com/gotomicro/ego"
+	"github.com/gotomicro/ego-component/ekafka"
+	"github.com/gotomicro/ego-component/ekafka/consumerserver"
+	"github.com/gotomicro/ego/core/elog"
+)
+
+func main() {
+	app := ego.New().Serve(
+		// 可以搭配其他服务模块一起使用
+		egovernor.Load("server.governor").Build(),
+
+		// 初始化 ConsumerServer
+		func() *consumerserver.Component {
+			// 依赖 `ekafka` 管理 Kafka ConsumerGroup
+			ec := ekafka.Load("kafka").Build()
+			cs := consumerserver.Load("kafkaConsumerServers.s1").Build(
+				consumerserver.WithEkafka(ec),
+			)
+
+			// 注册处理消息的回调函数
+			cs.OnConsumerGroupStart(func(ctx context.Context, consumerGroup *ekafka.ConsumerGroup) error {
+				// 编写自己的消费逻辑...
+
+				return nil
+			})
+
+			return cs
+		}(),
+		// 还可以启动多个 ConsumerServer
 	)
 	if err := app.Run(); err != nil {
 		elog.Panic("startup", elog.Any("err", err))
