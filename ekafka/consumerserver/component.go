@@ -12,6 +12,9 @@ import (
 	"github.com/segmentio/kafka-go"
 )
 
+// OnEachMessageHandler 的最大重试次数
+const maxOnEachMessageHandlerRetryCount = 3
+
 // Interface check
 var _ server.Server = (*Component)(nil)
 
@@ -251,11 +254,20 @@ func (cmp *Component) launchOnConsumerEachMessage() error {
 				continue
 			}
 
+			retryCount := 0
+		HANDLER:
+
 			err = cmp.onEachMessageHandler(cmp.ServerCtx, message)
 			if err != nil {
 				cmp.logger.Error("encountered an error while handling message", elog.FieldErr(err))
 				cmp.consumptionErrors <- err
-				// Any error that returned from the handler should be considered as an unrecoverable
+
+				// If it's a retryable error, we should execute the handler again.
+				if errors.Is(err, ErrRecoverableError) && retryCount < maxOnEachMessageHandlerRetryCount {
+					retryCount++
+					goto HANDLER
+				}
+				// Otherwise should be considered as an unrecoverable
 				// error, developers should write their own retry logic in the handler.
 				unrecoverableError <- err
 				return

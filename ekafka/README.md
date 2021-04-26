@@ -254,7 +254,11 @@ func main() {
 			// 注册处理消息的回调函数
 			cs.OnEachMessage(consumptionErrors, func(ctx context.Context, message kafka.Message) error {
 				elog.Infof("got a message: %s\n", string(message.Value))
-				// 如果返回错误则会被转发给 `consumptionErrors`
+				// 如果返回错误则会被转发给 `consumptionErrors`，默认出现任何错误都会导致消费终止、
+				// ConsumerGroup 退出；但可以将错误标记为 Retryable 以实现重试，ConsumerGroup 最多重试 3 次
+				// 如：
+				// return fmt.Errorf("%w 写入数据库时发生错误", consumerserver.ErrRecoverableError)
+
 				return nil
 			})
 
