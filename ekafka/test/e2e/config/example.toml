@@ -1,0 +1,24 @@
+# 将该文件复制一份到同级目录下，并重命名为 `test.toml` 作为 E2E 测试的配置
+
+[kafka]
+brokers = ["localhost:9094"]
+
+[kafka.client]
+timeout = "3s"
+
+[kafka.producers.p1]
+commitInterval = "1s"
+heartbeatInterval = "1s"
+topic = "sre-infra-test"
+
+[kafka.consumers.c1]
+JoinGroupBackoff = "1s"
+groupID = "test-group-1"
+heartbeatInterval = "1s"
+maxBytes = 1500
+minBytes = 100
+partitionWatchInterval = "1s"
+topic = "sre-infra-test"
+
+[kafkaConsumerServers.s1]
+consumerName = "c1"

@@ -12,14 +12,16 @@ const PackageName = "component.ekafka"
 
 // Component kafka 组件，包含Client、Producers、Consumers
 type Component struct {
-	config     *config
-	logger     *elog.Component
-	client     *Client
-	consumers  map[string]*Consumer
-	producers  map[string]*Producer
-	clientOnce sync.Once
-	consumerMu sync.RWMutex
-	producerMu sync.RWMutex
+	config          *config
+	logger          *elog.Component
+	client          *Client
+	consumers       map[string]*Consumer
+	producers       map[string]*Producer
+	consumerGroups  map[string]*ConsumerGroup
+	clientOnce      sync.Once
+	consumerMu      sync.RWMutex
+	producerMu      sync.RWMutex
+	consumerGroupMu sync.RWMutex
 }
 
 func (cmp *Component) interceptorChain() func(oldProcess processFn) processFn {
@@ -142,6 +144,62 @@ func (cmp *Component) Consumer(name string) *Consumer {
 	cmp.consumerMu.Unlock()
 
 	return cmp.consumers[name]
+}
+
+// ConsumerGroup 返回指定名称的 ConsumerGroup
+func (cmp *Component) ConsumerGroup(name string) *ConsumerGroup {
+	cmp.consumerGroupMu.RLock()
+
+	if consumerGroup, ok := cmp.consumerGroups[name]; ok {
+		cmp.consumerGroupMu.RUnlock()
+		return consumerGroup
+	}
+
+	cmp.consumerGroupMu.RUnlock()
+	cmp.consumerGroupMu.Lock()
+
+	if consumerGroup, ok := cmp.consumerGroups[name]; ok {
+		cmp.consumerGroupMu.Unlock()
+		return consumerGroup
+	}
+
+	config, ok := cmp.config.ConsumerGroups[name]
+	if !ok {
+		cmp.consumerGroupMu.Unlock()
+		cmp.logger.Panic("consumerGroup config not exists", elog.String("name", name))
+	}
+	consumerGroup, err := NewConsumerGroup(ConsumerGroupOptions{
+		Logger:                 cmp.logger,
+		Brokers:                cmp.config.Brokers,
+		GroupID:                config.GroupID,
+		Topic:                  config.Topic,
+		HeartbeatInterval:      config.HeartbeatInterval,
+		PartitionWatchInterval: config.PartitionWatchInterval,
+		WatchPartitionChanges:  config.WatchPartitionChanges,
+		SessionTimeout:         config.SessionTimeout,
+		RebalanceTimeout:       config.RebalanceTimeout,
+		JoinGroupBackoff:       config.JoinGroupBackoff,
+		StartOffset:            config.StartOffset,
+		RetentionTime:          config.RetentionTime,
+		Reader: readerOptions{
+			MinBytes:        config.MinBytes,
+			MaxBytes:        config.MaxBytes,
+			MaxWait:         config.MaxWait,
+			ReadLagInterval: config.ReadLagInterval,
+			CommitInterval:  config.CommitInterval,
+			ReadBackoffMin:  config.ReadBackoffMin,
+			ReadBackoffMax:  config.ReadBackoffMax,
+		},
+	})
+	if err != nil {
+		cmp.logger.Panic("create ConsumerGroup failed", elog.FieldErr(err))
+	}
+	// TODO: wrapProcessor
+	cmp.consumerGroups[name] = consumerGroup
+
+	cmp.consumerGroupMu.Unlock()
+
+	return cmp.consumerGroups[name]
 }
 
 // Client 返回kafka Client
