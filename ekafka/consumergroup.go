@@ -221,7 +221,7 @@ func (cg *ConsumerGroup) CommitMessages(ctx context.Context, messages ...Message
 	for _, message := range messages {
 		messageOffset := message.Offset + 1
 		currentOffset, ok := partitions[message.Partition]
-		if ok && messageOffset > currentOffset {
+		if ok && currentOffset >= messageOffset {
 			continue
 		}
 		partitions[message.Partition] = messageOffset
