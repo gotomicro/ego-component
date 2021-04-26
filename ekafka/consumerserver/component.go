@@ -93,13 +93,13 @@ func (cmp *Component) Start() error {
 	}
 }
 
-// GetConsumer returns the default Consumer.
-func (cmp *Component) GetConsumer() *ekafka.Consumer {
+// Consumer returns the default Consumer.
+func (cmp *Component) Consumer() *ekafka.Consumer {
 	return cmp.ekafkaComponent.Consumer(cmp.config.ConsumerName)
 }
 
-// GetConsumerGroup returns the default ConsumerGroup.
-func (cmp *Component) GetConsumerGroup() *ekafka.ConsumerGroup {
+// ConsumerGroup returns the default ConsumerGroup.
+func (cmp *Component) ConsumerGroup() *ekafka.ConsumerGroup {
 	return cmp.ekafkaComponent.ConsumerGroup(cmp.config.ConsumerGroupName)
 }
 
@@ -135,7 +135,7 @@ func isErrorUnrecoverable(err error) bool {
 }
 
 func (cmp *Component) launchOnConsumerGroupStart() error {
-	consumerGroup := cmp.GetConsumerGroup()
+	consumerGroup := cmp.ConsumerGroup()
 
 	if cmp.onConsumerGroupStartHandler == nil {
 		return errors.New("you must define a MessageHandler first")
@@ -181,7 +181,7 @@ func (cmp *Component) launchOnConsumerGroupStart() error {
 }
 
 func (cmp *Component) launchOnConsumerStart() error {
-	consumer := cmp.GetConsumer()
+	consumer := cmp.Consumer()
 
 	if cmp.onConsumerStartHandler == nil {
 		return errors.New("you must define a MessageHandler first")
@@ -227,7 +227,7 @@ func (cmp *Component) launchOnConsumerStart() error {
 }
 
 func (cmp *Component) launchOnConsumerEachMessage() error {
-	consumer := cmp.GetConsumer()
+	consumer := cmp.Consumer()
 
 	if cmp.onEachMessageHandler == nil {
 		return errors.New("you must define a MessageHandler first")
