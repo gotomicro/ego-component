@@ -34,6 +34,7 @@ type ConsumerGroup struct {
 	currentGen *kafka.Generation
 	genMu      sync.RWMutex
 	readerWg   sync.WaitGroup
+	processor  processor
 }
 
 func createTopicPartitionsFromGenAssignments(genAssignments map[string][]kafka.PartitionAssignment) []TopicPartition {
@@ -74,6 +75,7 @@ type ConsumerGroupOptions struct {
 	StartOffset            int64
 	RetentionTime          time.Duration
 	Reader                 readerOptions
+	logMode                bool
 }
 
 func NewConsumerGroup(options ConsumerGroupOptions) (*ConsumerGroup, error) {
@@ -99,14 +101,21 @@ func NewConsumerGroup(options ConsumerGroupOptions) (*ConsumerGroup, error) {
 	}
 
 	cg := &ConsumerGroup{
-		logger:  options.Logger,
-		group:   group,
-		events:  make(chan interface{}, 100),
-		options: &options,
+		logger:    options.Logger,
+		group:     group,
+		events:    make(chan interface{}, 100),
+		processor: defaultProcessor,
+		options:   &options,
 	}
 	go cg.run()
 
 	return cg, nil
+}
+
+func (cg *ConsumerGroup) wrapProcessor(wrapFn Interceptor) {
+	cg.processor = func(fn processFn) error {
+		return wrapFn(fn)(&cmd{req: make([]interface{}, 0, 1), ctx: context.Background()})
+	}
 }
 
 func (cg *ConsumerGroup) run() {
@@ -191,7 +200,7 @@ func (cg *ConsumerGroup) run() {
 						return
 					case nil:
 						// message received.
-						cg.events <- Message(msg)
+						cg.events <- msg
 					default:
 						cg.events <- err
 					}
@@ -201,44 +210,67 @@ func (cg *ConsumerGroup) run() {
 	}
 }
 
-func (cg *ConsumerGroup) Poll(ctx context.Context) (interface{}, error) {
-	select {
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	case msg := <-cg.events:
-		return msg, nil
-	}
+func (cg *ConsumerGroup) Poll(ctx context.Context) (msg interface{}, err error) {
+	err = cg.processor(func(c *cmd) error {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case msg = <-cg.events:
+			var name string
+			switch msg.(type) {
+			case AssignedPartitions:
+				name = "AssignedPartitions"
+			case RevokedPartitions:
+				name = "RevokedPartitions"
+			case Message:
+				name = "FetchMessage"
+			default:
+				name = "FetchError"
+			}
+			logCmd(cg.options.logMode, c, name, msg)
+			return nil
+		}
+	})
+	return
 }
 
 func (cg *ConsumerGroup) CommitMessages(ctx context.Context, messages ...Message) error {
-	cg.genMu.RLock()
-	if cg.currentGen == nil {
-		cg.genMu.RUnlock()
-		return fmt.Errorf("generation haven't been created yet")
-	}
+	return cg.processor(func(c *cmd) error {
+		logCmd(cg.options.logMode, c, "CommitMessages", nil, messages)
 
-	partitions := make(map[int]int64)
-	for _, message := range messages {
-		messageOffset := message.Offset + 1
-		currentOffset, ok := partitions[message.Partition]
-		if ok && currentOffset >= messageOffset {
-			continue
+		cg.genMu.RLock()
+		if cg.currentGen == nil {
+			cg.genMu.RUnlock()
+			return fmt.Errorf("generation haven't been created yet")
 		}
-		partitions[message.Partition] = messageOffset
-	}
 
-	offsets := make(map[string]map[int]int64)
-	offsets[cg.options.Topic] = partitions
+		partitions := make(map[int]int64)
+		for _, message := range messages {
+			messageOffset := message.Offset + 1
+			currentOffset, ok := partitions[message.Partition]
+			if ok && currentOffset >= messageOffset {
+				continue
+			}
+			partitions[message.Partition] = messageOffset
+		}
 
-	err := cg.currentGen.CommitOffsets(offsets)
-	cg.genMu.RUnlock()
+		offsets := make(map[string]map[int]int64)
+		offsets[cg.options.Topic] = partitions
 
-	return err
+		err := cg.currentGen.CommitOffsets(offsets)
+		cg.genMu.RUnlock()
+
+		return err
+	})
 }
 
-func (cg *ConsumerGroup) Close() (err error) {
-	err = cg.group.Close()
-	cg.readerWg.Wait()
-	close(cg.events)
-	return
+func (cg *ConsumerGroup) Close() error {
+	return cg.processor(func(c *cmd) error {
+		logCmd(cg.options.logMode, c, "ConsumerClose", nil)
+
+		err := cg.group.Close()
+		cg.readerWg.Wait()
+		close(cg.events)
+		return err
+	})
 }

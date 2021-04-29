@@ -16,15 +16,15 @@ type Consumer struct {
 
 type Message = kafka.Message
 
-func (r *Consumer) wrapProcessor(wrapFn func(processFn) processFn) {
+func (r *Consumer) wrapProcessor(wrapFn Interceptor) {
 	r.processor = func(fn processFn) error {
-		return wrapFn(fn)(&cmd{req: make([]interface{}, 0, 1)})
+		return wrapFn(fn)(&cmd{req: make([]interface{}, 0, 1), ctx: context.Background()})
 	}
 }
 
 func (r *Consumer) Close() error {
 	return r.processor(func(c *cmd) error {
-		logCmd(r.logMode, c, "Close", nil)
+		logCmd(r.logMode, c, "ConsumerClose", nil)
 		return r.r.Close()
 	})
 }

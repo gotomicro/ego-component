@@ -14,13 +14,13 @@ type Producer struct {
 
 func (w *Producer) wrapProcessor(wrapFn func(processFn) processFn) {
 	w.processor = func(fn processFn) error {
-		return wrapFn(fn)(&cmd{req: make([]interface{}, 0, 1)})
+		return wrapFn(fn)(&cmd{req: make([]interface{}, 0, 1), ctx: context.Background()})
 	}
 }
 
 func (w *Producer) Close() error {
 	return w.processor(func(c *cmd) error {
-		logCmd(w.logMode, c, "Close", nil)
+		logCmd(w.logMode, c, "ProducerClose", nil)
 		return w.w.Close()
 	})
 }

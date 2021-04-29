@@ -13,13 +13,13 @@ type Client struct {
 }
 
 func defaultProcessor(processFn processFn) error {
-	return processFn(&cmd{req: make([]interface{}, 0, 1)})
+	return processFn(&cmd{req: make([]interface{}, 0, 1), ctx: context.Background()})
 }
 
 func logCmd(logMode bool, c *cmd, name string, res interface{}, req ...interface{}) {
+	c.name = name
 	// 只有开启log模式才会记录req、res
 	if logMode {
-		c.name = name
 		c.req = append(c.req, req...)
 		c.res = res
 	}
