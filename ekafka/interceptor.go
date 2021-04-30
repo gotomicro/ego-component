@@ -80,7 +80,6 @@ func metricInterceptor(compName string, config *config) func(processFn) processF
 		return func(cmd *cmd) error {
 			err := next(cmd)
 			cost := time.Since(cmd.ctx.Value(ctxStartTimeKey).(time.Time))
-			fmt.Printf("metrics, compName:%s, name:%s, cost:%f \n", compName, cmd.name, cost.Seconds())
 			emetric.ClientHandleHistogram.WithLabelValues("kafka", compName, cmd.name, strings.Join(config.Brokers, ",")).Observe(cost.Seconds())
 			if err != nil {
 				emetric.ClientHandleCounter.Inc("kafka", compName, cmd.name, strings.Join(config.Brokers, ","), "Error")
