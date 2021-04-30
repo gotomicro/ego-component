@@ -7,6 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
@@ -40,4 +41,22 @@ func TestWrappedCollection_Find(t *testing.T) {
 		// do something with result....
 		t.Log(result)
 	}
+}
+
+func TestSession(t *testing.T) {
+	var ctx = context.TODO()
+	client := DefaultContainer().Build(WithDSN(os.Getenv("EMONGO_DSN"))).Client()
+	sess, err := client.StartSession()
+	assert.NoError(t, err)
+	defer sess.EndSession(context.Background())
+
+	coll := client.Database("foo").Collection("bar")
+	defer func() {
+		_ = coll.Drop(ctx)
+	}()
+	_, err = sess.WithTransaction(context.Background(), func(sessCtx mongo.SessionContext) (interface{}, error) {
+		res := coll.FindOne(sessCtx, bson.D{{"x", 1}})
+		return res, err
+	})
+	assert.NotNil(t, err, "expected WithTransaction error, got nil")
 }
