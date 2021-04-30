@@ -2,6 +2,7 @@ package e2e
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -26,12 +27,10 @@ func Test_ConsumeServer_OnConsumerEachMessage(t *testing.T) {
 	// 尝试消费 producer 推送的随机字符串消息
 	consumed := make(chan struct{}, 1)
 	consumptionErr := make(chan error, 10)
+	consumerServerComponent := consumerserver.Load("kafkaConsumerServers.s1").Build(
+		consumerserver.WithEkafka(ekafkaComponent),
+	)
 	go func() {
-		consumerServerComponent := consumerserver.Load("kafkaConsumerServers.c1").Build(
-			consumerserver.WithEkafka(ekafkaComponent),
-		)
-
-		stopConsumerServer := make(chan struct{})
 		timeoutCtx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 		defer cancel()
 
@@ -49,18 +48,19 @@ func Test_ConsumeServer_OnConsumerEachMessage(t *testing.T) {
 			consumptionErr <- err
 		}
 
-		select {
-		case <-timeoutCtx.Done():
-		case <-stopConsumerServer:
-		}
-		if err := consumerServerComponent.Stop(); err != nil {
-			consumptionErr <- err
-		}
+		go func() {
+			<-timeoutCtx.Done()
+			consumptionErr <- fmt.Errorf("time out err")
+			if err := consumerServerComponent.Stop(); err != nil {
+				consumptionErr <- err
+			}
+		}()
 	}()
 
 	select {
 	case <-consumed:
 		// 成功
+		consumerServerComponent.Stop()
 	case err := <-consumptionErr:
 		t.Errorf("消费者发生错误: %s", err)
 	case err := <-producerErr:
@@ -83,12 +83,10 @@ func Test_ConsumeServer_OnConsumerStart(t *testing.T) {
 	// 尝试消费 producer 推送的随机字符串消息
 	consumed := make(chan struct{}, 1)
 	consumptionErr := make(chan error, 10)
+	consumerServerComponent := consumerserver.Load("kafkaConsumerServers.s1").Build(
+		consumerserver.WithEkafka(ekafkaComponent),
+	)
 	go func() {
-		consumerServerComponent := consumerserver.Load("kafkaConsumerServers.c1").Build(
-			consumerserver.WithEkafka(ekafkaComponent),
-		)
-
-		stopConsumerServer := make(chan struct{})
 		timeoutCtx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 		defer cancel()
 
@@ -111,18 +109,19 @@ func Test_ConsumeServer_OnConsumerStart(t *testing.T) {
 			consumptionErr <- err
 		}
 
-		select {
-		case <-timeoutCtx.Done():
-		case <-stopConsumerServer:
-		}
-		if err := consumerServerComponent.Stop(); err != nil {
-			consumptionErr <- err
-		}
+		go func() {
+			<-timeoutCtx.Done()
+			consumptionErr <- fmt.Errorf("time out err")
+			if err := consumerServerComponent.Stop(); err != nil {
+				consumptionErr <- err
+			}
+		}()
 	}()
 
 	select {
 	case <-consumed:
 		// 成功
+		consumerServerComponent.Stop()
 	case err := <-consumptionErr:
 		t.Errorf("消费者发生错误: %s", err)
 	case err := <-producerErr:
@@ -149,11 +148,10 @@ func Test_ConsumeServer_OnConsumerGroupStart(t *testing.T) {
 	consumed := make(chan struct{}, 1)
 	consumptionErr := make(chan error, 10)
 	go func() {
-		consumerServerComponent := consumerserver.Load("kafkaConsumerServers.cg1").Build(
+		consumerServerComponent := consumerserver.Load("kafkaConsumerServers.s1").Build(
 			consumerserver.WithEkafka(ekafkaComponent),
 		)
 
-		stopConsumerServer := make(chan struct{})
 		timeoutCtx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 		defer cancel()
 
@@ -167,6 +165,7 @@ func Test_ConsumeServer_OnConsumerGroupStart(t *testing.T) {
 					randomMessage,
 					&assignedPartitionsEventCount,
 					&revokedPartitionsEventCount,
+					false,
 				)
 				return nil
 			},
@@ -175,13 +174,13 @@ func Test_ConsumeServer_OnConsumerGroupStart(t *testing.T) {
 			consumptionErr <- err
 		}
 
-		select {
-		case <-timeoutCtx.Done():
-		case <-stopConsumerServer:
-		}
-		if err := consumerServerComponent.Stop(); err != nil {
-			consumptionErr <- err
-		}
+		go func() {
+			<-timeoutCtx.Done()
+			consumptionErr <- fmt.Errorf("time out err")
+			if err := consumerServerComponent.Stop(); err != nil {
+				consumptionErr <- err
+			}
+		}()
 	}()
 
 	select {

@@ -4,13 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/segmentio/kafka-go"
+	"github.com/stretchr/testify/assert"
 	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/gotomicro/ego-component/ekafka"
-	"github.com/segmentio/kafka-go"
-	"github.com/stretchr/testify/assert"
 )
 
 func consumerGroupConsume(
@@ -21,6 +21,7 @@ func consumerGroupConsume(
 	expectedMessage string,
 	assignedPartitionsEventCount *int32,
 	revokedPartitionsEventCount *int32,
+	closeConsumerGroup bool,
 ) {
 	for {
 		pollCtx, _ := context.WithTimeout(ctx, 1*time.Minute)
@@ -49,9 +50,11 @@ func consumerGroupConsume(
 					return
 				}
 
-				if err := consumerGroup.Close(); err != nil {
-					consumerGroupErrCh <- err
-					return
+				if closeConsumerGroup {
+					if err := consumerGroup.Close(); err != nil {
+						consumerGroupErrCh <- err
+						return
+					}
 				}
 
 				consumedCh <- struct{}{}
@@ -87,7 +90,7 @@ func Test_ConsumeWithConsumerGroup(t *testing.T) {
 	producerErr := make(chan error, 1)
 	producer := cmp.Producer("p1")
 	go func() {
-		time.Sleep(45 * time.Second)
+		time.Sleep(30 * time.Second)
 		writeMessage(producer, randomMessage, producerErr)
 	}()
 
@@ -105,10 +108,11 @@ func Test_ConsumeWithConsumerGroup(t *testing.T) {
 		randomMessage,
 		&assignedPartitionsEventCount,
 		&revokedPartitionsEventCount,
+		true,
 	)
 
 	go func() {
-		time.Sleep(30 * time.Second)
+		time.Sleep(15 * time.Second)
 		consumerGroup2 := cmp.ConsumerGroup("cg2")
 		consumerGroupConsume(
 			consumerGroup2,
@@ -118,6 +122,7 @@ func Test_ConsumeWithConsumerGroup(t *testing.T) {
 			randomMessage,
 			&assignedPartitionsEventCount,
 			&revokedPartitionsEventCount,
+			true,
 		)
 	}()
 
