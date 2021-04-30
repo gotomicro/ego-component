@@ -42,7 +42,7 @@ func (c *Container) Build(options ...Option) *Component {
 		options = make([]Option, 0)
 	}
 
-	options = append(options, WithInterceptor(fixedInterceptor(c.name, c.config)))
+	options = append([]Option{WithInterceptor(fixedInterceptor(c.name, c.config))}, options...)
 	if c.config.Debug {
 		options = append(options, WithInterceptor(debugInterceptor(c.name, c.config)))
 	}
