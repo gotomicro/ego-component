@@ -29,17 +29,23 @@ type Component struct {
 
 // New ...
 func newComponent(name string, config *config, logger *elog.Component) *Component {
+	dialOptions := []grpc.DialOption{
+		grpc.WithUnaryInterceptor(grpcprom.UnaryClientInterceptor),
+		grpc.WithStreamInterceptor(grpcprom.StreamClientInterceptor),
+		grpc.FailOnNonTempDialError(config.EnableFailOnNonTempDialError),
+	}
+
+	if config.EnableBlock {
+		dialOptions = append(dialOptions, grpc.WithBlock())
+	}
+
 	conf := clientv3.Config{
 		Endpoints:            config.Addrs,
 		DialTimeout:          config.ConnectTimeout,
 		DialKeepAliveTime:    10 * time.Second,
 		DialKeepAliveTimeout: 3 * time.Second,
-		DialOptions: []grpc.DialOption{
-			grpc.WithBlock(),
-			grpc.WithUnaryInterceptor(grpcprom.UnaryClientInterceptor),
-			grpc.WithStreamInterceptor(grpcprom.StreamClientInterceptor),
-		},
-		AutoSyncInterval: config.AutoSyncInterval,
+		DialOptions:          dialOptions,
+		AutoSyncInterval:     config.AutoSyncInterval,
 	}
 
 	if config.Addrs == nil {
@@ -91,7 +97,6 @@ func newComponent(name string, config *config, logger *elog.Component) *Componen
 	}
 
 	client, err := clientv3.New(conf)
-
 	if err != nil {
 		logger.Panic("client etcd start panic", elog.FieldErr(err), elog.FieldValueAny(config))
 	}
