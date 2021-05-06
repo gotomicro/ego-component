@@ -18,20 +18,20 @@ type Message = kafka.Message
 
 func (r *Consumer) wrapProcessor(wrapFn Interceptor) {
 	r.processor = func(fn processFn) error {
-		return wrapFn(fn)(&cmd{req: make([]interface{}, 0, 1), ctx: context.Background()})
+		return wrapFn(fn)(&cmd{req: make([]interface{}, 0, 1)})
 	}
 }
 
 func (r *Consumer) Close() error {
 	return r.processor(func(c *cmd) error {
-		logCmd(r.logMode, c, "ConsumerClose", nil)
+		logCmd(r.logMode, c, "ConsumerClose")
 		return r.r.Close()
 	})
 }
 
 func (r *Consumer) CommitMessages(ctx context.Context, msgs ...Message) (err error) {
 	return r.processor(func(c *cmd) error {
-		logCmd(r.logMode, c, "CommitMessages", nil, msgs)
+		logCmd(r.logMode, c, "CommitMessages", cmdWithContext(ctx), cmdWithReq(msgs))
 		return r.r.CommitMessages(ctx, msgs...)
 	})
 }
@@ -39,7 +39,7 @@ func (r *Consumer) CommitMessages(ctx context.Context, msgs ...Message) (err err
 func (r *Consumer) FetchMessage(ctx context.Context) (msg Message, err error) {
 	err = r.processor(func(c *cmd) error {
 		msg, err = r.r.FetchMessage(ctx)
-		logCmd(r.logMode, c, "FetchMessage", msg)
+		logCmd(r.logMode, c, "FetchMessage", cmdWithContext(ctx), cmdWithRes(msg))
 		return err
 	})
 	return
@@ -56,7 +56,7 @@ func (r *Consumer) Offset() int64 {
 func (r *Consumer) ReadLag(ctx context.Context) (lag int64, err error) {
 	err = r.processor(func(c *cmd) error {
 		lag, err = r.r.ReadLag(ctx)
-		logCmd(r.logMode, c, "ReadLag", nil)
+		logCmd(r.logMode, c, "ReadLag", cmdWithContext(ctx))
 		return err
 	})
 	return
@@ -65,7 +65,7 @@ func (r *Consumer) ReadLag(ctx context.Context) (lag int64, err error) {
 func (r *Consumer) ReadMessage(ctx context.Context) (msg Message, err error) {
 	err = r.processor(func(c *cmd) error {
 		msg, err = r.r.ReadMessage(ctx)
-		logCmd(r.logMode, c, "ReadMessage", nil, msg)
+		logCmd(r.logMode, c, "ReadMessage", cmdWithContext(ctx), cmdWithRes(msg))
 		return err
 	})
 	return
@@ -73,14 +73,14 @@ func (r *Consumer) ReadMessage(ctx context.Context) (msg Message, err error) {
 
 func (r *Consumer) SetOffset(offset int64) (err error) {
 	return r.processor(func(c *cmd) error {
-		logCmd(r.logMode, c, "SetOffset", nil)
+		logCmd(r.logMode, c, "SetOffset")
 		return r.r.SetOffset(offset)
 	})
 }
 
 func (r *Consumer) SetOffsetAt(ctx context.Context, t time.Time) (err error) {
 	return r.processor(func(c *cmd) error {
-		logCmd(r.logMode, c, "SetOffsetAt", nil)
+		logCmd(r.logMode, c, "SetOffsetAt", cmdWithContext(ctx))
 		return r.r.SetOffsetAt(ctx, t)
 	})
 }

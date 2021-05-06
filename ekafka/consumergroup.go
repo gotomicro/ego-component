@@ -114,7 +114,7 @@ func NewConsumerGroup(options ConsumerGroupOptions) (*ConsumerGroup, error) {
 
 func (cg *ConsumerGroup) wrapProcessor(wrapFn Interceptor) {
 	cg.processor = func(fn processFn) error {
-		return wrapFn(fn)(&cmd{req: make([]interface{}, 0, 1), ctx: context.Background()})
+		return wrapFn(fn)(&cmd{req: make([]interface{}, 0, 1)})
 	}
 }
 
@@ -214,6 +214,7 @@ func (cg *ConsumerGroup) Poll(ctx context.Context) (msg interface{}, err error) 
 	err = cg.processor(func(c *cmd) error {
 		select {
 		case <-ctx.Done():
+			logCmd(cg.options.logMode, c, "FetchMessage", cmdWithContext(ctx))
 			return ctx.Err()
 		case msg = <-cg.events:
 			var name string
@@ -227,7 +228,7 @@ func (cg *ConsumerGroup) Poll(ctx context.Context) (msg interface{}, err error) 
 			default:
 				name = "FetchError"
 			}
-			logCmd(cg.options.logMode, c, name, msg)
+			logCmd(cg.options.logMode, c, name, cmdWithContext(ctx), cmdWithRes(msg))
 			return nil
 		}
 	})
@@ -236,7 +237,7 @@ func (cg *ConsumerGroup) Poll(ctx context.Context) (msg interface{}, err error) 
 
 func (cg *ConsumerGroup) CommitMessages(ctx context.Context, messages ...Message) error {
 	return cg.processor(func(c *cmd) error {
-		logCmd(cg.options.logMode, c, "CommitMessages", nil, messages)
+		logCmd(cg.options.logMode, c, "CommitMessages", cmdWithContext(ctx), cmdWithReq(messages))
 
 		cg.genMu.RLock()
 		if cg.currentGen == nil {
@@ -266,7 +267,7 @@ func (cg *ConsumerGroup) CommitMessages(ctx context.Context, messages ...Message
 
 func (cg *ConsumerGroup) Close() error {
 	return cg.processor(func(c *cmd) error {
-		logCmd(cg.options.logMode, c, "ConsumerClose", nil)
+		logCmd(cg.options.logMode, c, "ConsumerClose")
 
 		err := cg.group.Close()
 		cg.readerWg.Wait()

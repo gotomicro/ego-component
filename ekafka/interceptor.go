@@ -23,7 +23,7 @@ type processFn func(*cmd) error
 type cmd struct {
 	ctx  context.Context
 	name string
-	req  []interface{}
+	req  interface{}
 	res  interface{}
 }
 
@@ -46,8 +46,10 @@ func InterceptorChain(interceptors ...Interceptor) Interceptor {
 func fixedInterceptor(_ string, _ *config) Interceptor {
 	return func(next processFn) processFn {
 		return func(cmd *cmd) error {
-			cmd.ctx = context.WithValue(cmd.ctx, ctxStartTimeKey, time.Now())
-			return next(cmd)
+			start := time.Now()
+			err := next(cmd)
+			cmd.ctx = context.WithValue(cmd.ctx, ctxStartTimeKey, start)
+			return err
 		}
 	}
 }
