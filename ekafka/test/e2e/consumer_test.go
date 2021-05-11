@@ -2,11 +2,10 @@ package e2e
 
 import (
 	"context"
-	"testing"
-	"time"
-
 	"github.com/gotomicro/ego-component/ekafka"
 	"github.com/segmentio/kafka-go"
+	"testing"
+	"time"
 )
 
 // 写入一条随机内容的消息然后验证是否能消费到
@@ -39,11 +38,11 @@ func Test_ConsumeWithConsumer(t *testing.T) {
 			}
 			received := string(msg.Value)
 			if received == randomMessage {
-				consumed <- struct{}{}
 				if err := consumer.Close(); err != nil {
 					consumerGroupErr <- err
 					return
 				}
+				consumed <- struct{}{}
 				return
 			}
 		}

@@ -16,12 +16,38 @@ func defaultProcessor(processFn processFn) error {
 	return processFn(&cmd{req: make([]interface{}, 0, 1)})
 }
 
-func logCmd(logMode bool, c *cmd, name string, res interface{}, req ...interface{}) {
-	// 只有开启log模式才会记录req、res
-	if logMode {
-		c.name = name
-		c.req = append(c.req, req...)
-		c.res = res
+type cmdOptsFunc func(logMode bool, c *cmd)
+
+func cmdWithRes(res interface{}) cmdOptsFunc {
+	return func(logMode bool, c *cmd) {
+		// 只有开启log模式才会记录 res
+		if logMode {
+			c.res = res
+		}
+	}
+}
+
+func cmdWithReq(req interface{}) cmdOptsFunc {
+	return func(logMode bool, c *cmd) {
+		// 只有开启log模式才会记录 req
+		if logMode {
+			c.req = req
+		}
+	}
+}
+
+func cmdWithContext(ctx context.Context) cmdOptsFunc {
+	return func(logMode bool, c *cmd) {
+		c.ctx = ctx
+	}
+}
+
+func logCmd(logMode bool, c *cmd, name string, opts ...cmdOptsFunc) {
+	c.name = name
+	c.ctx = context.Background()
+
+	for _, opt := range opts {
+		opt(logMode, c)
 	}
 }
 

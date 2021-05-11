@@ -41,9 +41,14 @@ func (c *Container) Build(options ...Option) *Component {
 	if options == nil {
 		options = make([]Option, 0)
 	}
+
 	if c.config.Debug {
 		options = append(options, WithInterceptor(debugInterceptor(c.name, c.config)))
 	}
+	if c.config.EnableMetricInterceptor {
+		options = append(options, WithInterceptor(metricInterceptor(c.name, c.config)))
+	}
+	options = append(options, WithInterceptor(fixedInterceptor(c.name, c.config)))
 	for _, option := range options {
 		option(c)
 	}

@@ -1,4 +1,4 @@
-# 将该文件复制一份到同级目录下，并重命名为 `test.toml` 作为 E2E 测试的配置
+# 将该文件复制一份到同级目录下，并重命名为 `e2e.toml` 作为 E2E 测试的配置
 
 [kafka]
 brokers = ["localhost:9094"]
@@ -9,7 +9,7 @@ timeout = "3s"
 [kafka.producers.p1]
 commitInterval = "1s"
 heartbeatInterval = "1s"
-topic = "sre-infra-test"
+topic = "test-topic"
 
 [kafka.consumers.c1]
 JoinGroupBackoff = "1s"
@@ -18,7 +18,20 @@ heartbeatInterval = "1s"
 maxBytes = 1500
 minBytes = 100
 partitionWatchInterval = "1s"
-topic = "sre-infra-test"
+topic = "test-topic"
 
 [kafkaConsumerServers.s1]
 consumerName = "c1"
+consumerGroupName="cg1"
+
+[kafka.consumerGroups.cg1]
+topic="test-topic"
+groupID="test-group-1"
+# 指定 Consumer Group 未曾提交过 offset 时从何处开始消费
+startOffset = -1
+
+[kafka.consumerGroups.cg2]
+topic="test-topic"
+groupID="test-group-1"
+# 指定 Consumer Group 未曾提交过 offset 时从何处开始消费
+startOffset = -1

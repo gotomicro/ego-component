@@ -21,6 +21,8 @@ type config struct {
 	ConsumerGroups map[string]consumerGroupConfig `json:"consumerGroups" toml:"consumerGroups"`
 	interceptors   []Interceptor
 	balancers      map[string]Balancer
+
+	EnableMetricInterceptor bool // 是否开启监控，默认开启
 }
 
 type clientConfig struct {
@@ -115,7 +117,8 @@ const (
 // DefaultConfig 返回默认配置
 func DefaultConfig() *config {
 	return &config{
-		Debug: true,
+		Debug:                   true,
+		EnableMetricInterceptor: true,
 		balancers: map[string]Balancer{
 			balancerHash:       &kafka.Hash{},
 			balancerRoundRobin: &kafka.RoundRobin{},

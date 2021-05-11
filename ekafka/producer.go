@@ -20,14 +20,14 @@ func (w *Producer) wrapProcessor(wrapFn func(processFn) processFn) {
 
 func (w *Producer) Close() error {
 	return w.processor(func(c *cmd) error {
-		logCmd(w.logMode, c, "Close", nil)
+		logCmd(w.logMode, c, "ProducerClose")
 		return w.w.Close()
 	})
 }
 
 func (w *Producer) WriteMessages(ctx context.Context, msgs ...Message) error {
 	return w.processor(func(c *cmd) error {
-		logCmd(w.logMode, c, "WriteMessages", nil, msgs)
+		logCmd(w.logMode, c, "WriteMessages", cmdWithContext(ctx), cmdWithReq(msgs))
 		return w.w.WriteMessages(ctx, msgs...)
 	})
 }

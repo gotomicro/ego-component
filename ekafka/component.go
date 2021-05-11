@@ -190,11 +190,12 @@ func (cmp *Component) ConsumerGroup(name string) *ConsumerGroup {
 			ReadBackoffMin:  config.ReadBackoffMin,
 			ReadBackoffMax:  config.ReadBackoffMax,
 		},
+		logMode: cmp.config.Debug,
 	})
 	if err != nil {
 		cmp.logger.Panic("create ConsumerGroup failed", elog.FieldErr(err))
 	}
-	// TODO: wrapProcessor
+	consumerGroup.wrapProcessor(cmp.interceptorChain())
 	cmp.consumerGroups[name] = consumerGroup
 
 	cmp.consumerGroupMu.Unlock()
