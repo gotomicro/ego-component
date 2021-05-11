@@ -1,33 +1,41 @@
 package ekafka
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/gotomicro/ego/core/emetric"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/gotomicro/ego/core/eapp"
 	"github.com/gotomicro/ego/core/util/xdebug"
 )
 
+const (
+	ctxStartTimeKey = "_cmdStart_"
+)
+
 type processor func(fn processFn) error
 type processFn func(*cmd) error
 
 type cmd struct {
+	ctx  context.Context
 	name string
-	req  []interface{}
+	req  interface{}
 	res  interface{}
 }
 
 type Interceptor func(oldProcessFn processFn) (newProcessFn processFn)
 
-func InterceptorChain(interceptors ...Interceptor) func(oldProcess processFn) processFn {
+func InterceptorChain(interceptors ...Interceptor) Interceptor {
 	build := func(interceptor Interceptor, oldProcess processFn) processFn {
 		return interceptor(oldProcess)
 	}
 
-	return func(oldProcess processFn) processFn {
-		chain := oldProcess
+	return func(p processFn) processFn {
+		chain := p
 		for i := len(interceptors) - 1; i >= 0; i-- {
 			chain = build(interceptors[i], chain)
 		}
@@ -35,12 +43,22 @@ func InterceptorChain(interceptors ...Interceptor) func(oldProcess processFn) pr
 	}
 }
 
-func debugInterceptor(compName string, c *config) func(processFn) processFn {
-	return func(oldProcess processFn) processFn {
+func fixedInterceptor(_ string, _ *config) Interceptor {
+	return func(next processFn) processFn {
 		return func(cmd *cmd) error {
-			beg := time.Now()
-			err := oldProcess(cmd)
-			cost := time.Since(beg)
+			start := time.Now()
+			err := next(cmd)
+			cmd.ctx = context.WithValue(cmd.ctx, ctxStartTimeKey, start)
+			return err
+		}
+	}
+}
+
+func debugInterceptor(compName string, c *config) Interceptor {
+	return func(next processFn) processFn {
+		return func(cmd *cmd) error {
+			err := next(cmd)
+			cost := time.Since(cmd.ctx.Value(ctxStartTimeKey).(time.Time))
 			if eapp.IsDevelopmentMode() {
 				if err != nil {
 					log.Println("[ekafka.response]", xdebug.MakeReqResError(compName,
@@ -55,6 +73,22 @@ func debugInterceptor(compName string, c *config) func(processFn) processFn {
 				// todo log debug info
 			}
 			return err
+		}
+	}
+}
+
+func metricInterceptor(compName string, config *config) func(processFn) processFn {
+	return func(next processFn) processFn {
+		return func(cmd *cmd) error {
+			err := next(cmd)
+			cost := time.Since(cmd.ctx.Value(ctxStartTimeKey).(time.Time))
+			emetric.ClientHandleHistogram.WithLabelValues("kafka", compName, cmd.name, strings.Join(config.Brokers, ",")).Observe(cost.Seconds())
+			if err != nil {
+				emetric.ClientHandleCounter.Inc("kafka", compName, cmd.name, strings.Join(config.Brokers, ","), "Error")
+				return err
+			}
+			emetric.ClientHandleCounter.Inc("kafka", compName, cmd.name, strings.Join(config.Brokers, ","), "OK")
+			return nil
 		}
 	}
 }

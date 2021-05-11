@@ -1,6 +1,13 @@
 package ek8s
 
-import "k8s.io/client-go/rest"
+import (
+	"fmt"
+	"io/ioutil"
+	"os"
+	"strings"
+
+	"k8s.io/client-go/rest"
+)
 
 // Config ...
 type Config struct {
@@ -15,7 +22,9 @@ type Config struct {
 // DefaultConfig 返回默认配置
 func DefaultConfig() *Config {
 	return &Config{
-		Addr:                    "127.0.0.1",
+		Addr:                    inClusterAddr(),
+		Token:                   inClusterToken(),
+		Namespaces:              []string{"default"},
 		TLSClientConfigInsecure: true,
 	}
 }
@@ -28,4 +37,21 @@ func (c *Config) toRestConfig() *rest.Config {
 			Insecure: c.TLSClientConfigInsecure,
 		},
 	}
+}
+
+func inClusterAddr() string {
+	host := os.Getenv("KUBERNETES_SERVICE_HOST")
+	port := os.Getenv("KUBERNETES_SERVICE_PORT")
+	if host == "" || port == "" {
+		return ""
+	}
+	return fmt.Sprintf("https://%s:%s", host, port)
+}
+
+func inClusterToken() string {
+	t, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/token")
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(t))
 }

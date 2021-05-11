@@ -139,7 +139,7 @@ func (wc *Collection) EstimatedDocumentCount(ctx context.Context, opts ...*optio
 func (wc *Collection) Find(ctx context.Context, filter interface{}, opts ...*options.FindOptions) (res *mongo.Cursor, err error) {
 	err = wc.processor(func(c *cmd) error {
 		res, err = wc.coll.Find(ctx, filter, opts...)
-		logCmd(wc.logMode, c, "Find", res.Current, filter)
+		logCmd(wc.logMode, c, "Find", res, filter)
 		return err
 	})
 	return

@@ -6,34 +6,43 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/gotomicro/ego/client/egrpc/resolver"
 	"github.com/gotomicro/ego/core/elog"
 	"github.com/gotomicro/ego/core/eregistry"
 	"github.com/gotomicro/ego/server"
 	"go.uber.org/zap"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
 
 	"github.com/gotomicro/ego-component/ek8s"
 )
 
+var _ eregistry.Registry = &Component{}
+
 type Component struct {
-	name   string
-	client *ek8s.Component
-	kvs    sync.Map
-	config *Config
-	cancel context.CancelFunc
-	rmu    *sync.RWMutex
-	logger *elog.Component
+	name             string
+	client           *ek8s.Component
+	kvs              sync.Map
+	config           *Config
+	cancel           context.CancelFunc
+	rmu              *sync.RWMutex
+	logger           *elog.Component
+	fallbackRegistry eregistry.Registry
 }
 
 func newComponent(name string, config *Config, logger *elog.Component, client *ek8s.Component) *Component {
-	reg := &Component{
-		name:   name,
-		logger: logger,
-		client: client,
-		config: config,
-		kvs:    sync.Map{},
-		rmu:    &sync.RWMutex{},
+	var reg *Component
+	reg = &Component{
+		name:             name,
+		logger:           logger,
+		client:           client,
+		config:           config,
+		kvs:              sync.Map{},
+		rmu:              &sync.RWMutex{},
+		fallbackRegistry: nil,
 	}
+	// 注册为grpc的resolver
+	resolver.Register(config.Scheme, reg)
 	return reg
 }
 
@@ -48,15 +57,15 @@ func (reg *Component) UnregisterService(ctx context.Context, info *server.Servic
 }
 
 // ListServices list service registered in registry with name `name`
-func (reg *Component) ListServices(ctx context.Context, addr string, scheme string) (services []*server.ServiceInfo, err error) {
-	appName, port, err := getAppnameAndPort(addr)
+func (reg *Component) ListServices(ctx context.Context, t eregistry.Target) (services []*server.ServiceInfo, err error) {
+	appName, port, err := getAppnameAndPort(t.Endpoint)
 	if err != nil {
 		return nil, err
 	}
 
 	switch reg.config.Kind {
-	case ek8s.KindPod:
-		getResp, getErr := reg.client.ListPod(appName)
+	case ek8s.KindPods:
+		getResp, getErr := reg.client.ListPods(appName)
 		if getErr != nil {
 			reg.logger.Error("watch request err", elog.FieldErrKind("request err"), elog.FieldErr(getErr), elog.FieldAddr(appName))
 			return nil, getErr
@@ -92,18 +101,18 @@ func (reg *Component) ListServices(ctx context.Context, addr string, scheme stri
 }
 
 // WatchServices watch service change event, then return address list
-func (reg *Component) WatchServices(ctx context.Context, addr string, scheme string) (chan eregistry.Endpoints, error) {
-	appName, port, err := getAppnameAndPort(addr)
+func (reg *Component) WatchServices(ctx context.Context, t eregistry.Target) (chan eregistry.Endpoints, error) {
+	appName, port, err := getAppnameAndPort(t.Endpoint)
 	if err != nil {
 		return nil, err
 	}
 
-	err = reg.client.WatchPrefix(ctx, appName, reg.config.Kind)
+	app, err := reg.client.NewWatcherApp(ctx, appName, reg.config.Kind)
 	if err != nil {
 		return nil, err
 	}
 
-	svcs, err := reg.ListServices(ctx, addr, scheme)
+	svcs, err := reg.ListServices(ctx, t)
 	if err != nil {
 		return nil, err
 	}
@@ -121,7 +130,7 @@ func (reg *Component) WatchServices(ctx context.Context, addr string, scheme str
 
 	addresses <- *al.DeepCopy()
 	go func() {
-		for reg.client.ProcessWorkItem(func(info *ek8s.KubernetesEvent) error {
+		for app.ProcessWorkItem(func(info *ek8s.KubernetesEvent) error {
 			switch info.EventType {
 			case watch.Added:
 				addrs := make([]string, 0)
@@ -143,7 +152,7 @@ func (reg *Component) WatchServices(ctx context.Context, addr string, scheme str
 				reg.updateAddrList(al, addrs)
 			}
 			out := al.DeepCopy()
-			reg.logger.Debug("update addresses", zap.Any("addresses", *out))
+			reg.logger.Info("update addresses", zap.String("appName", appName), zap.Any("addresses", *out))
 			select {
 			case addresses <- *out:
 			default:
@@ -157,11 +166,40 @@ func (reg *Component) WatchServices(ctx context.Context, addr string, scheme str
 	return addresses, nil
 }
 
+func (reg *Component) SyncServices(context.Context, eregistry.SyncServicesOptions) error {
+	return nil
+}
+
 // Close ...
 func (reg *Component) Close() error {
 	if reg.cancel != nil {
 		reg.cancel()
 	}
+	return nil
+}
+
+// IsValid 判断k8s Registry是否有效
+func (reg *Component) IsValid(ctx context.Context) error {
+	if reg.config.Kind == ek8s.KindPods {
+		for _, ns := range reg.client.Config().Namespaces {
+			if _, err := reg.client.CoreV1().Pods(ns).List(ctx, metav1.ListOptions{}); err != nil {
+				return fmt.Errorf("k8s component list pod fail, %w", err)
+			}
+			if _, err := reg.client.CoreV1().Pods(ns).Watch(ctx, metav1.ListOptions{}); err != nil {
+				return fmt.Errorf("k8s component watch pod fail, %w", err)
+			}
+		}
+	} else if reg.config.Kind == ek8s.KindEndpoints {
+		for _, ns := range reg.client.Config().Namespaces {
+			if _, err := reg.client.CoreV1().Endpoints(ns).List(ctx, metav1.ListOptions{}); err != nil {
+				return fmt.Errorf("k8s component list endpoints fail, %w", err)
+			}
+			if _, err := reg.client.CoreV1().Endpoints(ns).Watch(ctx, metav1.ListOptions{}); err != nil {
+				return fmt.Errorf("k8s component watch endpoints fail, %w", err)
+			}
+		}
+	}
+
 	return nil
 }
 

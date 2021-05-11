@@ -6,7 +6,7 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 )
 
-func (c *Component) addPod(obj interface{}) {
+func (c *WatcherApp) addPod(obj interface{}) {
 	c.logger.Debug("addPod", zap.Any("obj", obj))
 	p, ok := obj.(*v1.Pod)
 	if !ok {
@@ -19,7 +19,7 @@ func (c *Component) addPod(obj interface{}) {
 	})
 }
 
-func (c *Component) updatePod(oldObj, newObj interface{}) {
+func (c *WatcherApp) updatePod(oldObj, newObj interface{}) {
 	c.logger.Debug("updatePod", zap.Any("oldObj", oldObj), zap.Any("newObj", newObj))
 
 	op, ok := oldObj.(*v1.Pod)
@@ -41,7 +41,7 @@ func (c *Component) updatePod(oldObj, newObj interface{}) {
 	})
 }
 
-func (c *Component) deletePod(obj interface{}) {
+func (c *WatcherApp) deletePod(obj interface{}) {
 	c.logger.Debug("deletePod", zap.Any("obj", obj))
 	p, ok := obj.(*v1.Pod)
 	if !ok {

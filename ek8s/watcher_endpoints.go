@@ -6,8 +6,8 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 )
 
-func (c *Component) addEndpoints(obj interface{}) {
-	c.logger.Debug("addPod", zap.Any("obj", obj))
+func (c *WatcherApp) addEndpoints(obj interface{}) {
+	c.logger.Debug("addEndpoints", zap.Any("obj", obj))
 	p, ok := obj.(*v1.Endpoints)
 	if !ok {
 		c.logger.Warnf("pod-informer got object %T not *v1.Pod", obj)
@@ -27,7 +27,7 @@ func (c *Component) addEndpoints(obj interface{}) {
 	})
 }
 
-func (c *Component) updateEndpoints(oldObj, newObj interface{}) {
+func (c *WatcherApp) updateEndpoints(oldObj, newObj interface{}) {
 	c.logger.Debug("updateEndpoints", zap.Any("oldObj", oldObj), zap.Any("newObj", newObj))
 
 	op, ok := oldObj.(*v1.Endpoints)
@@ -57,7 +57,7 @@ func (c *Component) updateEndpoints(oldObj, newObj interface{}) {
 	})
 }
 
-func (c *Component) deleteEndpoints(obj interface{}) {
+func (c *WatcherApp) deleteEndpoints(obj interface{}) {
 	c.logger.Debug("deleteEndpoints", zap.Any("obj", obj))
 	p, ok := obj.(*v1.Endpoints)
 	if !ok {

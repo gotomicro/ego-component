@@ -22,6 +22,15 @@ func (r *Component) Get(ctx context.Context, key string) (string, error) {
 	return reply, err
 }
 
+// GETEX
+func (r *Component) GetEx(ctx context.Context, key string,  expire time.Duration) (string, error) {
+	reply, err := r.client.GetEx(ctx, key, expire).Result()
+	if err != nil {
+		return reply, fmt.Errorf("eredis get string error %w", err)
+	}
+	return reply, err
+}
+
 // GetBytes
 func (r *Component) GetBytes(ctx context.Context, key string) ([]byte, error) {
 	c, err := r.client.Get(ctx, key).Bytes()
@@ -176,6 +185,16 @@ func (r *Component) ZRange(ctx context.Context, key string, start, stop int64) (
 	return r.client.ZRange(ctx, key, start, stop).Result()
 }
 
+// ZRangeWithScores ...
+func (r *Component) ZRangeWithScores(ctx context.Context, key string, start, stop int64) ([]redis.Z, error) {
+	return r.client.ZRangeWithScores(ctx, key, start, stop).Result()
+}
+
+// ZRangeByScoreWithScores ...
+func (r *Component) ZRangeByScoreWithScores(ctx context.Context, key string, opt *redis.ZRangeBy) ([]redis.Z, error) {
+	return r.client.ZRangeByScoreWithScores(ctx, key, opt).Result()
+}
+
 // ZRevRank ...
 func (r *Component) ZRevRank(ctx context.Context, key string, member string) (int64, error) {
 	return r.client.ZRevRank(ctx, key, member).Result()
@@ -319,6 +338,11 @@ func (r *Component) SMembers(ctx context.Context, key string) ([]string, error) 
 // SIsMember ...
 func (r *Component) SIsMember(ctx context.Context, key string, member interface{}) (bool, error) {
 	return r.client.SIsMember(ctx, key, member).Result()
+}
+
+// SRem ...
+func (r *Component) SRem(ctx context.Context, key string, member interface{}) (int64, error) {
+	return r.client.SRem(ctx, key, member).Result()
 }
 
 // HKeys 获取hash的所有域

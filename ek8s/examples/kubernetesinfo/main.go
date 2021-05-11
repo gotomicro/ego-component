@@ -17,7 +17,7 @@ func main() {
 
 func invokerGrpc() error {
 	obj := ek8s.Load("k8s").Build()
-	list, err := obj.ListPod("svc-oss")
+	list, err := obj.ListPods("svc-oss")
 	if err != nil {
 		panic(err)
 	}
