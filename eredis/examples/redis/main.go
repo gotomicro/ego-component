@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/go-redis/redis/v8"
 	"github.com/gotomicro/ego"
 	"github.com/gotomicro/ego/core/elog"
 
@@ -38,7 +37,7 @@ func testRedis() error {
 	fmt.Println("get hello", str, err)
 
 	str, err = eredisClient.Get(context.Background(), "lee")
-	fmt.Println("Get lee", err, errors.Is(err, redis.Nil))
+	fmt.Println("Get lee", errors.Is(err, eredis.Nil), "err="+err.Error())
 
 	return nil
 }
