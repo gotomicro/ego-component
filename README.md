@@ -1,6 +1,6 @@
 # ego-component
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-8-orange.svg?style=flat-square)](#contributors-)
+[![All Contributors](https://img.shields.io/badge/all_contributors-9-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 
 EGO 的客户端组件最佳实践。
@@ -35,6 +35,7 @@ Thanks for these wonderful people:
   </tr>
   <tr>
     <td align="center"><a href="https://github.com/dandyhuang"><img src="https://avatars.githubusercontent.com/u/12603054?v=4" width="64px;" alt=""/><br /><sub><b>dandyhuang</b></sub></a></td>
+    <td align="center"><a href="https://github.com/NeoyeElf"><img src="https://avatars.githubusercontent.com/u/6872731?v=4" width="64px;" alt=""/><br /><sub><b>刘文哲</b></sub></a></td>
   </tr>
 </table>
 
