@@ -34,3 +34,24 @@ func withInterceptor(interceptors ...redis.Hook) Option {
 		c.config.interceptors = append(c.config.interceptors, interceptors...)
 	}
 }
+
+// WithPassword set password
+func WithPassword(password string) Option {
+	return func(c *Container) {
+		c.config.Password = password
+	}
+}
+
+// WithAddr set address
+func WithAddr(addr string) Option {
+	return func(c *Container) {
+		c.config.Addr = addr
+	}
+}
+
+// WithAddrs set addresses
+func WithAddrs(addrs []string) Option {
+	return func(c *Container) {
+		c.config.Addrs = addrs
+	}
+}
