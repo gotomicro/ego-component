@@ -32,19 +32,21 @@ type DepartmentCreateRes struct {
 }
 
 type DepartmentUpdateReq struct {
-	DeptId            int     `json:"dept_id,omitempty"`
-	ParentId          *int    `json:"parent_id,omitempty"`
-	HideDept          *bool   `json:"hide_dept,omitempty"`
-	DeptPermits       *string `json:"dept_permits,omitempty"`
-	UserPermits       *string `json:"user_permits,omitempty"`
-	CreateDeptGroup   *bool   `json:"create_dept_group,omitempty"`
-	Order             *int    `json:"order,omitempty"`
-	Name              *string `json:"name,omitempty"`
-	SourceIdentifier  *string `json:"source_identifier,omitempty"`
-	OuterDept         *bool   `json:"outer_dept,omitempty"`
-	OuterPermitUsers  *string `json:"outer_permit_users,omitempty"`
-	OuterPermitDepts  *string `json:"outer_permit_depts,omitempty"`
-	OuterDeptOnlySelf *string `json:"outer_dept_only_self,omitempty"`
+	DeptId                int     `json:"dept_id,omitempty"`
+	ParentId              *int    `json:"parent_id,omitempty"`
+	HideDept              *bool   `json:"hide_dept,omitempty"`
+	DeptPermits           *string `json:"dept_permits,omitempty"`
+	UserPermits           *string `json:"user_permits,omitempty"`
+	CreateDeptGroup       *bool   `json:"create_dept_group,omitempty"`
+	Order                 *int    `json:"order,omitempty"`
+	Name                  *string `json:"name,omitempty"`
+	SourceIdentifier      *string `json:"source_identifier,omitempty"`
+	OuterDept             *bool   `json:"outer_dept,omitempty"`
+	OuterPermitUsers      *string `json:"outer_permit_users,omitempty"`
+	OuterPermitDepts      *string `json:"outer_permit_depts,omitempty"`
+	OuterDeptOnlySelf     *string `json:"outer_dept_only_self,omitempty"`
+	DeptManagerUseridList *string `json:"dept_manager_userid_list"` // 部门的主管userid列表
+	OrgDeptOwner          *string `json:"org_dept_owner"`           // 企业群群主的userid
 }
 
 func NewDepartmentUpdateReq(did int) *DepartmentUpdateReq {
@@ -108,6 +110,14 @@ func (d *DepartmentUpdateReq) SetOuterPermitDepts(outerPermitDepts string) *Depa
 
 func (d *DepartmentUpdateReq) SetOuterDeptOnlySelf(outerDeptOnlySelf string) *DepartmentUpdateReq {
 	d.OuterDeptOnlySelf = &outerDeptOnlySelf
+	return d
+}
+func (d *DepartmentUpdateReq) SetDeptManagerUseridList(deptManagerUseridList string) *DepartmentUpdateReq {
+	d.DeptManagerUseridList = &deptManagerUseridList
+	return d
+}
+func (d *DepartmentUpdateReq) SetOrgDeptOwner(orgDeptOwner string) *DepartmentUpdateReq {
+	d.OrgDeptOwner = &orgDeptOwner
 	return d
 }
 

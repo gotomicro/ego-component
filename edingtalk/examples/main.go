@@ -21,8 +21,11 @@ func main() {
 func invokerDingTalk() error {
 	redis := eredis.Load("redis").Build(eredis.WithStub())
 	comp := edingtalk.Load("dingtalk").Build(edingtalk.WithERedis(redis))
-	user, err := comp.GetUserInfo("5eca6dcdc3c93cf8b9eb91a922e90d97")
+	user, err := comp.GetUserInfo("5a84b3af502834d4a663d33378263b66")
 	fmt.Println(user)
 	fmt.Println(err)
+	fmt.Println("==================================")
+	err = comp.DepartmentUpdate(edingtalk.NewDepartmentUpdateReq(11111).SetDeptManagerUseridList("xxxxx"))
+	fmt.Println("errr", err)
 	return nil
 }
