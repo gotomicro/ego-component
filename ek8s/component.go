@@ -26,9 +26,8 @@ type Component struct {
 	name   string
 	config *Config
 	*kubernetes.Clientset
-	logger   *elog.Component
-	watchApp map[string]*WatcherApp
-	locker   sync.RWMutex
+	logger *elog.Component
+	locker sync.RWMutex
 }
 
 type KubernetesEvent struct {
@@ -47,7 +46,6 @@ func newComponent(name string, config *Config, logger *elog.Component) *Componen
 		config:    config,
 		logger:    logger,
 		Clientset: client,
-		watchApp:  make(map[string]*WatcherApp),
 	}
 }
 
@@ -81,15 +79,6 @@ func (c *Component) ListEndpoints(appName string) (pods []*v1.Endpoints, err err
 }
 
 func (c *Component) NewWatcherApp(ctx context.Context, appName string, kind string) (app *WatcherApp, err error) {
-	var flag bool
-	c.locker.RLock()
-	app, flag = c.watchApp[appName]
-	if flag {
-		c.locker.RUnlock()
-		return app, nil
-	}
-	c.locker.RUnlock()
-
 	app = newWatcherApp(c.Clientset, appName, kind, c.config.DeploymentPrefix, c.logger)
 	for _, ns := range c.config.Namespaces {
 		err = app.watch(ctx, ns)
@@ -97,10 +86,6 @@ func (c *Component) NewWatcherApp(ctx context.Context, appName string, kind stri
 			return app, err
 		}
 	}
-
-	c.locker.Lock()
-	c.watchApp[appName] = app
-	c.locker.Unlock()
 	return app, nil
 }
 
