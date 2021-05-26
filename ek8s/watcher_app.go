@@ -54,7 +54,7 @@ func (c *WatcherApp) watch(ctx context.Context, ns string) error {
 		)
 
 		informer := informersFactory.Core().V1().Pods()
-		c.logger.Debug("k8s watch prefix", zap.String("appname", c.appName), zap.String("kind", c.kind), zap.String("kind", c.kind))
+		c.logger.Debug("k8s watch pods", zap.String("appname", c.appName), zap.String("kind", c.kind), zap.String("kind", c.kind))
 		informer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 			AddFunc:    c.addPod,
 			UpdateFunc: c.updatePod,
@@ -63,24 +63,24 @@ func (c *WatcherApp) watch(ctx context.Context, ns string) error {
 		// 启动该命名空间里监听
 		go informersFactory.Start(ctx.Done())
 	case KindEndpoints:
-		label, err := c.getServicesSelector(ns, c.appName)
+		endPoints, err := c.CoreV1().Endpoints(ns).Get(context.Background(), c.getDeploymentName(c.appName), metav1.GetOptions{})
 		if err != nil {
 			return err
 		}
-		c.logger.Debug("watch prefix label", zap.String("appname", c.appName), zap.String("label", label), zap.String("kind", c.kind))
+
+		c.logger.Info("k8s watch endpoints", zap.String("appname", c.appName), zap.String("namespace", endPoints.Namespace), zap.String("endPointName", endPoints.Name), zap.String("kind", c.kind))
 		informersFactory := informers.NewSharedInformerFactoryWithOptions(
 			c.Clientset,
 			defaultResync,
 			informers.WithNamespace(ns),
 			informers.WithTweakListOptions(func(options *metav1.ListOptions) {
-				options.LabelSelector = label
+				options.FieldSelector = "metadata.name=" + endPoints.Name
 				// todo
 				options.ResourceVersion = "0"
 			}),
 		)
 
 		informer := informersFactory.Core().V1().Endpoints()
-		c.logger.Debug("k8s watch prefix", zap.String("appname", c.appName), zap.String("kind", c.kind))
 		informer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 			AddFunc:    c.addEndpoints,
 			UpdateFunc: c.updateEndpoints,
