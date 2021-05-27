@@ -1,5 +1,5 @@
 [aliyun]
-accessKeyId = "xxxxxxxxxxx"
-accessKeySecret = "xxxxxxxxxxxxx"
-endpoint = "ram.aliyuncs.com"
+accessKeyId = "xxxxxx"
+accessKeySecret = "xxxxxx"
+endpoint = "ims.aliyuncs.com"
 

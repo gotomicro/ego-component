@@ -1,9 +1,9 @@
 package main
 
 import (
-	"bgithub.com/gotomicro/ego-component/ealiyun"
 	"fmt"
 	"github.com/gotomicro/ego"
+	"github.com/gotomicro/ego-component/ealiyun"
 	"github.com/gotomicro/ego/core/elog"
 )
 
@@ -17,12 +17,12 @@ func main() {
 }
 func invoker() error {
 	comp := ealiyun.Load("aliyun").Build()
-	userName := "zhangsan"
+	userName := "lisi@xxxx.onaliyun.com"
 	res, err := comp.CreateRamUser(ealiyun.SaveRamUserRequest{
-		UserName:    userName,
-		DisplayName: "张三",
-		MobilePhone: "xxxxxxxx",
-		Email:       "zhangsan@xx.xx",
+		UserPrincipalName: userName,
+		DisplayName:       "李四",
+		MobilePhone:       "xxxxxxx",
+		Email:             "xxxxx",
 	})
 	if err != nil {
 		fmt.Println("createUser err:" + err.Error())
