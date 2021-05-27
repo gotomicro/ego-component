@@ -3,7 +3,7 @@ package ealiyun
 import (
 	"errors"
 	openapi "github.com/alibabacloud-go/darabonba-openapi/client"
-	ram20150501 "github.com/alibabacloud-go/ram-20150501/client"
+	ims20190815 "github.com/alibabacloud-go/ims-20190815/v2/client"
 	"github.com/alibabacloud-go/tea/tea"
 	"github.com/gotomicro/ego/core/elog"
 	"go.uber.org/zap"
@@ -18,7 +18,7 @@ const PackageName = "component.ealiyun"
 type Component struct {
 	config    *config
 	logger    *elog.Component
-	ramClient *ram20150501.Client // openApi Client 内嵌在该Client中
+	ramClient *ims20190815.Client // openApi Client 内嵌在该Client中
 }
 
 func newComponent(config *config, logger *elog.Component) *Component {
@@ -27,7 +27,7 @@ func newComponent(config *config, logger *elog.Component) *Component {
 		AccessKeySecret: tea.String(config.AccessKeySecret),
 		Endpoint:        tea.String(config.Endpoint),
 	}
-	rawClient, err := ram20150501.NewClient(openApiConfig)
+	rawClient, err := ims20190815.NewClient(openApiConfig)
 	if err != nil {
 		panic("newClient fail:" + err.Error())
 	}
@@ -39,12 +39,12 @@ func newComponent(config *config, logger *elog.Component) *Component {
 }
 
 func (c *Component) CreateRamUser(req SaveRamUserRequest) (*RamUserResponse, error) {
-	res, err := c.ramClient.CreateUser(&ram20150501.CreateUserRequest{
-		UserName:    tea.String(req.UserName),
-		DisplayName: tea.String(req.DisplayName),
-		MobilePhone: tea.String(req.MobilePhone),
-		Email:       tea.String(req.Email),
-		Comments:    tea.String(req.Comments),
+	res, err := c.ramClient.CreateUser(&ims20190815.CreateUserRequest{
+		UserPrincipalName: tea.String(req.UserPrincipalName),
+		DisplayName:       tea.String(req.DisplayName),
+		MobilePhone:       tea.String(req.MobilePhone),
+		Email:             tea.String(req.Email),
+		Comments:          tea.String(req.Comments),
 	})
 	if err != nil {
 		return nil, err
@@ -57,20 +57,21 @@ func (c *Component) CreateRamUser(req SaveRamUserRequest) (*RamUserResponse, err
 	return &RamUserResponse{
 		RequestID: *body.RequestId,
 		User: RamUserInfo{
-			UserID:      *body.User.UserId,
-			CreateDate:  *body.User.CreateDate,
-			UserName:    *body.User.UserName,
-			DisplayName: *body.User.DisplayName,
-			MobilePhone: *body.User.MobilePhone,
-			Email:       *body.User.Email,
-			Comments:    *body.User.Comments,
+			UserID:            *body.User.UserId,
+			CreateDate:        *body.User.CreateDate,
+			UserPrincipalName: *body.User.UserPrincipalName,
+			DisplayName:       *body.User.DisplayName,
+			MobilePhone:       *body.User.MobilePhone,
+			Email:             *body.User.Email,
+			Comments:          *body.User.Comments,
+			UpdateDate:        *body.User.UpdateDate,
 		},
 	}, nil
 }
 
-func (c *Component) GetRamUser(userName string) (*RamUserResponse, error) {
-	res, err := c.ramClient.GetUser(&ram20150501.GetUserRequest{
-		UserName: tea.String(userName),
+func (c *Component) GetRamUser(userPrincipalName string) (*RamUserResponse, error) {
+	res, err := c.ramClient.GetUser(&ims20190815.GetUserRequest{
+		UserPrincipalName: tea.String(userPrincipalName),
 	})
 	if err != nil {
 		return nil, err
@@ -83,14 +84,15 @@ func (c *Component) GetRamUser(userName string) (*RamUserResponse, error) {
 	return &RamUserResponse{
 		RequestID: *body.RequestId,
 		User: RamUserInfo{
-			UserID:        *body.User.UserId,
-			CreateDate:    *body.User.CreateDate,
-			UserName:      *body.User.UserName,
-			DisplayName:   *body.User.DisplayName,
-			MobilePhone:   *body.User.MobilePhone,
-			Email:         *body.User.Email,
-			Comments:      *body.User.Comments,
-			LastLoginDate: *body.User.LastLoginDate,
+			UserID:            *body.User.UserId,
+			CreateDate:        *body.User.CreateDate,
+			UserPrincipalName: *body.User.UserPrincipalName,
+			DisplayName:       *body.User.DisplayName,
+			MobilePhone:       *body.User.MobilePhone,
+			Email:             *body.User.Email,
+			Comments:          *body.User.Comments,
+			LastLoginDate:     *body.User.LastLoginDate,
+			UpdateDate:        *body.User.UpdateDate,
 		},
 	}, nil
 }
