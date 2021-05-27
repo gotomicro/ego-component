@@ -1,4 +1,4 @@
-module bgithub.com/gotomicro/ego-component/ealiyun
+module github.com/gotomicro/ego-component/ealiyun
 
 go 1.16
 
