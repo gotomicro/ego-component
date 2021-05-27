@@ -1,0 +1,5 @@
+[aliyun]
+accessKeyId = "xxxxxxxxxxx"
+accessKeySecret = "xxxxxxxxxxxxx"
+endpoint = "ram.aliyuncs.com"
+
