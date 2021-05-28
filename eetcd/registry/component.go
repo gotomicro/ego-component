@@ -191,7 +191,6 @@ func (reg *Component) registerMetric(ctx context.Context, info *server.ServiceIn
 	key := fmt.Sprintf(metric, info.Name, val)
 
 	opOptions := make([]clientv3.OpOption, 0)
-	// opOptions = append(opOptions, clientv3.WithSerializable())
 	if ttl := reg.Config.ServiceTTL.Seconds(); ttl > 0 {
 		//todo ctx without timeout for same as service life?
 		sess, err := reg.getSession(key, concurrency.WithTTL(int(ttl)))
@@ -230,6 +229,7 @@ func (reg *Component) registerBiz(ctx context.Context, info *server.ServiceInfo)
 		if err != nil {
 			return err
 		}
+
 		opOptions = append(opOptions, clientv3.WithLease(sess.Lease()))
 	}
 	_, err := reg.client.Put(readCtx, key, val, opOptions...)
@@ -249,7 +249,7 @@ func (reg *Component) getSession(k string, opts ...concurrency.SessionOption) (*
 	if ok {
 		return sess, nil
 	}
-	sess, err := concurrency.NewSession(reg.client.Client)
+	sess, err := concurrency.NewSession(reg.client.Client, opts...)
 	if err != nil {
 		return sess, err
 	}

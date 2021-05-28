@@ -3,5 +3,6 @@
 [etcd]
 addrs=["127.0.0.1:2379"]
 [registry]
+#ServiceTTL = "10s"
 connectTimeout = "1s"
 secure = false
