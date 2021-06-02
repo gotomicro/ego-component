@@ -65,7 +65,7 @@ func (reg *Component) ListServices(ctx context.Context, t eregistry.Target) (ser
 
 	switch reg.config.Kind {
 	case ek8s.KindPods:
-		getResp, getErr := reg.client.ListPods(appName)
+		getResp, getErr := reg.client.ListPodsByName(appName)
 		if getErr != nil {
 			reg.logger.Error("watch request err", elog.FieldErrKind("request err"), elog.FieldErr(getErr), elog.FieldAddr(appName))
 			return nil, getErr
@@ -78,7 +78,7 @@ func (reg *Component) ListServices(ctx context.Context, t eregistry.Target) (ser
 		}
 		return
 	case ek8s.KindEndpoints:
-		getResp, getErr := reg.client.ListEndpoints(appName)
+		getResp, getErr := reg.client.ListEndpointsByName(appName)
 		if getErr != nil {
 			reg.logger.Error("watch request err", elog.FieldErrKind("request err"), elog.FieldErr(getErr), elog.FieldAddr(appName))
 			return nil, getErr
