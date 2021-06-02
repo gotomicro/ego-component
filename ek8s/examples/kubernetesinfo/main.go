@@ -17,13 +17,13 @@ func main() {
 
 func invokerGrpc() error {
 	obj := ek8s.Load("k8s").Build()
-	list, err := obj.ListPods("svc-oss")
+	list, err := obj.ListPodsByName("svc-oss")
 	if err != nil {
-		panic(err)
+		//panic(err)
 	}
 	spew.Dump(list)
 
-	pods, err := obj.ListAllPods(ek8s.ListOptions{})
+	pods, err := obj.ListPods(ek8s.ListOptions{})
 	if err != nil {
 		panic(err)
 	}
