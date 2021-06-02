@@ -21,7 +21,14 @@ func invokerGrpc() error {
 	if err != nil {
 		panic(err)
 	}
-
 	spew.Dump(list)
+
+	pods, err := obj.ListAllPods(ek8s.ListOptions{
+		FieldSelector: "containers",
+	})
+	if err != nil {
+		panic(err)
+	}
+	spew.Dump(pods)
 	return nil
 }

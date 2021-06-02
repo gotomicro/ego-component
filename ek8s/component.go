@@ -21,6 +21,10 @@ const (
 	KindEndpoints = "endpoints"
 )
 
+type (
+	ListOptions = metav1.ListOptions
+)
+
 // Component ...
 type Component struct {
 	name   string
@@ -51,6 +55,19 @@ func newComponent(name string, config *Config, logger *elog.Component) *Componen
 
 func (c *Component) Config() Config {
 	return *c.config
+}
+
+func (c *Component) ListAllPods(option ListOptions) (pods []*v1.PodList, err error) {
+	pods = make([]*v1.PodList, 0)
+	for _, ns := range c.config.Namespaces {
+		v1Pods, err := c.CoreV1().Pods(ns).List(context.Background(), option)
+
+		if err != nil {
+			return nil, fmt.Errorf("list pods in namespace (%s), err: %w", ns, err)
+		}
+		pods = append(pods, v1Pods)
+	}
+	return
 }
 
 func (c *Component) ListPods(appName string) (pods []*v1.Pod, err error) {
