@@ -70,6 +70,18 @@ func (c *Component) ListPods(option ListOptions) (pods []*v1.PodList, err error)
 	return
 }
 
+func (c *Component) ListEndpoints(option ListOptions) (endPoints []*v1.EndpointsList, err error) {
+	endPoints = make([]*v1.EndpointsList, 0)
+	for _, ns := range c.config.Namespaces {
+		v1EndPoints, err := c.CoreV1().Endpoints(ns).List(context.Background(), option)
+		if err != nil {
+			return nil, fmt.Errorf("list endpoints in namespace (%s), err: %w", ns, err)
+		}
+		endPoints = append(endPoints, v1EndPoints)
+	}
+	return
+}
+
 func (c *Component) ListPodsByName(name string) (pods []*v1.Pod, err error) {
 	pods = make([]*v1.Pod, 0)
 	for _, ns := range c.config.Namespaces {
@@ -83,14 +95,14 @@ func (c *Component) ListPodsByName(name string) (pods []*v1.Pod, err error) {
 	return
 }
 
-func (c *Component) ListEndpointsByName(name string) (pods []*v1.Endpoints, err error) {
-	pods = make([]*v1.Endpoints, 0)
+func (c *Component) ListEndpointsByName(name string) (endPoints []*v1.Endpoints, err error) {
+	endPoints = make([]*v1.Endpoints, 0)
 	for _, ns := range c.config.Namespaces {
-		v1Pods, err := c.CoreV1().Endpoints(ns).Get(context.Background(), c.getDeploymentName(name), metav1.GetOptions{})
+		v1EndPoints, err := c.CoreV1().Endpoints(ns).Get(context.Background(), c.getDeploymentName(name), metav1.GetOptions{})
 		if err != nil {
 			return nil, fmt.Errorf("list endpoints in namespace (%s), err: %w", ns, err)
 		}
-		pods = append(pods, v1Pods)
+		endPoints = append(endPoints, v1EndPoints)
 	}
 	return
 }
