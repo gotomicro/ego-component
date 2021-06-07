@@ -2,9 +2,11 @@ package main
 
 import (
 	"fmt"
+
 	"github.com/gotomicro/ego"
-	"github.com/gotomicro/ego-component/ealiyun"
 	"github.com/gotomicro/ego/core/elog"
+
+	"github.com/gotomicro/ego-component/ealiyun"
 )
 
 func main() {
@@ -17,7 +19,7 @@ func main() {
 }
 func invoker() error {
 	comp := ealiyun.Load("aliyun").Build()
-	userName := "lisi@xxxx.onaliyun.com"
+	userName := "xxxx@xxxxxx.onaliyun.com"
 	res, err := comp.CreateRamUser(ealiyun.SaveRamUserRequest{
 		UserPrincipalName: userName,
 		DisplayName:       "李四",

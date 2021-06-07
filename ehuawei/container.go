@@ -1,4 +1,4 @@
-package ealiyun
+package ehuawei
 
 import (
 	"github.com/gotomicro/ego/core/econf"
