@@ -2,6 +2,7 @@ package ealiyun
 
 import (
 	"errors"
+
 	openapi "github.com/alibabacloud-go/darabonba-openapi/client"
 	ims20190815 "github.com/alibabacloud-go/ims-20190815/v2/client"
 	"github.com/alibabacloud-go/tea/tea"
@@ -13,7 +14,7 @@ var (
 	errEmptyResult = errors.New("empty result")
 )
 
-const PackageName = "component.ealiyun"
+const packageName = "component.ealiyun"
 
 type Component struct {
 	config    *config
@@ -38,6 +39,7 @@ func newComponent(config *config, logger *elog.Component) *Component {
 	}
 }
 
+// CreateRamUser ...
 func (c *Component) CreateRamUser(req SaveRamUserRequest) (*RamUserResponse, error) {
 	res, err := c.ramClient.CreateUser(&ims20190815.CreateUserRequest{
 		UserPrincipalName: tea.String(req.UserPrincipalName),
@@ -69,6 +71,19 @@ func (c *Component) CreateRamUser(req SaveRamUserRequest) (*RamUserResponse, err
 	}, nil
 }
 
+// DelRamUser 删除用户前，需要保证用户不拥有任何权限且不属于任何用户组。
+func (c *Component) DelRamUser(userPrincipalName string) error {
+	res, err := c.ramClient.DeleteUser(&ims20190815.DeleteUserRequest{
+		UserPrincipalName: tea.String(userPrincipalName),
+	})
+	if err != nil {
+		return err
+	}
+	c.logger.Info("Component-ealiyun", zap.Any("DelRamUser-res", res))
+	return nil
+}
+
+// GetRamUser ...
 func (c *Component) GetRamUser(userPrincipalName string) (*RamUserResponse, error) {
 	res, err := c.ramClient.GetUser(&ims20190815.GetUserRequest{
 		UserPrincipalName: tea.String(userPrincipalName),
