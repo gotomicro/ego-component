@@ -3,7 +3,7 @@
 
 ## 简介
 
-对 [gorm](https://github.com/jinzhu/gorm) 进行了轻量封装，并提供了以下功能：
+对 [gorm](https://github.com/go-gorm/gorm) 进行了轻量封装，并提供了以下功能：
 
 - 规范了标准配置格式，提供了统一的 Load().Build() 方法。
 - 支持自定义拦截器
