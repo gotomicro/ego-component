@@ -3,9 +3,10 @@ package server
 import (
 	"errors"
 	"fmt"
-	"github.com/gotomicro/ego/core/elog"
 	"net/url"
 	"time"
+
+	"github.com/gotomicro/ego/core/elog"
 )
 
 // Component ...
@@ -171,7 +172,7 @@ func (c *Component) HandleAccessRequest(param ParamAccessRequest) *AccessRequest
 	grantType := AccessRequestType(param.GrantType)
 	if !c.config.AllowedAccessTypes.Exists(grantType) {
 		ret.SetError(E_UNSUPPORTED_GRANT_TYPE, nil, "access_request=%s", "unknown grant type")
-		return nil
+		return ret
 	}
 	switch grantType {
 	case AUTHORIZATION_CODE:
