@@ -356,6 +356,9 @@ type searchResult struct {
 // Jira API docs: https://docs.atlassian.com/software/jira/docs/api/REST/8.8.0/#api/2/search
 func (c *Component) FindIssues(jql string, options *SearchOptions) (*[]Issue, error) {
 	uv := url.Values{}
+	if jql != "" {
+		uv.Add("jql", jql)
+	}
 	if options != nil {
 		if options.StartAt != 0 {
 			uv.Add("startAt", strconv.Itoa(options.StartAt))
