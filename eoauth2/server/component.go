@@ -67,7 +67,7 @@ func (c *Component) HandleAuthorizeRequest(ctx context.Context, param AuthorizeR
 	ret.redirectUri = unescapedUri
 
 	// must have a valid client
-	ret.Client, err = ret.storage.GetClient(param.ClientId)
+	ret.Client, err = ret.storage.GetClient(ctx, param.ClientId)
 	if err == ErrNotFound {
 		ret.setError(E_UNAUTHORIZED_CLIENT, nil, "")
 		return ret
@@ -147,11 +147,11 @@ func (c *Component) HandleAuthorizeRequest(ctx context.Context, param AuthorizeR
 
 }
 
-// FinishAuthorizeRequest 处理authorize请求
-func (r *AuthorizeRequest) FinishAuthorizeRequest(options ...AuthorizeRequestOption) error {
+// Build 处理authorize请求
+func (r *AuthorizeRequest) Build(ctx context.Context, options ...AuthorizeRequestOption) error {
 	// don't process if is already an error
 	if r.IsError() {
-		return fmt.Errorf("FinishAuthorizeRequest error1, err %w", r.responseErr)
+		return fmt.Errorf("Build error1, err %w", r.responseErr)
 	}
 
 	for _, option := range options {
@@ -164,7 +164,7 @@ func (r *AuthorizeRequest) FinishAuthorizeRequest(options ...AuthorizeRequestOpt
 	if !r.authorized {
 		// redirect with error
 		r.setError(E_ACCESS_DENIED, nil, r.State)
-		return fmt.Errorf("FinishAuthorizeRequest error2, err %w", r.responseErr)
+		return fmt.Errorf("Build error2, err %w", r.responseErr)
 	}
 
 	// todo 未验证过
@@ -184,7 +184,7 @@ func (r *AuthorizeRequest) FinishAuthorizeRequest(options ...AuthorizeRequestOpt
 			config:          r.config,
 		}
 		ret.setRedirectFragment(true)
-		ret.FinishAccessRequest()
+		ret.Build(ctx)
 		return nil
 	}
 
@@ -210,14 +210,14 @@ func (r *AuthorizeRequest) FinishAuthorizeRequest(options ...AuthorizeRequestOpt
 	code, err := ret.authorizeTokenGen.GenerateAuthorizeToken(ret)
 	if err != nil {
 		ret.setError(E_SERVER_ERROR, err, r.State)
-		return fmt.Errorf("FinishAuthorizeRequest error3, err %w", r.responseErr)
+		return fmt.Errorf("Build error3, err %w", r.responseErr)
 	}
 	ret.Code = code
 
 	// save authorization token
-	if err = ret.storage.SaveAuthorize(ret); err != nil {
+	if err = ret.storage.SaveAuthorize(ctx, ret); err != nil {
 		ret.setError(E_SERVER_ERROR, err, r.State)
-		return fmt.Errorf("FinishAuthorizeRequest error4, err %w", r.responseErr)
+		return fmt.Errorf("Build error4, err %w", r.responseErr)
 	}
 
 	// redirect with code
@@ -264,9 +264,9 @@ func (c *Component) HandleAccessRequest(ctx context.Context, param ParamAccessRe
 	}
 	switch grantType {
 	case AUTHORIZATION_CODE:
-		return ret.handleAuthorizationCodeRequest(param.AccessRequestParam)
+		return ret.handleAuthorizationCodeRequest(ctx, param.AccessRequestParam)
 	case REFRESH_TOKEN:
-		return ret.handleRefreshTokenRequest(param.AccessRequestParam)
+		return ret.handleRefreshTokenRequest(ctx, param.AccessRequestParam)
 		//case PASSWORD:
 		//	return s.handlePasswordRequest(w, r)
 		//case CLIENT_CREDENTIALS:
