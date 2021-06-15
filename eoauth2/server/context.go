@@ -3,12 +3,13 @@ package server
 import (
 	"errors"
 	"fmt"
+	"net/url"
+
 	"github.com/gotomicro/ego/core/elog"
 	"go.uber.org/zap"
-	"net/url"
 )
 
-// Response type enum
+// ResponseType enum
 type ResponseType int
 
 const (
@@ -27,26 +28,26 @@ type Context struct {
 	output             ResponseData
 }
 
-// SetRedirect changes the response to redirect to the given url
-func (r *Context) SetRedirect(url string) {
+// setRedirect changes the response to redirect to the given url
+func (c *Context) setRedirect(url string) {
 	// set redirect parameters
-	r.responseType = REDIRECT
-	r.url = url
+	c.responseType = REDIRECT
+	c.url = url
 }
 
 // GetRedirectUrl returns the redirect url with all query string parameters
-func (r *Context) GetRedirectUrl() (string, error) {
-	if r.responseType != REDIRECT {
+func (c *Context) GetRedirectUrl() (string, error) {
+	if c.responseType != REDIRECT {
 		return "", errors.New("Not a redirect response")
 	}
 
-	u, err := url.Parse(r.url)
+	u, err := url.Parse(c.url)
 	if err != nil {
 		return "", err
 	}
 
 	var q url.Values
-	if r.redirectInFragment {
+	if c.redirectInFragment {
 		// start with empty set for fragment
 		q = url.Values{}
 	} else {
@@ -55,14 +56,14 @@ func (r *Context) GetRedirectUrl() (string, error) {
 	}
 
 	// add parameters
-	for n, v := range r.output {
+	for n, v := range c.output {
 		q.Set(n, fmt.Sprint(v))
 	}
 
 	// https://tools.ietf.org/html/rfc6749#section-4.2.2
 	// Fragment should be encoded as application/x-www-form-urlencoded (%-escaped, spaces are represented as '+')
 	// The stdlib url#String() doesn't make that easy to accomplish, so build this ourselves
-	if r.redirectInFragment {
+	if c.redirectInFragment {
 		u.Fragment = ""
 		redirectURI := u.String() + "#" + q.Encode()
 		return redirectURI, nil
@@ -82,13 +83,17 @@ func (c *Context) GetOutput(key string) interface{} {
 	return c.output[key]
 }
 
-func (r *Context) IsError() bool {
-	return r.isError
+func (c *Context) GetAllOutput() interface{} {
+	return c.output
 }
 
-// SetError sets an error id, description, and state on the Response
+func (c *Context) IsError() bool {
+	return c.isError
+}
+
+// setError sets an error id, description, and state on the Response
 // uri is left blank
-func (c *Context) SetError(responseError string, internalError error, debugFormat string, debugArgs ...interface{}) {
+func (c *Context) setError(responseError string, internalError error, debugFormat string, debugArgs ...interface{}) {
 	// set error parameters
 	c.isError = true
 	c.responseErr = fmt.Errorf(responseError)
@@ -103,9 +108,9 @@ func (c *Context) SetError(responseError string, internalError error, debugForma
 	c.output = make(ResponseData) // clear output
 	c.output["error"] = c.responseErr.Error()
 	c.output["state"] = state
-	c.logger.Info("set error", zap.Any("internalErr", c.internalErr), zap.String("errDescription", fmt.Sprintf(debugFormat, debugArgs)))
+	c.logger.Error("set error", zap.Any("internalErr", c.internalErr), zap.String("errDescription", fmt.Sprintf(debugFormat, debugArgs)))
 }
 
-func (r *Context) SetRedirectFragment(f bool) {
-	r.redirectInFragment = f
+func (c *Context) setRedirectFragment(f bool) {
+	c.redirectInFragment = f
 }
