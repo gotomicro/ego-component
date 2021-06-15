@@ -42,6 +42,7 @@ func (c *Component) HandleAuthorizeRequest(ctx context.Context, param AuthorizeR
 		State: param.State,
 		Scope: param.Scope,
 		Context: &Context{
+			Ctx:    ctx,
 			logger: c.logger,
 			output: make(ResponseData),
 		},
@@ -148,7 +149,7 @@ func (c *Component) HandleAuthorizeRequest(ctx context.Context, param AuthorizeR
 }
 
 // Build 处理authorize请求
-func (r *AuthorizeRequest) Build(ctx context.Context, options ...AuthorizeRequestOption) error {
+func (r *AuthorizeRequest) Build(options ...AuthorizeRequestOption) error {
 	// don't process if is already an error
 	if r.IsError() {
 		return fmt.Errorf("Build error1, err %w", r.responseErr)
@@ -184,7 +185,7 @@ func (r *AuthorizeRequest) Build(ctx context.Context, options ...AuthorizeReques
 			config:          r.config,
 		}
 		ret.setRedirectFragment(true)
-		ret.Build(ctx)
+		ret.Build()
 		return nil
 	}
 
@@ -215,7 +216,7 @@ func (r *AuthorizeRequest) Build(ctx context.Context, options ...AuthorizeReques
 	ret.Code = code
 
 	// save authorization token
-	if err = ret.storage.SaveAuthorize(ctx, ret); err != nil {
+	if err = ret.storage.SaveAuthorize(r.Ctx, ret); err != nil {
 		ret.setError(E_SERVER_ERROR, err, r.State)
 		return fmt.Errorf("Build error4, err %w", r.responseErr)
 	}
