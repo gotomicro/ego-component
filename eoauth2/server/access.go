@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/base64"
 	"errors"
@@ -61,7 +62,7 @@ type AccessRequestParam struct {
 	ClientAuthParam
 }
 
-func (ar *AccessRequest) handleAuthorizationCodeRequest(param AccessRequestParam) *AccessRequest {
+func (ar *AccessRequest) handleAuthorizationCodeRequest(ctx context.Context, param AccessRequestParam) *AccessRequest {
 	// get client authentication
 	auth := ar.getClientAuth(param.ClientAuthParam, ar.config.AllowClientSecretInParams)
 	if auth == nil {
@@ -84,14 +85,14 @@ func (ar *AccessRequest) handleAuthorizationCodeRequest(param AccessRequestParam
 	}
 
 	// must have a valid client
-	if ar.Client = ar.getClient(auth); ar.Client == nil {
+	if ar.Client = ar.getClient(ctx, auth); ar.Client == nil {
 		ar.setError(E_UNAUTHORIZED_CLIENT, nil, "auth_code_request=%s", "client is nil")
 		return ar
 	}
 
 	// must be a valid authorization code
 	var err error
-	ar.AuthorizeData, err = ar.config.storage.LoadAuthorize(ar.Code)
+	ar.AuthorizeData, err = ar.config.storage.LoadAuthorize(ctx, ar.Code)
 	if err != nil {
 		ar.setError(E_INVALID_GRANT, err, "auth_code_request=%s", "error loading authorize data")
 		return ar
@@ -169,7 +170,7 @@ func (ar *AccessRequest) handleAuthorizationCodeRequest(param AccessRequestParam
 	return ar
 }
 
-func (ar *AccessRequest) handleRefreshTokenRequest(param AccessRequestParam) *AccessRequest {
+func (ar *AccessRequest) handleRefreshTokenRequest(ctx context.Context, param AccessRequestParam) *AccessRequest {
 	// get client authentication
 	auth := ar.getClientAuth(param.ClientAuthParam, ar.config.AllowClientSecretInParams)
 	if auth == nil {
@@ -190,14 +191,14 @@ func (ar *AccessRequest) handleRefreshTokenRequest(param AccessRequestParam) *Ac
 	}
 
 	// must have a valid client
-	if ar.Client = ar.getClient(auth); ar.Client == nil {
+	if ar.Client = ar.getClient(ctx, auth); ar.Client == nil {
 		ar.setError(E_UNAUTHORIZED_CLIENT, nil, "auth_code_request=%s", "client is nil")
 		return ar
 	}
 
 	// must be a valid refresh code
 	var err error
-	ar.AccessData, err = ar.config.storage.LoadRefresh(ar.Code)
+	ar.AccessData, err = ar.config.storage.LoadRefresh(ctx, ar.Code)
 	if err != nil {
 		ar.setError(E_INVALID_GRANT, err, "refresh_token=%s", "error loading access data")
 		return ar
@@ -242,8 +243,8 @@ func (ar *AccessRequest) handleRefreshTokenRequest(param AccessRequestParam) *Ac
 
 // getClient looks up and authenticates the basic auth using the given
 // storage. Sets an error on the response if auth fails or a server error occurs.
-func (ar *AccessRequest) getClient(auth *BasicAuth) Client {
-	client, err := ar.config.storage.GetClient(auth.Username)
+func (ar *AccessRequest) getClient(ctx context.Context, auth *BasicAuth) Client {
+	client, err := ar.config.storage.GetClient(ctx, auth.Username)
 	if err == ErrNotFound {
 		ar.setError(E_UNAUTHORIZED_CLIENT, nil, "get_client=%s", "not found")
 		return nil
@@ -359,11 +360,11 @@ type AccessTokenGen interface {
 	GenerateAccessToken(data *AccessData, generaterefresh bool) (accesstoken string, refreshtoken string, err error)
 }
 
-// FinishAccessRequest ...
-func (ar *AccessRequest) FinishAccessRequest(options ...AccessRequestOption) error {
+// Build ...
+func (ar *AccessRequest) Build(ctx context.Context, options ...AccessRequestOption) error {
 	// don't process if is already an error
 	if ar.IsError() {
-		return fmt.Errorf("FinishAccessRequest error1, err %w", ar.responseErr)
+		return fmt.Errorf("AccessRequest Build error1, err %w", ar.responseErr)
 	}
 
 	for _, option := range options {
@@ -377,7 +378,7 @@ func (ar *AccessRequest) FinishAccessRequest(options ...AccessRequestOption) err
 	}
 	if !ar.authorized {
 		ar.setError(E_ACCESS_DENIED, nil, "finish_access_request=%s", "authorization failed")
-		return fmt.Errorf("FinishAccessRequest error2, err %w", ar.responseErr)
+		return fmt.Errorf("Build error2, err %w", ar.responseErr)
 	}
 	var ret *AccessData
 	var err error
@@ -399,29 +400,29 @@ func (ar *AccessRequest) FinishAccessRequest(options ...AccessRequestOption) err
 		ret.AccessToken, ret.RefreshToken, err = ar.config.accessTokenGen.GenerateAccessToken(ret, ar.GenerateRefresh)
 		if err != nil {
 			ar.setError(E_SERVER_ERROR, err, "finish_access_request=%s", "error generating token")
-			return fmt.Errorf("FinishAccessRequest error3, err %w", ar.responseErr)
+			return fmt.Errorf("Build error3, err %w", ar.responseErr)
 		}
 	} else {
 		ret = ar.ForceAccessData
 	}
 
 	// save access token
-	if err = ar.config.storage.SaveAccess(ret); err != nil {
+	if err = ar.config.storage.SaveAccess(ctx, ret); err != nil {
 		ar.setError(E_SERVER_ERROR, err, "finish_access_request=%s", "error saving access token")
-		return fmt.Errorf("FinishAccessRequest error4, err %w", ar.responseErr)
+		return fmt.Errorf("Build error4, err %w", ar.responseErr)
 	}
 
 	// remove authorization token
 	if ret.AuthorizeData != nil {
-		ar.config.storage.RemoveAuthorize(ret.AuthorizeData.Code)
+		ar.config.storage.RemoveAuthorize(ctx, ret.AuthorizeData.Code)
 	}
 
 	// remove previous access token
 	if ret.AccessData != nil && !ar.config.RetainTokenAfterRefresh {
 		if ret.AccessData.RefreshToken != "" {
-			ar.config.storage.RemoveRefresh(ret.AccessData.RefreshToken)
+			ar.config.storage.RemoveRefresh(ctx, ret.AccessData.RefreshToken)
 		}
-		ar.config.storage.RemoveAccess(ret.AccessData.AccessToken)
+		ar.config.storage.RemoveAccess(ctx, ret.AccessData.AccessToken)
 	}
 
 	// output data
