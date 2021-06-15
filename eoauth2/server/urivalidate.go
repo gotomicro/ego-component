@@ -106,7 +106,7 @@ func ValidateUri(baseUri string, redirectUri string) (realRedirectUri string, er
 	return redirect.String(), nil
 }
 
-// Returns the first uri from an uri list
+// FirstUri Returns the first uri from an uri list
 func FirstUri(baseUriList string, separator string) string {
 	if separator != "" {
 		slist := strings.Split(baseUriList, separator)

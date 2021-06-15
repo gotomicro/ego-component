@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/url"
@@ -35,9 +36,8 @@ type AuthorizeRequestParam struct {
 	CodeChallengeMethod string
 }
 
-// HandleAuthorizeRequest is the main http.HandlerFunc for handling
-// authorizaion requests
-func (c *Component) HandleAuthorizeRequest(param AuthorizeRequestParam) *AuthorizeRequest {
+// HandleAuthorizeRequest for handling
+func (c *Component) HandleAuthorizeRequest(ctx context.Context, param AuthorizeRequestParam) *AuthorizeRequest {
 	ret := &AuthorizeRequest{
 		State: param.State,
 		Scope: param.Scope,
@@ -51,53 +51,57 @@ func (c *Component) HandleAuthorizeRequest(param AuthorizeRequestParam) *Authori
 		config:            c.config,
 	}
 
+	if c.config.EnableAccessInterceptor {
+		c.logger.Info("HandleAuthorizeRequest access", elog.FieldCtxTid(ctx), elog.FieldValueAny(param))
+	}
+
 	ret.Context.SetOutput("state", param.State)
 
 	// create the authorization request
 	unescapedUri, err := url.QueryUnescape(param.RedirectUri)
 	if err != nil {
-		ret.SetError(E_INVALID_REQUEST, err, "")
+		ret.setError(E_INVALID_REQUEST, err, "")
 		return ret
 	}
 
-	ret.RedirectUri = unescapedUri
+	ret.redirectUri = unescapedUri
 
 	// must have a valid client
 	ret.Client, err = ret.storage.GetClient(param.ClientId)
 	if err == ErrNotFound {
-		ret.SetError(E_UNAUTHORIZED_CLIENT, nil, "")
+		ret.setError(E_UNAUTHORIZED_CLIENT, nil, "")
 		return ret
 	}
 	if err != nil {
-		ret.SetError(E_SERVER_ERROR, err, ret.State)
+		ret.setError(E_SERVER_ERROR, err, ret.State)
 		return ret
 	}
 	if ret.Client == nil {
-		ret.SetError(E_UNAUTHORIZED_CLIENT, nil, "")
+		ret.setError(E_UNAUTHORIZED_CLIENT, nil, "")
 		return ret
 	}
 	if ret.Client.GetRedirectUri() == "" {
-		ret.SetError(E_UNAUTHORIZED_CLIENT, nil, "")
+		ret.setError(E_UNAUTHORIZED_CLIENT, nil, "")
 		return ret
 	}
 
 	// check redirect uri, if there are multiple client redirect uri's
 	// don't set the uri
-	if ret.RedirectUri == "" && FirstUri(ret.Client.GetRedirectUri(), c.config.RedirectUriSeparator) == ret.Client.GetRedirectUri() {
-		ret.RedirectUri = FirstUri(ret.Client.GetRedirectUri(), c.config.RedirectUriSeparator)
+	if ret.redirectUri == "" && FirstUri(ret.Client.GetRedirectUri(), c.config.RedirectUriSeparator) == ret.Client.GetRedirectUri() {
+		ret.redirectUri = FirstUri(ret.Client.GetRedirectUri(), c.config.RedirectUriSeparator)
 	}
 
-	if realRedirectUri, err := ValidateUriList(ret.Client.GetRedirectUri(), ret.RedirectUri, c.config.RedirectUriSeparator); err != nil {
-		ret.SetError(E_INVALID_REQUEST, err, ret.State)
+	if realRedirectUri, err := ValidateUriList(ret.Client.GetRedirectUri(), ret.redirectUri, c.config.RedirectUriSeparator); err != nil {
+		ret.setError(E_INVALID_REQUEST, err, ret.State)
 		return ret
 	} else {
-		ret.RedirectUri = realRedirectUri
+		ret.redirectUri = realRedirectUri
 	}
 
 	requestType := AuthorizeRequestType(param.ResponseType)
-	// 如果不存在该类型，直接返回错误
+	// 如果不存在该类型，直接返回错误，code、token类型
 	if !c.config.AllowedAuthorizeTypes.Exists(requestType) {
-		ret.SetError(E_UNSUPPORTED_RESPONSE_TYPE, nil, ret.State)
+		ret.setError(E_UNSUPPORTED_RESPONSE_TYPE, nil, ret.State)
 		return ret
 	}
 
@@ -114,13 +118,13 @@ func (c *Component) HandleAuthorizeRequest(param AuthorizeRequestParam) *Authori
 			}
 			if codeChallengeMethod != PKCE_PLAIN && codeChallengeMethod != PKCE_S256 {
 				// https://tools.ietf.org/html/rfc7636#section-4.4.1
-				ret.SetError(E_INVALID_REQUEST, fmt.Errorf("code_challenge_method transform algorithm not supported (rfc7636)"), "")
+				ret.setError(E_INVALID_REQUEST, fmt.Errorf("code_challenge_method transform algorithm not supported (rfc7636)"), "")
 				return ret
 			}
 
 			// https://tools.ietf.org/html/rfc7636#section-4.2
 			if matched := pkceMatcher.MatchString(codeChallenge); !matched {
-				ret.SetError(E_INVALID_REQUEST, fmt.Errorf("code_challenge invalid (rfc7636)"), ret.State)
+				ret.setError(E_INVALID_REQUEST, fmt.Errorf("code_challenge invalid (rfc7636)"), ret.State)
 				return ret
 			}
 
@@ -132,7 +136,7 @@ func (c *Component) HandleAuthorizeRequest(param AuthorizeRequestParam) *Authori
 		// Optional PKCE support (https://tools.ietf.org/html/rfc7636)
 		if c.config.RequirePKCEForPublicClients && CheckClientSecret(ret.Client, "") {
 			// https://tools.ietf.org/html/rfc7636#section-4.4.1
-			ret.SetError(E_INVALID_REQUEST, fmt.Errorf("code_challenge (rfc7636) required for public clients"), ret.State)
+			ret.setError(E_INVALID_REQUEST, fmt.Errorf("code_challenge (rfc7636) required for public clients"), ret.State)
 			return ret
 		}
 	case TOKEN:
@@ -143,6 +147,85 @@ func (c *Component) HandleAuthorizeRequest(param AuthorizeRequestParam) *Authori
 
 }
 
+// FinishAuthorizeRequest 处理authorize请求
+func (r *AuthorizeRequest) FinishAuthorizeRequest(options ...AuthorizeRequestOption) error {
+	// don't process if is already an error
+	if r.IsError() {
+		return fmt.Errorf("FinishAuthorizeRequest error1, err %w", r.responseErr)
+	}
+
+	for _, option := range options {
+		option(r)
+	}
+
+	// 设置跳转地址
+	r.setRedirect(r.redirectUri)
+
+	if !r.authorized {
+		// redirect with error
+		r.setError(E_ACCESS_DENIED, nil, r.State)
+		return fmt.Errorf("FinishAuthorizeRequest error2, err %w", r.responseErr)
+	}
+
+	// todo 未验证过
+	if r.Type == TOKEN {
+		// generate token directly
+		ret := &AccessRequest{
+			Type:            IMPLICIT,
+			Code:            "",
+			Client:          r.Client,
+			RedirectUri:     r.redirectUri,
+			Scope:           r.Scope,
+			GenerateRefresh: false, // per the RFC, should NOT generate a refresh token in this case
+			authorized:      true,
+			Expiration:      r.Expiration,
+			userData:        r.userData,
+			Context:         r.Context,
+			config:          r.config,
+		}
+		ret.setRedirectFragment(true)
+		ret.FinishAccessRequest()
+		return nil
+	}
+
+	// 已验证过
+	// generate authorization token
+	ret := &AuthorizeData{
+		Client:      r.Client,
+		CreatedAt:   time.Now(),
+		ExpiresIn:   r.Expiration,
+		RedirectUri: r.redirectUri,
+		State:       r.State,
+		Scope:       r.Scope,
+		UserData:    r.userData,
+		// Optional PKCE challenge
+		CodeChallenge:       r.CodeChallenge,
+		CodeChallengeMethod: r.CodeChallengeMethod,
+		Context:             r.Context,
+		storage:             r.storage,
+		authorizeTokenGen:   r.authorizeTokenGen,
+	}
+
+	// generate token code
+	code, err := ret.authorizeTokenGen.GenerateAuthorizeToken(ret)
+	if err != nil {
+		ret.setError(E_SERVER_ERROR, err, r.State)
+		return fmt.Errorf("FinishAuthorizeRequest error3, err %w", r.responseErr)
+	}
+	ret.Code = code
+
+	// save authorization token
+	if err = ret.storage.SaveAuthorize(ret); err != nil {
+		ret.setError(E_SERVER_ERROR, err, r.State)
+		return fmt.Errorf("FinishAuthorizeRequest error4, err %w", r.responseErr)
+	}
+
+	// redirect with code
+	r.SetOutput("code", ret.Code)
+	r.SetOutput("state", ret.State)
+	return nil
+}
+
 type ParamAccessRequest struct {
 	Method    string
 	GrantType string
@@ -150,7 +233,7 @@ type ParamAccessRequest struct {
 }
 
 // HandleAccessRequest is the http.HandlerFunc for handling access token requests
-func (c *Component) HandleAccessRequest(param ParamAccessRequest) *AccessRequest {
+func (c *Component) HandleAccessRequest(ctx context.Context, param ParamAccessRequest) *AccessRequest {
 	ret := &AccessRequest{
 		Context: &Context{
 			logger: c.logger,
@@ -158,28 +241,32 @@ func (c *Component) HandleAccessRequest(param ParamAccessRequest) *AccessRequest
 		},
 		config: c.config,
 	}
+
+	if c.config.EnableAccessInterceptor {
+		c.logger.Info("HandleAccessRequest access", elog.FieldCtxTid(ctx), elog.FieldAddr(param.ClientId))
+	}
+
 	// Only allow GET or POST
 	if param.Method == "GET" {
 		if !c.config.AllowGetAccessRequest {
-			ret.SetError(E_INVALID_REQUEST, errors.New("Request must be POST"), "access_request=%s", "GET request not allowed")
+			ret.setError(E_INVALID_REQUEST, errors.New("Request must be POST"), "access_request=%s", "GET request not allowed")
 			return ret
 		}
 	} else if param.Method != "POST" {
-		ret.SetError(E_INVALID_REQUEST, errors.New("Request must be POST"), "access_request=%s", "request must be POST")
+		ret.setError(E_INVALID_REQUEST, errors.New("Request must be POST"), "access_request=%s", "request must be POST")
 		return ret
 	}
 
 	grantType := AccessRequestType(param.GrantType)
 	if !c.config.AllowedAccessTypes.Exists(grantType) {
-		ret.SetError(E_UNSUPPORTED_GRANT_TYPE, nil, "access_request=%s", "unknown grant type")
+		ret.setError(E_UNSUPPORTED_GRANT_TYPE, nil, "access_request=%s", "unknown grant type")
 		return ret
 	}
 	switch grantType {
 	case AUTHORIZATION_CODE:
 		return ret.handleAuthorizationCodeRequest(param.AccessRequestParam)
-		// todo
-		//case REFRESH_TOKEN:
-		//	return s.handleRefreshTokenRequest(w, r)
+	case REFRESH_TOKEN:
+		return ret.handleRefreshTokenRequest(param.AccessRequestParam)
 		//case PASSWORD:
 		//	return s.handlePasswordRequest(w, r)
 		//case CLIENT_CREDENTIALS:
@@ -188,78 +275,4 @@ func (c *Component) HandleAccessRequest(param ParamAccessRequest) *AccessRequest
 		//	return s.handleAssertionRequest(w, r)
 	}
 	return ret
-}
-
-func (ar *AuthorizeRequest) FinishAuthorizeRequest() {
-	// don't process if is already an error
-	if ar.IsError() {
-		return
-	}
-
-	// 设置跳转地址
-	ar.SetRedirect(ar.RedirectUri)
-
-	if !ar.authorized {
-		// redirect with error
-		ar.SetError(E_ACCESS_DENIED, nil, ar.State)
-		return
-	}
-
-	// todo 未验证过
-	if ar.Type == TOKEN {
-		// generate token directly
-		ret := &AccessRequest{
-			Type:            IMPLICIT,
-			Code:            "",
-			Client:          ar.Client,
-			RedirectUri:     ar.RedirectUri,
-			Scope:           ar.Scope,
-			GenerateRefresh: false, // per the RFC, should NOT generate a refresh token in this case
-			Authorized:      true,
-			Expiration:      ar.Expiration,
-			UserData:        ar.userData,
-			Context:         ar.Context,
-			config:          ar.config,
-		}
-		ret.SetRedirectFragment(true)
-		ret.FinishAccessRequest()
-		return
-	}
-
-	// 已验证过
-	// generate authorization token
-	ret := &AuthorizeData{
-		Client:      ar.Client,
-		CreatedAt:   time.Now(),
-		ExpiresIn:   ar.Expiration,
-		RedirectUri: ar.RedirectUri,
-		State:       ar.State,
-		Scope:       ar.Scope,
-		UserData:    ar.userData,
-		// Optional PKCE challenge
-		CodeChallenge:       ar.CodeChallenge,
-		CodeChallengeMethod: ar.CodeChallengeMethod,
-		Context:             ar.Context,
-		storage:             ar.storage,
-		authorizeTokenGen:   ar.authorizeTokenGen,
-	}
-
-	// generate token code
-	code, err := ret.authorizeTokenGen.GenerateAuthorizeToken(ret)
-	if err != nil {
-		ret.SetError(E_SERVER_ERROR, err, ar.State)
-		return
-	}
-	ret.Code = code
-
-	// save authorization token
-	if err = ret.storage.SaveAuthorize(ret); err != nil {
-		ret.SetError(E_SERVER_ERROR, err, ar.State)
-		return
-	}
-
-	// redirect with code
-	ar.SetOutput("code", ret.Code)
-	ar.SetOutput("state", ret.State)
-	return
 }

@@ -4,16 +4,12 @@ const PackageName = "component.eoauth2"
 
 // Config contains server configuration information
 type Config struct {
-	// Authorization token expiration in seconds (default 5 minutes)
-	AuthorizationExpiration int32
-	// Access token expiration in seconds (default 1 hour)
-	AccessExpiration int32
-	// Token type to return
-	TokenType string
-	// List of allowed authorize types (only CODE by default)
-	AllowedAuthorizeTypes AllowedAuthorizeTypes
-	// List of allowed access types (only AUTHORIZATION_CODE by default)
-	AllowedAccessTypes AllowedAccessTypes
+	EnableAccessInterceptor bool                  // 是否开启，记录请求数据
+	AuthorizationExpiration int32                 // Authorization token expiration in seconds (default 5 minutes)
+	AccessExpiration        int32                 // Access token expiration in seconds (default 1 hour)
+	TokenType               string                // Token type to return
+	AllowedAuthorizeTypes   AllowedAuthorizeTypes // List of allowed authorize types (only CODE by default)
+	AllowedAccessTypes      AllowedAccessTypes    // List of allowed access types (only AUTHORIZATION_CODE by default)
 	// HTTP status code to return for errors - default 200
 	// Only used if response was created from server
 	ErrorStatusCode int
@@ -38,7 +34,7 @@ type Config struct {
 // DefaultConfig ...
 func DefaultConfig() *Config {
 	return &Config{
-		AuthorizationExpiration:     250,
+		AuthorizationExpiration:     300,
 		AccessExpiration:            3600,
 		TokenType:                   "Bearer",
 		AllowedAuthorizeTypes:       AllowedAuthorizeTypes{CODE},

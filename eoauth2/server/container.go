@@ -31,7 +31,7 @@ func Load(key string) *Container {
 	return c
 }
 
-// WithLocker 注入存储
+// WithStorage 注入存储
 func WithStorage(storage Storage) Option {
 	return func(c *Container) {
 		c.config.storage = storage
