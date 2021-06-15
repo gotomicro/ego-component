@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/url"
@@ -18,6 +19,7 @@ const (
 )
 
 type Context struct {
+	Ctx                context.Context
 	responseType       ResponseType
 	url                string
 	responseErr        error // 用户响应错误

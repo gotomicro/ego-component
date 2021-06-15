@@ -361,7 +361,7 @@ type AccessTokenGen interface {
 }
 
 // Build ...
-func (ar *AccessRequest) Build(ctx context.Context, options ...AccessRequestOption) error {
+func (ar *AccessRequest) Build(options ...AccessRequestOption) error {
 	// don't process if is already an error
 	if ar.IsError() {
 		return fmt.Errorf("AccessRequest Build error1, err %w", ar.responseErr)
@@ -407,22 +407,22 @@ func (ar *AccessRequest) Build(ctx context.Context, options ...AccessRequestOpti
 	}
 
 	// save access token
-	if err = ar.config.storage.SaveAccess(ctx, ret); err != nil {
+	if err = ar.config.storage.SaveAccess(ar.Ctx, ret); err != nil {
 		ar.setError(E_SERVER_ERROR, err, "finish_access_request=%s", "error saving access token")
 		return fmt.Errorf("Build error4, err %w", ar.responseErr)
 	}
 
 	// remove authorization token
 	if ret.AuthorizeData != nil {
-		ar.config.storage.RemoveAuthorize(ctx, ret.AuthorizeData.Code)
+		ar.config.storage.RemoveAuthorize(ar.Ctx, ret.AuthorizeData.Code)
 	}
 
 	// remove previous access token
 	if ret.AccessData != nil && !ar.config.RetainTokenAfterRefresh {
 		if ret.AccessData.RefreshToken != "" {
-			ar.config.storage.RemoveRefresh(ctx, ret.AccessData.RefreshToken)
+			ar.config.storage.RemoveRefresh(ar.Ctx, ret.AccessData.RefreshToken)
 		}
-		ar.config.storage.RemoveAccess(ctx, ret.AccessData.AccessToken)
+		ar.config.storage.RemoveAccess(ar.Ctx, ret.AccessData.AccessToken)
 	}
 
 	// output data
