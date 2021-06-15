@@ -345,7 +345,7 @@ type SearchOptions struct {
 
 // searchResult is only a small wrapper around the Search (with JQL) method
 // to be able to parse the results
-type searchResult struct {
+type SearchResult struct {
 	Issues     []Issue `json:"issues"`
 	StartAt    int     `json:"startAt"`
 	MaxResults int     `json:"maxResults"`
@@ -354,7 +354,7 @@ type searchResult struct {
 
 // FindIssues 查找issues
 // Jira API docs: https://docs.atlassian.com/software/jira/docs/api/REST/8.8.0/#api/2/search
-func (c *Component) FindIssues(jql string, options *SearchOptions) (*[]Issue, error) {
+func (c *Component) FindIssues(jql string, options *SearchOptions) (*SearchResult, error) {
 	uv := url.Values{}
 	if jql != "" {
 		uv.Add("jql", jql)
@@ -377,7 +377,7 @@ func (c *Component) FindIssues(jql string, options *SearchOptions) (*[]Issue, er
 		}
 	}
 
-	var result searchResult
+	var result SearchResult
 	resp, err := c.ehttp.R().SetBasicAuth(c.config.Username, c.config.Password).SetQueryParamsFromValues(uv).SetResult(&result).Get(fmt.Sprintf(APISearch))
 	if err != nil {
 		return nil, fmt.Errorf("issues get request fail, %w", err)
@@ -389,7 +389,7 @@ func (c *Component) FindIssues(jql string, options *SearchOptions) (*[]Issue, er
 		return nil, fmt.Errorf("issues get fail, %s", respError.LongError())
 	}
 
-	return &result.Issues, err
+	return &result, err
 }
 
 // CreateIssue create issue
