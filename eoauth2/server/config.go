@@ -1,6 +1,6 @@
 package server
 
-const PackageName = "component.eoauth2"
+const PackageName = "component.eoauth2.server"
 
 // Config contains server configuration information
 type Config struct {
