@@ -413,13 +413,16 @@ type IssueTypes []*IssueType
 // GetAllIssueTypes 获取所有issue类型
 // Jira API docs: https://docs.atlassian.com/software/jira/docs/api/REST/8.8.0/#api/2/issuetype-getIssueAllTypes
 func (c *Component) GetAllIssueTypes() (*IssueTypes, error) {
-	result := make(IssueTypes, 0)
+	var result IssueTypes
 	resp, err := c.ehttp.R().SetBasicAuth(c.config.Username, c.config.Password).SetResult(&result).Get(fmt.Sprintf(APIGetIssueTypes))
 	if err != nil {
 		return nil, fmt.Errorf("issueTypes get request fail, %w", err)
 	}
 	var respError Error
-	_ = json.Unmarshal(resp.Body(), &respError)
+	err = json.Unmarshal(resp.Body(), &respError)
+	if err != nil {
+		return nil, fmt.Errorf("issueTypes unmarshal error, %w", err)
+	}
 	if resp.StatusCode() != 200 {
 		return nil, fmt.Errorf("issueTypes get fail, %s", respError.LongError())
 	}
