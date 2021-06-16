@@ -419,10 +419,7 @@ func (c *Component) GetAllIssueTypes() (*IssueTypes, error) {
 		return nil, fmt.Errorf("issueTypes get request fail, %w", err)
 	}
 	var respError Error
-	err = json.Unmarshal(resp.Body(), &respError)
-	if err != nil {
-		return nil, fmt.Errorf("issueTypes unmarshal error, %w", err)
-	}
+	_ = json.Unmarshal(resp.Body(), &respError)
 	if resp.StatusCode() != 200 {
 		return nil, fmt.Errorf("issueTypes get fail, %s", respError.LongError())
 	}
