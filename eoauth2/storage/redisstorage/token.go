@@ -37,45 +37,30 @@ func initTokenServer(config *config, redis *eredis.Component) *tokenServer {
 }
 
 // setParentToken sso的父节点token
-func (t *tokenServer) setParentToken(ctx context.Context, token dto.Token, userInfo *dto.User) (err error) {
-	// 设置uid 到 parent token关系
-	err = t.uidMapParentToken.setToken(ctx, userInfo.Uid, "pc", token)
+func (t *tokenServer) setParentToken(ctx context.Context, pToken dto.Token, userInfo *dto.User) (err error) {
+	// 1 设置uid 到 parent token关系
+	err = t.uidMapParentToken.setToken(ctx, userInfo.Uid, "pc", pToken)
 	if err != nil {
 		return fmt.Errorf("token.setParentToken: create token map failed, err:%w", err)
 	}
 
-	return t.parentToken.create(ctx, token, userInfo)
-}
-
-func (t *tokenServer) removeParentToken(ctx context.Context, pToken string) (err error) {
-	return t.parentToken.delete(ctx, pToken)
+	// 2 创建父级的token信息
+	return t.parentToken.create(ctx, pToken, userInfo)
 }
 
 func (t *tokenServer) setToken(ctx context.Context, clientId string, token dto.Token, pToken string) (err error) {
-	//lockKey := redisTokenLockKey(uid)
-	//retryStrategy := eredis.WithLockOptionRetryStrategy(eredis.LimitRetry(eredis.LinearBackoffRetry(10*time.Millisecond), 5))
-	//lock, err := t.redis.LockClient().Obtain(ctx, lockKey, time.Second, retryStrategy)
-	//if err != nil {
-	//	elog.Warn("tokenServer.setToken: obtain lock failed", zap.Int64("uid", uid), zap.String("lockKey", lockKey), zap.String("clientId", clientId))
-	//	return err
-	//}
-	//defer lock.Release(ctx) // release lock
-
-	//pToken, err := t.getParentToken(uid)
-	//if err != nil {
-	//	err = fmt.Errorf("setToken, t.getParentToken err, %w", err)
-	//	return
-	//}
-
-	// setTTL token map
 	err = t.parentToken.setToken(ctx, pToken, clientId, token)
 	if err != nil {
-		return fmt.Errorf("token.setToken: setTTL token map failed, err:%w", err)
+		return fmt.Errorf("tokenServer.setToken failed, err:%w", err)
 	}
 
 	// setTTL new token
 	err = t.subToken.create(ctx, token, pToken, clientId)
 	return
+}
+
+func (t *tokenServer) removeParentToken(ctx context.Context, pToken string) (err error) {
+	return t.parentToken.delete(ctx, pToken)
 }
 
 // 获取父级token

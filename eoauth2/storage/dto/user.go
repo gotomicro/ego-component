@@ -1,5 +1,10 @@
 package dto
 
+import (
+	"encoding/json"
+	"fmt"
+)
+
 // User 用户信息
 type User struct {
 	// 用户uid
@@ -12,4 +17,13 @@ type User struct {
 	Avatar string `json:"avatar"`
 	// 邮箱
 	Email string `json:"email"`
+}
+
+func (u *User) Marshal() (string, error) {
+	if u == nil {
+		return "", fmt.Errorf("user is nil")
+	}
+
+	bytes, err := json.Marshal(u)
+	return string(bytes), err
 }
