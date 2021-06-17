@@ -73,44 +73,11 @@ type config struct {
 
 func defaultConfig() *config {
 	return &config{
-		uidMapParentTokenKey: "sso:uid:%d", // uid map parent token type
-		//parentTokenClientId:       "ptk",
-		parentTokenMapSubTokenKey: "sso:ptk:%d", //  parent token map
-		//parentTokenKey:            "sso:ptk:%s",       // parent token
+		uidMapParentTokenKey:      "sso:uid:%d", // uid map parent token type
+		parentTokenMapSubTokenKey: "sso:ptk:%s", //  parent token map
 		subTokenMapParentTokenKey: "sso:stk:%s", // sub token map parent token
 	}
 }
-
-//
-//const (
-//	//parentTokenClientId = "pToken"
-//	//parentTokenMapSubTokenKey   = "sso:tokenHash:%d" // uid
-//	//parentTokenKey   = "sso:pToken:%s"    // token                 key token value 用户信息
-//	//subTokenMapParentTokenKey      = "sso:token:%s"     // token  string ptoken  key token value ptoken
-//
-//	/*
-//		  key: ssoTokenHash:{uid}
-//		  value:
-//			{clientId1}: tokenJsonInfo
-//			{clientId2}: tokenJsonInfo
-//			{clientId3}: tokenJsonInfo
-//	*/
-//	tokenMapKeyPrefix = "sso:tokenHash:%d" // uid
-//
-//	/*
-//		key: ssoParentToken:{token}
-//		value: {userInfo}
-//		ttl: 3600
-//	*/
-//	parentTokenPrefix = "sso:pToken:%s" // token
-//
-//	/*
-//		key: ssoToken:{token}
-//		value: {parentToken}
-//		ttl: 3600
-//	*/
-//	tokenKeyPrefix = "sso:token:%s" // token
-//)
 
 type subToken struct {
 	config             *config
@@ -141,27 +108,19 @@ func (s *subToken) create(ctx context.Context, token dto.Token, parentToken stri
 		s.hashKeyTokenInfo:   token,
 	}, time.Duration(token.ExpiresIn)*time.Second)
 	if err != nil {
-		return fmt.Errorf("token.setToken: setTTL token failed, err:%w", err)
+		return fmt.Errorf("subToken.create token failed, err:%w", err)
 	}
 	return nil
 }
 
 // 通过子系统token，获得父节点token
-func (p *subToken) getParentToken(ctx context.Context, subToken string) (parentToken string, err error) {
-	parentToken, err = p.redis.HGet(ctx, p.getKey(subToken), p.hashKeyParentToken)
+func (s *subToken) getParentToken(ctx context.Context, subToken string) (parentToken string, err error) {
+	parentToken, err = s.redis.HGet(ctx, s.getKey(subToken), s.hashKeyParentToken)
 	if err != nil {
-		err = fmt.Errorf("subToken getParentToken error, %w", err)
+		err = fmt.Errorf("subToken.getParentToken failed, %w", err)
 		return
 	}
 	return
-	//	if err != nil {
-	//		if errors.Is(err, redis.Nil) {
-	//			return nil, status.Error(codes.NotFound, "token is invalid or  has been expired")
-	//		}
-	//
-	//		err = fmt.Errorf("getUserByToken, redis get parentToken error, %w", err)
-	//		return
-	//	}
 }
 
 type uidMapParentToken struct {
@@ -183,7 +142,7 @@ func (u *uidMapParentToken) getKey(uid int64) string {
 func (u *uidMapParentToken) setToken(ctx context.Context, uid int64, clientType string, pToken dto.Token) error {
 	pTokenByte, err := json.Marshal(pToken)
 	if err != nil {
-		return fmt.Errorf("uidMapParentToken setToken failed, err: %w", err)
+		return fmt.Errorf("uidMapParentToken.setToken failed, err: %w", err)
 	}
 
 	return u.redis.HSet(ctx, u.getKey(uid), clientType, string(pTokenByte))
@@ -192,49 +151,12 @@ func (u *uidMapParentToken) setToken(ctx context.Context, uid int64, clientType 
 func (u *uidMapParentToken) getParentToken(ctx context.Context, uid int64, clientType string) (resp dto.Token, err error) {
 	value, err := u.redis.HGet(ctx, u.getKey(uid), clientType)
 	if err != nil {
-		err = fmt.Errorf("uidMapParentToken getParentToken failed, err: %w", err)
+		err = fmt.Errorf("uidMapParentToken.getParentToken failed, err: %w", err)
 		return
 	}
 	err = json.Unmarshal([]byte(value), &resp)
 	return
 }
-
-//
-//type parentToken struct {
-//	key   string
-//	redis *eredis.Component
-//}
-//
-//func newParentToken(redis *eredis.Component, token string) *parentToken {
-//	return &parentToken{
-//		key:   fmt.Sprintf(parentTokenPrefix, token),
-//
-//		redis: redis,
-//	}
-//}
-//
-//func (p *parentToken) setTTL(ctx context.Context, userInfo *dto.User, ttl time.Duration) error {
-//	userBytes, err := json.Marshal(userInfo)
-//	if err != nil {
-//		return fmt.Errorf("parentToken: marshal user info failed, err:%w", err)
-//	}
-//
-//	// setTTL new token
-//	err = p.redis.Set(ctx, p.key, string(userBytes), ttl)
-//	if err != nil {
-//		return fmt.Errorf("parentToken: setTTL token failed, err:%w", err)
-//	}
-//	return nil
-//}
-//
-//func (p *parentToken) delete(ctx context.Context) error {
-//	_, err := p.redis.Del(ctx, p.key)
-//	if err != nil {
-//		return fmt.Errorf("token.removeParentToken: remove token failed, err:%w", err)
-//	}
-//	return nil
-//}
-//
 
 type parentToken struct {
 	config           *config
@@ -296,29 +218,26 @@ func (p *parentToken) getUser(ctx context.Context, pToken string) (userInfo *dto
 
 func (p *parentToken) setToken(ctx context.Context, pToken string, clientId string, token dto.Token) error {
 	// 如果不存在key，报错
-	hashKeyCtimeValue, err := p.redis.HGet(ctx, p.getKey(pToken), p.hashKeyCtime)
+	_, err := p.redis.HGet(ctx, p.getKey(pToken), p.hashKeyCtime)
 	if err != nil {
-		return fmt.Errorf("parentToken setToken key empty1, err: %w", err)
-	}
-	if hashKeyCtimeValue == "" {
-		return fmt.Errorf("parentToken setToken key empty2, err: %w", err)
+		return fmt.Errorf("parentToken.setToken get key empty, err: %w", err)
 	}
 
 	tokenJsonInfo, err := json.Marshal(token)
 	if err != nil {
-		return fmt.Errorf("parentToken setToken error, err: %w", err)
+		return fmt.Errorf("parentToken.setToken json marshal failed, err: %w", err)
 	}
 
 	// setTTL token map
 	err = p.redis.HSet(ctx, p.getKey(pToken), clientId, string(tokenJsonInfo))
 	if err != nil {
-		return fmt.Errorf("token.setParentToken: setTTL token map failed, err:%w", err)
+		return fmt.Errorf("parentToken.setToken hset failed, err:%w", err)
 	}
 	return nil
 }
 
-func (h *parentToken) getToken(ctx context.Context, pToken string, clientId string) (tokenInfo dto.Token, err error) {
-	tokenValue, err := h.redis.HGet(ctx, h.getKey(pToken), clientId)
+func (p *parentToken) getToken(ctx context.Context, pToken string, clientId string) (tokenInfo dto.Token, err error) {
+	tokenValue, err := p.redis.HGet(ctx, p.getKey(pToken), clientId)
 	if err != nil {
 		err = fmt.Errorf("tokgen get redis hmget string error, %w", err)
 		return
