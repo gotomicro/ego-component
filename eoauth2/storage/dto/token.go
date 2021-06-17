@@ -2,6 +2,7 @@ package dto
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"time"
 
 	"github.com/pborman/uuid"
@@ -19,6 +20,11 @@ func NewToken(expiresIn int64) Token {
 		AuthAt:    time.Now().Unix(),
 		ExpiresIn: expiresIn,
 	}
+}
+
+func (t Token) Marshal() (string, error) {
+	bytes, err := json.Marshal(t)
+	return string(bytes), err
 }
 
 func generateToken() string {

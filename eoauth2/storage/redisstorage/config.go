@@ -181,10 +181,19 @@ func (p *parentToken) getKey(pToken string) string {
 }
 
 func (p *parentToken) create(ctx context.Context, token dto.Token, userInfo *dto.User) error {
-	err := p.redis.HMSet(ctx, p.getKey(token.Token), map[string]interface{}{
+	userStr, err := userInfo.Marshal()
+	if err != nil {
+		return err
+	}
+
+	tokenStr, err := token.Marshal()
+	if err != nil {
+		return err
+	}
+	err = p.redis.HMSet(ctx, p.getKey(token.Token), map[string]interface{}{
 		p.hashKeyCtime:     time.Now().Unix(),
-		p.hashKeyUserInfo:  userInfo,
-		p.hashKeyTokenInfo: token,
+		p.hashKeyUserInfo:  userStr,
+		p.hashKeyTokenInfo: tokenStr,
 	}, time.Duration(token.ExpiresIn)*time.Second)
 	if err != nil {
 		return fmt.Errorf("parentToken create failed, err:%w", err)
@@ -223,7 +232,7 @@ func (p *parentToken) setToken(ctx context.Context, pToken string, clientId stri
 		return fmt.Errorf("parentToken.setToken get key empty, err: %w", err)
 	}
 
-	tokenJsonInfo, err := json.Marshal(token)
+	tokenJsonInfo, err := token.Marshal()
 	if err != nil {
 		return fmt.Errorf("parentToken.setToken json marshal failed, err: %w", err)
 	}
