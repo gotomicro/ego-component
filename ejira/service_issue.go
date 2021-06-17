@@ -127,13 +127,14 @@ type IssueRenderedFields struct {
 // IssueType is a type of a Jira issue.
 // Typical types are "Bug", "Story", ...
 type IssueType struct {
-	Self        string `json:"self,omitempty"`
-	ID          string `json:"id,omitempty"`
-	Description string `json:"description,omitempty"`
-	IconURL     string `json:"iconUrl,omitempty"`
-	Name        string `json:"name,omitempty"`
-	Subtask     bool   `json:"subtask,omitempty"`
-	AvatarID    int    `json:"avatarId,omitempty"`
+	Self        string    `json:"self,omitempty"`
+	ID          string    `json:"id,omitempty"`
+	Description string    `json:"description,omitempty"`
+	IconURL     string    `json:"iconUrl,omitempty"`
+	Name        string    `json:"name,omitempty"`
+	Subtask     bool      `json:"subtask,omitempty"`
+	AvatarID    int       `json:"avatarId,omitempty"`
+	Statuses    []*Status `json:"statuses,omitempty"`
 }
 
 // Transition represents an issue transition in Jira
@@ -418,11 +419,26 @@ func (c *Component) GetAllIssueTypes() (*IssueTypes, error) {
 	if err != nil {
 		return nil, fmt.Errorf("issueTypes get request fail, %w", err)
 	}
-	var respError Error
-	_ = json.Unmarshal(resp.Body(), &respError)
 	if resp.StatusCode() != 200 {
-		return nil, fmt.Errorf("issueTypes get fail, %s", respError.LongError())
+		var respError Error
+		err = json.Unmarshal(resp.Body(), &respError)
+		return nil, fmt.Errorf("issueTypes get fail, %s, %w", respError.LongError(), err)
 	}
 
+	return &result, err
+}
+
+// GetProjectIssueTypes get issue types of a project
+func (c *Component) GetProjectIssueTypes(projectKey string) (*IssueTypes, error) {
+	var result IssueTypes
+	resp, err := c.ehttp.R().SetBasicAuth(c.config.Username, c.config.Password).SetResult(&result).Get(fmt.Sprintf(APIGetProjectStatuses, projectKey))
+	if err != nil {
+		return nil, fmt.Errorf("project issuetypes get request fail, %w", err)
+	}
+	if resp.StatusCode() != 200 {
+		var respError Error
+		err = json.Unmarshal(resp.Body(), &respError)
+		return nil, fmt.Errorf("issueTypes get fail, %s, %w", respError.LongError(), err)
+	}
 	return &result, err
 }
