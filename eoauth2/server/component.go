@@ -237,6 +237,7 @@ type ParamAccessRequest struct {
 func (c *Component) HandleAccessRequest(ctx context.Context, param ParamAccessRequest) *AccessRequest {
 	ret := &AccessRequest{
 		Context: &Context{
+			Ctx:    ctx,
 			logger: c.logger,
 			output: make(ResponseData),
 		},
