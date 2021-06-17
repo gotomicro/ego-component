@@ -102,10 +102,14 @@ func (s *subToken) getKey(subToken string) string {
 }
 
 func (s *subToken) create(ctx context.Context, token dto.Token, parentToken string, clientId string) error {
-	err := s.redis.HMSet(ctx, s.getKey(token.Token), map[string]interface{}{
+	tokenStr, err := token.Marshal()
+	if err != nil {
+		return err
+	}
+	err = s.redis.HMSet(ctx, s.getKey(token.Token), map[string]interface{}{
 		s.hashKeyParentToken: parentToken,
 		s.hashKeyClientId:    clientId,
-		s.hashKeyTokenInfo:   token,
+		s.hashKeyTokenInfo:   tokenStr,
 	}, time.Duration(token.ExpiresIn)*time.Second)
 	if err != nil {
 		return fmt.Errorf("subToken.create token failed, err:%w", err)
