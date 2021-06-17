@@ -13,7 +13,6 @@ import (
 
 // produce 生产消息
 func main() {
-	var stopCh = make(chan bool)
 	// 假设你配置的toml如下所示
 	conf := `
 [kafka]
@@ -53,6 +52,4 @@ func main() {
 	}
 
 	fmt.Println(`produce message success --------------->`)
-
-	stopCh <- true
 }
