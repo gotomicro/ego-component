@@ -24,7 +24,7 @@ func DefaultContainer() *Container {
 func Load(key string) *Container {
 	var container = DefaultContainer()
 	if err := econf.UnmarshalKey(key, &container.config); err != nil {
-		container.logger.Panic("parse wechat config panic",
+		container.logger.Panic("parse etoken config panic",
 			elog.FieldErr(err), elog.FieldKey(key), elog.FieldValueAny(container.config))
 	}
 	container.logger = container.logger.With(elog.FieldComponentName(key))
