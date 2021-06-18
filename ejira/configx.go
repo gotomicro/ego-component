@@ -38,4 +38,10 @@ const (
 
 	// APIGetIssueLinkTypes https://docs.atlassian.com/software/jira/docs/api/REST/8.8.0/#api/2/issueLinkType
 	APIGetIssueLinkTypes = "/rest/api/2/issueLinkType"
+
+	// APIGetIssueTypes https://docs.atlassian.com/software/jira/docs/api/REST/8.8.0/#api/2/issuetype-getIssueAllTypes
+	APIGetIssueTypes = "/rest/api/2/issuetype"
+
+	// APIGetAllProjectStatuses https://docs.atlassian.com/software/jira/docs/api/REST/8.8.0/#api/2/project-getAllStatuses
+	APIGetProjectStatuses = "/rest/api/2/project/%s/statuses"
 )

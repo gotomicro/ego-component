@@ -100,6 +100,15 @@
       "contributions": [
         "code"
       ]
+    },
+    {
+      "login": "livepo",
+      "name": "qiandiao",
+      "avatar_url": "https://avatars.githubusercontent.com/u/6700352?v=4",
+      "profile": "https://github.com/livepo",
+      "contributions": [
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,

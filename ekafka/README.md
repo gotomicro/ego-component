@@ -1,5 +1,15 @@
 # ekafka 组件使用指南
 
+## Table of contents
+
+- [基本组件](#基本组件)
+	- [快速上手](#快速上手)
+- [ConsumerGroup](#ConsumerGroup)
+- [Consumer Server 组件](#Consumer-Server-组件)
+- [Producer](#Producer)
+- [测试](#测试)
+	- [E2E 测试](#E2E-测试)
+
 ## 基本组件
 
 对 [kafka-go](https://github.com/segmentio/kafka-go) 进行了轻量封装，并提供了以下功能：
@@ -18,7 +28,7 @@
 
 首先添加所需配置：
 
-```yaml
+```toml
 [kafka]
 brokers = ["127.0.0.1:9092", "127.0.0.1:9093", "127.0.0.1:9094"]
 
@@ -72,7 +82,7 @@ func main() {
 
 ### 配置说明
 
-```yaml
+```toml
 [kafka.consumerGroups.cg1]
 # GroupID is the name of the consumer group.
 groupID = "group-1"
@@ -353,6 +363,80 @@ func main() {
 	if err := app.Run(); err != nil {
 		elog.Panic("startup", elog.Any("err", err))
 	}
+}
+```
+
+
+## Producer
+
+以下是简单使用 `ekafka.Producer` 的例子。
+
+所需配置
+
+```toml
+[kafka]
+	brokers=["localhost:9091","localhost:9092","localhost:9093"]
+	[kafka.client]
+		timeout="3s"
+	[kafka.producers.p1]        # 定义了名字为 p1 的 producer
+		topic="test_topic"        # 指定生产消息的 topic
+```
+
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+	"log"
+	"strings"
+
+	"github.com/BurntSushi/toml"
+	"github.com/gotomicro/ego-component/ekafka"
+	"github.com/gotomicro/ego/core/econf"
+)
+
+// produce 生产消息
+func main() {
+	// 假设你配置的toml如下所示
+	conf := `
+[kafka]
+	debug=true
+	brokers=["localhost:9091","localhost:9092","localhost:9093"]
+	[kafka.client]
+		timeout="3s"
+	[kafka.producers.p1]        # 定义了名字为 p1 的 producer
+		topic="sre-infra-test"  # 指定生产消息的 topic
+`
+	// 加载配置文件
+	err := econf.LoadFromReader(strings.NewReader(conf), toml.Unmarshal)
+	if err != nil {
+		panic("LoadFromReader fail," + err.Error())
+	}
+
+	// 初始化 ekafka 组件
+	cmp := ekafka.Load("kafka").Build()
+
+	// 使用 p1 生产者生产消息
+	producerClient := cmp.Producer("p1")
+
+	// 生产3条消息
+	err = producerClient.WriteMessages(
+		context.Background(),
+		ekafka.Message{Value: []byte("Hello World!")},
+		ekafka.Message{Value: []byte("One!")},
+		ekafka.Message{Value: []byte("Two!")},
+	)
+
+	if err != nil {
+		log.Fatal("failed to write messages:", err)
+	}
+
+	if err := producerClient.Close(); err != nil {
+		log.Fatal("failed to close writer:", err)
+	}
+
+	fmt.Println(`produce message success --------------->`)
 }
 ```
 

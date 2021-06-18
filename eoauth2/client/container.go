@@ -1,4 +1,4 @@
-package server
+package client
 
 import (
 	"github.com/gotomicro/ego/core/econf"
@@ -8,22 +8,22 @@ import (
 type Option func(c *Container)
 
 type Container struct {
-	config *Config
+	Config *Config
 	name   string
 	logger *elog.Component
 }
 
 func DefaultContainer() *Container {
 	return &Container{
-		config: DefaultConfig(),
-		logger: elog.EgoLogger.With(elog.FieldComponent(PackageName)),
+		Config: DefaultConfig(),
+		logger: elog.EgoLogger.With(elog.FieldComponent("component.eoauth2.server")),
 	}
 }
 
 func Load(key string) *Container {
 	c := DefaultContainer()
-	if err := econf.UnmarshalKey(key, &c.config); err != nil {
-		c.logger.Panic("parse config error", elog.FieldErr(err), elog.FieldKey(key))
+	if err := econf.UnmarshalKey(key, &c.Config); err != nil {
+		c.logger.Panic("parse Config error", elog.FieldErr(err), elog.FieldKey(key))
 		return c
 	}
 	c.logger = c.logger.With(elog.FieldComponentName(key))
@@ -31,17 +31,10 @@ func Load(key string) *Container {
 	return c
 }
 
-// WithStorage 注入存储
-func WithStorage(storage Storage) Option {
-	return func(c *Container) {
-		c.config.storage = storage
-	}
-}
-
-// Build ...
+// Build 构建实例
 func (c *Container) Build(options ...Option) *Component {
 	for _, option := range options {
 		option(c)
 	}
-	return newComponent(c.name, c.config, c.logger)
+	return newComponent(c.name, c.Config, c.logger)
 }

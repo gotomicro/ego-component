@@ -127,13 +127,14 @@ type IssueRenderedFields struct {
 // IssueType is a type of a Jira issue.
 // Typical types are "Bug", "Story", ...
 type IssueType struct {
-	Self        string `json:"self,omitempty"`
-	ID          string `json:"id,omitempty"`
-	Description string `json:"description,omitempty"`
-	IconURL     string `json:"iconUrl,omitempty"`
-	Name        string `json:"name,omitempty"`
-	Subtask     bool   `json:"subtask,omitempty"`
-	AvatarID    int    `json:"avatarId,omitempty"`
+	Self        string    `json:"self,omitempty"`
+	ID          string    `json:"id,omitempty"`
+	Description string    `json:"description,omitempty"`
+	IconURL     string    `json:"iconUrl,omitempty"`
+	Name        string    `json:"name,omitempty"`
+	Subtask     bool      `json:"subtask,omitempty"`
+	AvatarID    int       `json:"avatarId,omitempty"`
+	Statuses    []*Status `json:"statuses,omitempty"`
 }
 
 // Transition represents an issue transition in Jira
@@ -345,7 +346,7 @@ type SearchOptions struct {
 
 // searchResult is only a small wrapper around the Search (with JQL) method
 // to be able to parse the results
-type searchResult struct {
+type SearchResult struct {
 	Issues     []Issue `json:"issues"`
 	StartAt    int     `json:"startAt"`
 	MaxResults int     `json:"maxResults"`
@@ -354,8 +355,11 @@ type searchResult struct {
 
 // FindIssues 查找issues
 // Jira API docs: https://docs.atlassian.com/software/jira/docs/api/REST/8.8.0/#api/2/search
-func (c *Component) FindIssues(jql string, options *SearchOptions) (*[]Issue, error) {
+func (c *Component) FindIssues(jql string, options *SearchOptions) (*SearchResult, error) {
 	uv := url.Values{}
+	if jql != "" {
+		uv.Add("jql", jql)
+	}
 	if options != nil {
 		if options.StartAt != 0 {
 			uv.Add("startAt", strconv.Itoa(options.StartAt))
@@ -374,7 +378,7 @@ func (c *Component) FindIssues(jql string, options *SearchOptions) (*[]Issue, er
 		}
 	}
 
-	var result searchResult
+	var result SearchResult
 	resp, err := c.ehttp.R().SetBasicAuth(c.config.Username, c.config.Password).SetQueryParamsFromValues(uv).SetResult(&result).Get(fmt.Sprintf(APISearch))
 	if err != nil {
 		return nil, fmt.Errorf("issues get request fail, %w", err)
@@ -386,7 +390,7 @@ func (c *Component) FindIssues(jql string, options *SearchOptions) (*[]Issue, er
 		return nil, fmt.Errorf("issues get fail, %s", respError.LongError())
 	}
 
-	return &result.Issues, err
+	return &result, err
 }
 
 // CreateIssue create issue
@@ -403,4 +407,38 @@ func (c *Component) CreateIssue(issue *Issue) (*Issue, error) {
 		return nil, fmt.Errorf("create component fail, %s", respError.LongError())
 	}
 	return &respIssue, err
+}
+
+type IssueTypes []*IssueType
+
+// GetAllIssueTypes 获取所有issue类型
+// Jira API docs: https://docs.atlassian.com/software/jira/docs/api/REST/8.8.0/#api/2/issuetype-getIssueAllTypes
+func (c *Component) GetAllIssueTypes() (*IssueTypes, error) {
+	var result IssueTypes
+	resp, err := c.ehttp.R().SetBasicAuth(c.config.Username, c.config.Password).SetResult(&result).Get(fmt.Sprintf(APIGetIssueTypes))
+	if err != nil {
+		return nil, fmt.Errorf("issueTypes get request fail, %w", err)
+	}
+	if resp.StatusCode() != 200 {
+		var respError Error
+		err = json.Unmarshal(resp.Body(), &respError)
+		return nil, fmt.Errorf("issueTypes get fail, %s, %w", respError.LongError(), err)
+	}
+
+	return &result, err
+}
+
+// GetProjectIssueTypes get issue types of a project
+func (c *Component) GetProjectIssueTypes(projectKey string) (*IssueTypes, error) {
+	var result IssueTypes
+	resp, err := c.ehttp.R().SetBasicAuth(c.config.Username, c.config.Password).SetResult(&result).Get(fmt.Sprintf(APIGetProjectStatuses, projectKey))
+	if err != nil {
+		return nil, fmt.Errorf("project issuetypes get request fail, %w", err)
+	}
+	if resp.StatusCode() != 200 {
+		var respError Error
+		err = json.Unmarshal(resp.Body(), &respError)
+		return nil, fmt.Errorf("issueTypes get fail, %s, %w", respError.LongError(), err)
+	}
+	return &result, err
 }
