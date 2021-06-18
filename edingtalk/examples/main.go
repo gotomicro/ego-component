@@ -35,10 +35,10 @@ func invokerDingTalk() error {
 		MessageURL: "xxx", Text: "xxx", Title: "xx",
 	}
 	msg := &edingtalk.Msg{
-		Msgtype: edingtalk.SendNotifyMsgTypeLink,
+		Msgtype: edingtalk.MsgTypeLink,
 		Link:    link,
 	}
-	res, err := comp.SendWorkNotifyMsg(edingtalk.SendWorkNotifyMsgReq{
+	res, err := comp.CorpconversationAsyncsendV2(edingtalk.CorpconversationAsyncsendV2Req{
 		Msg:        msg,
 		UseridList: "xxx,xxxx",
 	})

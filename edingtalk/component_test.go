@@ -142,3 +142,39 @@ func TestDepartmentCreateGetUpdateDelete(t *testing.T) {
 	err = cmp.DepartmentDelete(res.DeptId)
 	assert.NoError(t, err)
 }
+
+func TestComponent_CorpconversationAsyncsendV2(t *testing.T) {
+	cmp := newCmp()
+	// 发送文本消息
+	text := &Text{
+		Content: "这是一段文本消息",
+	}
+	msg := &Msg{
+		Msgtype: MsgTypeText,
+		Text:    text,
+	}
+	res, err := cmp.CorpconversationAsyncsendV2(CorpconversationAsyncsendV2Req{
+		Msg:        msg,
+		UseridList: "xxxxxxx",
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, res.ErrCode, 0)
+	// 发送 链接消息
+	link := &Link{
+		PicURL:     "xxxxx",
+		MessageURL: "xxx",
+		Text:       "这是一段链接消息text",
+		Title:      "这是一段链接消息title",
+	}
+	msg = &Msg{
+		Msgtype: MsgTypeLink,
+		Link:    link,
+	}
+	res, err = cmp.CorpconversationAsyncsendV2(CorpconversationAsyncsendV2Req{
+		Msg:        msg,
+		UseridList: "xxxxxx",
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, res.ErrCode, 0)
+	// 其他方式的消息 ........
+}

@@ -43,26 +43,26 @@ const (
 	// https://ding-doc.dingtalk.com/document/app/query-the-list-of-department-userids
 	ApiUserListID = "/topapi/user/listid?access_token=%s"
 	// https://ding-doc.dingtalk.com/document/app/queries-the-complete-information-of-a-department-user
-	ApiUserList = "https://oapi.dingtalk.com/topapi/v2/user/list?access_token=%s"
+	ApiUserList = "/topapi/v2/user/list?access_token=%s"
 	// https://developers.dingtalk.com/document/app/asynchronous-sending-of-enterprise-session-messages
-	SendWorkNotify = "/topapi/message/corpconversation/asyncsend_v2?access_token=%s"
+	CorpconversationAsyncsendV2 = "/topapi/message/corpconversation/asyncsend_v2?access_token=%s"
 )
 
 const (
-	// SendNotifyMsgTypeLink 链接消息
-	SendNotifyMsgTypeLink = "link"
-	// SendNotifyMsgTypeImage 图片消息
-	SendNotifyMsgTypeImage = "image"
-	// SendNotifyMsgTypeText 文本消息
-	SendNotifyMsgTypeText = "text"
-	// SendNotifyMsgTypeVoice 语音消息
-	SendNotifyMsgTypeVoice = "voice"
-	// SendNotifyMsgTypeFile 文件消息
-	SendNotifyMsgTypeFile = "file"
-	// SendNotifyMsgTypeOA oa消息
-	SendNotifyMsgTypeOA = "oa"
-	// SendNotifyMsgTypeMD markdown消息
-	SendNotifyMsgTypeMD = "markdown"
-	// SendNotifyMsgTypeCard 卡片消息
-	SendNotifyMsgTypeCard = "action_card"
+	// MsgTypeLink 链接消息
+	MsgTypeLink = "link"
+	// MsgTypeImage 图片消息
+	MsgTypeImage = "image"
+	// MsgTypeText 文本消息
+	MsgTypeText = "text"
+	// MsgTypeVoice 语音消息
+	MsgTypeVoice = "voice"
+	// MsgTypeFile 文件消息
+	MsgTypeFile = "file"
+	// MsgTypeOA oa消息
+	MsgTypeOA = "oa"
+	// MsgTypeMD markdown消息
+	MsgTypeMD = "markdown"
+	// MsgTypeCard 卡片消息
+	MsgTypeCard = "action_card"
 )

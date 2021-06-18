@@ -1,12 +1,12 @@
 package edingtalk
 
-type SendWorkNotifyMsgRes struct {
+type CorpconversationAsyncsendV2Res struct {
 	OpenAPIResponse
 	TaskID int64 `json:"task_id"` // 创建的异步发送任务ID
 }
 
-// SendWorkNotifyMsgReq 具体注释: https://developers.dingtalk.com/document/app/asynchronous-sending-of-enterprise-session-messages
-type SendWorkNotifyMsgReq struct {
+// CorpconversationAsyncsendV2Req 具体注释: https://developers.dingtalk.com/document/app/asynchronous-sending-of-enterprise-session-messages
+type CorpconversationAsyncsendV2Req struct {
 	Msg        *Msg   `json:"msg,omitempty"`
 	ToAllUser  string `json:"to_all_user,omitempty"`  // 是否发送给企业全部用户
 	AgentID    int64  `json:"agent_id,omitempty"`     // 无需传递
