@@ -44,4 +44,25 @@ const (
 	ApiUserListID = "/topapi/user/listid?access_token=%s"
 	// https://ding-doc.dingtalk.com/document/app/queries-the-complete-information-of-a-department-user
 	ApiUserList = "https://oapi.dingtalk.com/topapi/v2/user/list?access_token=%s"
+	// https://developers.dingtalk.com/document/app/asynchronous-sending-of-enterprise-session-messages
+	SendWorkNotify = "/topapi/message/corpconversation/asyncsend_v2?access_token=%s"
+)
+
+const (
+	// SendNotifyMsgTypeLink 链接消息
+	SendNotifyMsgTypeLink = "link"
+	// SendNotifyMsgTypeImage 图片消息
+	SendNotifyMsgTypeImage = "image"
+	// SendNotifyMsgTypeText 文本消息
+	SendNotifyMsgTypeText = "text"
+	// SendNotifyMsgTypeVoice 语音消息
+	SendNotifyMsgTypeVoice = "voice"
+	// SendNotifyMsgTypeFile 文件消息
+	SendNotifyMsgTypeFile = "file"
+	// SendNotifyMsgTypeOA oa消息
+	SendNotifyMsgTypeOA = "oa"
+	// SendNotifyMsgTypeMD markdown消息
+	SendNotifyMsgTypeMD = "markdown"
+	// SendNotifyMsgTypeCard 卡片消息
+	SendNotifyMsgTypeCard = "action_card"
 )

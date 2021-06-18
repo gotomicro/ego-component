@@ -2,10 +2,12 @@ package main
 
 import (
 	"fmt"
+
 	"github.com/gotomicro/ego"
-	"github.com/gotomicro/ego-component/edingtalk"
 	"github.com/gotomicro/ego-component/eredis"
 	"github.com/gotomicro/ego/core/elog"
+
+	"github.com/gotomicro/ego-component/edingtalk"
 )
 
 // export EGO_DEBUG=true && go run main.go --config=config.toml
@@ -26,6 +28,20 @@ func invokerDingTalk() error {
 	fmt.Println(err)
 	fmt.Println("==================================")
 	err = comp.DepartmentUpdate(edingtalk.NewDepartmentUpdateReq(11111).SetDeptManagerUseridList("xxxxx"))
-	fmt.Println("errr", err)
+	fmt.Println("err", err)
+	fmt.Println("==================================")
+	link := &edingtalk.Link{
+		PicURL:     "xxxxx",
+		MessageURL: "xxx", Text: "xxx", Title: "xx",
+	}
+	msg := &edingtalk.Msg{
+		Msgtype: edingtalk.SendNotifyMsgTypeLink,
+		Link:    link,
+	}
+	res, err := comp.SendWorkNotifyMsg(edingtalk.SendWorkNotifyMsgReq{
+		Msg:        msg,
+		UseridList: "xxx,xxxx",
+	})
+	fmt.Println(res, err)
 	return nil
 }
