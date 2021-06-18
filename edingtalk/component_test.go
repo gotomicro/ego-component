@@ -150,7 +150,7 @@ func TestComponent_CorpconversationAsyncsendV2(t *testing.T) {
 		Content: "这是一段文本消息",
 	}
 	msg := &Msg{
-		Msgtype: MsgTypeText,
+		Msgtype: MsgText,
 		Text:    text,
 	}
 	res, err := cmp.CorpconversationAsyncsendV2(CorpconversationAsyncsendV2Req{
@@ -167,7 +167,7 @@ func TestComponent_CorpconversationAsyncsendV2(t *testing.T) {
 		Title:      "这是一段链接消息title",
 	}
 	msg = &Msg{
-		Msgtype: MsgTypeLink,
+		Msgtype: MsgLink,
 		Link:    link,
 	}
 	res, err = cmp.CorpconversationAsyncsendV2(CorpconversationAsyncsendV2Req{

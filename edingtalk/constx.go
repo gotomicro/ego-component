@@ -49,20 +49,20 @@ const (
 )
 
 const (
-	// MsgTypeLink 链接消息
-	MsgTypeLink = "link"
-	// MsgTypeImage 图片消息
-	MsgTypeImage = "image"
-	// MsgTypeText 文本消息
-	MsgTypeText = "text"
-	// MsgTypeVoice 语音消息
-	MsgTypeVoice = "voice"
-	// MsgTypeFile 文件消息
-	MsgTypeFile = "file"
-	// MsgTypeOA oa消息
-	MsgTypeOA = "oa"
-	// MsgTypeMD markdown消息
-	MsgTypeMD = "markdown"
-	// MsgTypeCard 卡片消息
-	MsgTypeCard = "action_card"
+	// MsgLink 链接消息
+	MsgLink = "link"
+	// MsgImage 图片消息
+	MsgImage = "image"
+	// MsgText 文本消息
+	MsgText = "text"
+	// MsgVoice 语音消息
+	MsgVoice = "voice"
+	// MsgFile 文件消息
+	MsgFile = "file"
+	// MsgOA oa消息
+	MsgOA = "oa"
+	// MsgMD markdown消息
+	MsgMD = "markdown"
+	// MsgCard 卡片消息
+	MsgCard = "action_card"
 )

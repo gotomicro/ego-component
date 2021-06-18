@@ -35,7 +35,7 @@ func invokerDingTalk() error {
 		MessageURL: "xxx", Text: "xxx", Title: "xx",
 	}
 	msg := &edingtalk.Msg{
-		Msgtype: edingtalk.MsgTypeLink,
+		Msgtype: edingtalk.MsgLink,
 		Link:    link,
 	}
 	res, err := comp.CorpconversationAsyncsendV2(edingtalk.CorpconversationAsyncsendV2Req{
