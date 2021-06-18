@@ -36,22 +36,33 @@ func initTokenServer(config *config, redis *eredis.Component) *tokenServer {
 	}
 }
 
-// setParentToken sso的父节点token
-func (t *tokenServer) setParentToken(ctx context.Context, pToken dto.Token, userInfo *dto.User) (err error) {
+// createParentToken sso的父节点token
+func (t *tokenServer) createParentToken(ctx context.Context, pToken dto.Token, userInfo *dto.User) (err error) {
 	// 1 设置uid 到 parent token关系
 	err = t.uidMapParentToken.setToken(ctx, userInfo.Uid, "pc", pToken)
 	if err != nil {
-		return fmt.Errorf("token.setParentToken: create token map failed, err:%w", err)
+		return fmt.Errorf("token.createParentToken: create token map failed, err:%w", err)
 	}
 
 	// 2 创建父级的token信息
 	return t.parentToken.create(ctx, pToken, userInfo)
 }
 
-func (t *tokenServer) setToken(ctx context.Context, clientId string, token dto.Token, pToken string) (err error) {
+func (t *tokenServer) renewParentToken(ctx context.Context, pToken dto.Token) (err error) {
+	// 1 设置uid 到 parent token关系
+	err = t.parentToken.renew(ctx,pToken)
+	if err != nil {
+		return fmt.Errorf("token.createParentToken: create token map failed, err:%w", err)
+	}
+	return nil
+}
+
+
+
+func (t *tokenServer) createToken(ctx context.Context, clientId string, token dto.Token, pToken string) (err error) {
 	err = t.parentToken.setToken(ctx, pToken, clientId, token)
 	if err != nil {
-		return fmt.Errorf("tokenServer.setToken failed, err:%w", err)
+		return fmt.Errorf("tokenServer.createToken failed, err:%w", err)
 	}
 
 	// setTTL new token
@@ -76,9 +87,15 @@ func (t *tokenServer) getUserByParentToken(ctx context.Context, pToken string) (
 	return t.parentToken.getUser(ctx, pToken)
 }
 
+func (t *tokenServer) getParentTokenByToken(ctx context.Context, token string) (pToken string, err error) {
+	// 通过子系统token，获得父节点token
+	pToken, err = t.subToken.getParentToken(ctx, token)
+	return
+}
+
 func (t *tokenServer) getUserByToken(ctx context.Context, token string) (info *dto.User, err error) {
 	// 通过子系统token，获得父节点token
-	pToken, err := t.subToken.getParentToken(ctx, token)
+	pToken, err := t.getParentTokenByToken(ctx, token)
 	if err != nil {
 		return
 	}
@@ -113,24 +130,11 @@ func (t *tokenServer) refreshToken(ctx context.Context, clientId string, pToken 
 			// empty cache
 		}
 	}
-
-	// get user info
-	//ssoUser, err := t.getUserByParentToken(ctx, pToken)
-	//if err != nil {
-	//	return nil, err
-	//}
-
 	// re-generate token
 	{
-		//tk = &dto.Token{
-		//	Token:     base64.RawURLEncoding.EncodeToString(uuid.NewRandom()),
-		//	AuthAt:    time.Now().Unix(),
-		//	ExpiresIn: DefaultTokenExpireIn,
-		//}
-
 		genNewToken = dto.NewToken(DefaultTokenExpireIn)
 		tk = &genNewToken
-		err = t.setToken(ctx, clientId, genNewToken, pToken)
+		err = t.createToken(ctx, clientId, genNewToken, pToken)
 		if err != nil {
 			return
 		}
@@ -177,10 +181,6 @@ func (t *tokenServer) setNewTokenToCache(ctx context.Context, tk *dto.Token, pTo
 
 	return
 }
-
-//func redisTokenLockKey(uid int64) string {
-//	return fmt.Sprintf(tokenLockPrefix, uid)
-//}
 
 func redisTokenRefreshLockKey(pToken string) string {
 	return fmt.Sprintf(tokenRefreshLockPrefix, pToken)

@@ -10,33 +10,6 @@ import (
 	"github.com/gotomicro/ego-component/eredis"
 )
 
-//
-//type config struct {
-//	parentTokenClientId string // 父级token的client id，也就是单点登录系统，默认为ptk
-//	/*
-//		  key: sso:tkMap:{uid}
-//		  value:
-//			{parentTokenClientId}: tokenJsonInfo
-//			{subTokenClientId1}:   tokenJsonInfo
-//			{subTokenClientId2}:   tokenJsonInfo
-//			{subTokenClientId3}:   tokenJsonInfo
-//	*/
-//	parentTokenMapSubTokenKey string // 存储token信息的hash map
-//	/*
-//		key: sso:ptk:{parentToken}
-//		value: {userInfo}
-//		ttl: 3600
-//	*/
-//	parentTokenKey string // 父级token存储用户信息
-//	// key token value ptoken
-//	/*
-//		key: sso:stkMapPtk:{subToken}
-//		value: {parentToken}
-//		ttl: 3600
-//	*/
-//	subTokenMapParentTokenKey string // token与父级token的映射关系
-//}
-
 type config struct {
 	/*
 		    hashmap
@@ -146,7 +119,7 @@ func (u *uidMapParentToken) getKey(uid int64) string {
 func (u *uidMapParentToken) setToken(ctx context.Context, uid int64, clientType string, pToken dto.Token) error {
 	pTokenByte, err := json.Marshal(pToken)
 	if err != nil {
-		return fmt.Errorf("uidMapParentToken.setToken failed, err: %w", err)
+		return fmt.Errorf("uidMapParentToken.createToken failed, err: %w", err)
 	}
 
 	return u.redis.HSet(ctx, u.getKey(uid), clientType, string(pTokenByte))
@@ -184,26 +157,43 @@ func (p *parentToken) getKey(pToken string) string {
 	return fmt.Sprintf(p.config.parentTokenMapSubTokenKey, pToken)
 }
 
-func (p *parentToken) create(ctx context.Context, token dto.Token, userInfo *dto.User) error {
+func (p *parentToken) create(ctx context.Context, pToken dto.Token, userInfo *dto.User) error {
 	userStr, err := userInfo.Marshal()
 	if err != nil {
 		return err
 	}
 
-	tokenStr, err := token.Marshal()
+	tokenStr, err := pToken.Marshal()
 	if err != nil {
 		return err
 	}
-	err = p.redis.HMSet(ctx, p.getKey(token.Token), map[string]interface{}{
+	err = p.redis.HMSet(ctx, p.getKey(pToken.Token), map[string]interface{}{
 		p.hashKeyCtime:     time.Now().Unix(),
 		p.hashKeyUserInfo:  userStr,
 		p.hashKeyTokenInfo: tokenStr,
-	}, time.Duration(token.ExpiresIn)*time.Second)
+	}, time.Duration(pToken.ExpiresIn)*time.Second)
 	if err != nil {
-		return fmt.Errorf("parentToken create failed, err:%w", err)
+		return fmt.Errorf("parentToken.create failed, err:%w", err)
 	}
 	return nil
 }
+
+
+func (p *parentToken) renew(ctx context.Context, pToken dto.Token) error {
+	tokenStr, err := pToken.Marshal()
+	if err != nil {
+		return err
+	}
+	err = p.redis.HMSet(ctx, p.getKey(pToken.Token), map[string]interface{}{
+		p.hashKeyTokenInfo: tokenStr,
+	}, time.Duration(pToken.ExpiresIn)*time.Second)
+	if err != nil {
+		return fmt.Errorf("parentToken.renew failed, err:%w", err)
+	}
+	return nil
+}
+
+
 
 func (p *parentToken) delete(ctx context.Context, pToken string) error {
 	_, err := p.redis.Del(ctx, p.getKey(pToken))
@@ -233,18 +223,18 @@ func (p *parentToken) setToken(ctx context.Context, pToken string, clientId stri
 	// 如果不存在key，报错
 	_, err := p.redis.HGet(ctx, p.getKey(pToken), p.hashKeyCtime)
 	if err != nil {
-		return fmt.Errorf("parentToken.setToken get key empty, err: %w", err)
+		return fmt.Errorf("parentToken.createToken get key empty, err: %w", err)
 	}
 
 	tokenJsonInfo, err := token.Marshal()
 	if err != nil {
-		return fmt.Errorf("parentToken.setToken json marshal failed, err: %w", err)
+		return fmt.Errorf("parentToken.createToken json marshal failed, err: %w", err)
 	}
 
 	// setTTL token map
-	err = p.redis.HSet(ctx, p.getKey(pToken), clientId, string(tokenJsonInfo))
+	err = p.redis.HSet(ctx, p.getKey(pToken), clientId, tokenJsonInfo)
 	if err != nil {
-		return fmt.Errorf("parentToken.setToken hset failed, err:%w", err)
+		return fmt.Errorf("parentToken.createToken hset failed, err:%w", err)
 	}
 	return nil
 }
