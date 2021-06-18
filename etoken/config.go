@@ -3,7 +3,7 @@ package etoken
 type Option func(c *Container)
 
 // PackageName ..
-const PackageName = "contrib.token"
+const PackageName = "component.token"
 
 // config
 type config struct {
@@ -16,9 +16,9 @@ type config struct {
 // DefaultConfig ...
 func DefaultConfig() *config {
 	return &config{
-		AccessTokenIss:            "git.yitum.com/mygomod/yitea-contib",
+		AccessTokenIss:            "github.com/gotomicro/ego/etoken",
 		AccessTokenKey:            "ecologysK#xo",
 		AccessTokenExpireInterval: 24 * 3600,
-		TokenPrefix:               "/yitea",
+		TokenPrefix:               "/egotoken",
 	}
 }
