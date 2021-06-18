@@ -248,7 +248,7 @@ func (s *Storage) SaveAccess(ctx context.Context, data *server.AccessData) (err 
 		return
 	}
 
-	err = s.tokenServer.setToken(ctx, data.Client.GetId(), dto.Token{
+	err = s.tokenServer.createToken(ctx, data.Client.GetId(), dto.Token{
 		Token:     data.AccessToken,
 		AuthAt:    time.Now().Unix(),
 		ExpiresIn: DefaultTokenExpireIn,
@@ -297,7 +297,7 @@ func (s *Storage) LoadAccess(ctx context.Context, token string) (*server.AccessD
 
 // RemoveAccess revokes or deletes an AccessData.
 func (s *Storage) RemoveAccess(ctx context.Context, token string) (err error) {
-	span, ctx := etrace.StartSpanFromContext(context.Background(), "redisStorage.RemoveAccess")
+	span, ctx := etrace.StartSpanFromContext(ctx, "redisStorage.RemoveAccess")
 	defer span.Finish()
 
 	err = dao.AccessDeleteX(ctx, s.db, egorm.Conds{"access_token": token})
@@ -308,9 +308,13 @@ func (s *Storage) RemoveAccess(ctx context.Context, token string) (err error) {
 	if err != nil {
 		return
 	}
+	pToken, err := s.tokenServer.getParentTokenByToken(ctx, token)
+	if err != nil {
+		return err
+	}
 
 	// 删除redis token
-	//s.tokenServer.removeParentToken(ctx, token)
+	s.tokenServer.removeParentToken(ctx, pToken)
 	return
 }
 
@@ -405,24 +409,31 @@ func (s *Storage) removeExpireAtData(ctx context.Context, code string) (err erro
 	return
 }
 
-func (s *Storage) GetUserByToken(ctx context.Context, token string) (info *dto.User, err error) {
-	return s.tokenServer.getUserByToken(ctx, token)
+// CreateParentToken 创建父级token
+func (s *Storage) CreateParentToken(ctx context.Context, pToken dto.Token, userInfo *dto.User) (err error) {
+	return s.tokenServer.createParentToken(ctx, pToken, userInfo)
+}
+
+// RenewParentToken 续期父级token
+func (s *Storage) RenewParentToken(ctx context.Context, pToken dto.Token) (err error) {
+	return s.tokenServer.renewParentToken(ctx, pToken)
 }
 
 func (s *Storage) GetUserByParentToken(ctx context.Context, token string) (info *dto.User, err error) {
 	return s.tokenServer.getUserByParentToken(ctx, token)
 }
 
-func (s *Storage) SetParentToken(ctx context.Context, token dto.Token, userInfo *dto.User) (err error) {
-	return s.tokenServer.setParentToken(ctx, token, userInfo)
+func (s *Storage) RemoveParentToken(ctx context.Context, pToken string) (err error) {
+	return s.tokenServer.removeParentToken(ctx, pToken)
 }
 
-func (s *Storage) RemoveParentToken(ctx context.Context, token string) (err error) {
-	return s.tokenServer.removeParentToken(ctx, token)
+// CreateToken 创建子系统token
+func (s *Storage) CreateToken(ctx context.Context, clientId string, token dto.Token, pToken string) (err error) {
+	return s.tokenServer.createToken(ctx, clientId, token, pToken)
 }
 
-func (s *Storage) SetToken(ctx context.Context, clientId string, token dto.Token, pToken string) (err error) {
-	return s.tokenServer.setToken(ctx, clientId, token, pToken)
+func (s *Storage) GetUserByToken(ctx context.Context, token string) (info *dto.User, err error) {
+	return s.tokenServer.getUserByToken(ctx, token)
 }
 
 func (s *Storage) RefreshToken(ctx context.Context, clientId string, pToken string) (tk *dto.Token, err error) {
