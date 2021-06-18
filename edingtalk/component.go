@@ -454,6 +454,25 @@ func (c *Component) DepartmentTree(did int) (*Department, error) {
 	return castDepV1ToDepV2(res.Result), nil
 }
 
+// CorpconversationAsyncsendV2 发送工作通知消息
+// 接口文档: https://developers.dingtalk.com/document/app/asynchronous-sending-of-enterprise-session-messages
+func (c *Component) CorpconversationAsyncsendV2(req CorpconversationAsyncsendV2Req) (CorpconversationAsyncsendV2Res, error) {
+	var res CorpconversationAsyncsendV2Res
+	token, err := c.GetAccessToken()
+	if err != nil {
+		return res, fmt.Errorf("CorpconversationAsyncsendV2-GetAccessToken err, %w", err)
+	}
+	req.AgentID = int64(c.config.AgentID)
+	resp, err := c.ehttp.R().SetBody(req).SetResult(&res).Post(fmt.Sprintf(CorpconversationAsyncsendV2, token))
+	if err != nil {
+		return res, fmt.Errorf("CorpconversationAsyncsendV2-doRequest err, %w", err)
+	}
+	if resp.StatusCode() != 200 || res.ErrCode != 0 {
+		return res, fmt.Errorf("CorpconversationAsyncsendV2-doRequest fail, %s", res)
+	}
+	return res, nil
+}
+
 func castDepV1ToDepV2(depv1 []departmentV1) *Department {
 	depv1Map := make(map[int][]departmentV1)
 	for _, v := range depv1 {

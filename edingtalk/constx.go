@@ -43,5 +43,26 @@ const (
 	// https://ding-doc.dingtalk.com/document/app/query-the-list-of-department-userids
 	ApiUserListID = "/topapi/user/listid?access_token=%s"
 	// https://ding-doc.dingtalk.com/document/app/queries-the-complete-information-of-a-department-user
-	ApiUserList = "https://oapi.dingtalk.com/topapi/v2/user/list?access_token=%s"
+	ApiUserList = "/topapi/v2/user/list?access_token=%s"
+	// https://developers.dingtalk.com/document/app/asynchronous-sending-of-enterprise-session-messages
+	CorpconversationAsyncsendV2 = "/topapi/message/corpconversation/asyncsend_v2?access_token=%s"
+)
+
+const (
+	// MsgLink 链接消息
+	MsgLink = "link"
+	// MsgImage 图片消息
+	MsgImage = "image"
+	// MsgText 文本消息
+	MsgText = "text"
+	// MsgVoice 语音消息
+	MsgVoice = "voice"
+	// MsgFile 文件消息
+	MsgFile = "file"
+	// MsgOA oa消息
+	MsgOA = "oa"
+	// MsgMD markdown消息
+	MsgMD = "markdown"
+	// MsgCard 卡片消息
+	MsgCard = "action_card"
 )
