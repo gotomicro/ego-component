@@ -54,11 +54,11 @@ func newComponent(name string, config *config, logger *elog.Component) *Componen
 
 	logger = logger.With(elog.FieldAddr(fmt.Sprintf("%s", config.Addrs)))
 
-	if !config.Secure {
+	if !config.EnableSecure {
 		conf.DialOptions = append(conf.DialOptions, grpc.WithInsecure())
 	}
 
-	if config.BasicAuth {
+	if config.EnableBasicAuth {
 		conf.Username = config.UserName
 		conf.Password = config.Password
 	}
