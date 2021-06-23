@@ -30,7 +30,7 @@ func (w *Watch) IncipientKeyValues() []*mvccpb.KeyValue {
 	return w.incipientKVs
 }
 
-// NewWatch ...
+// WatchPrefix 监听某个key
 func (c *Component) WatchPrefix(ctx context.Context, prefix string) (*Watch, error) {
 	resp, err := c.Get(ctx, prefix, clientv3.WithPrefix())
 	if err != nil {

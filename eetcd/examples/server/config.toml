@@ -2,7 +2,8 @@
     port = 9003
 [etcd]
 addrs=["127.0.0.1:2379"]
-[registry]
-#ServiceTTL = "10s"
 connectTimeout = "1s"
 secure = false
+[registry]
+scheme = "etcd" # grpc resolver默认scheme为"etcd"，你可以自行修改
+#ServiceTTL = "10s"

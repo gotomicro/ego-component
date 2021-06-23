@@ -24,6 +24,7 @@ func main() {
 var grpcComp helloworld.GreeterClient
 
 func invokerGrpc() error {
+	// 注册resolver
 	registry.Load("registry").Build(registry.WithClientEtcd(eetcd.Load("etcd").Build()))
 	grpcConn := egrpc.Load("grpc.test").Build()
 	grpcComp = helloworld.NewGreeterClient(grpcConn.ClientConn)

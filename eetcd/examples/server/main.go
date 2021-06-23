@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+
 	"github.com/gotomicro/ego"
 	"github.com/gotomicro/ego-component/eetcd"
 	"github.com/gotomicro/ego-component/eetcd/examples/helloworld"
@@ -16,8 +17,7 @@ import (
 //  export EGO_DEBUG=true && go run main.go --config=config.toml
 func main() {
 	if err := ego.New().
-		Invoker(invoker).
-		Registry(EtcdRegistry).
+		Registry(registry.Load("registry").Build(registry.WithClientEtcd(eetcd.Load("etcd").Build()))).
 		Serve(func() server.Server {
 			server := egrpc.Load("server.grpc").Build()
 			helloworld.RegisterGreeterServer(server.Server, &Greeter{server: server})
@@ -25,17 +25,6 @@ func main() {
 		}()).Run(); err != nil {
 		elog.Panic("startup", elog.Any("err", err))
 	}
-}
-
-var (
-	EtcdClient   *eetcd.Component
-	EtcdRegistry *registry.Component
-)
-
-func invoker() error {
-	EtcdClient = eetcd.Load("etcd").Build()
-	EtcdRegistry = registry.Load("registry").Build(registry.WithClientEtcd(EtcdClient))
-	return nil
 }
 
 type Greeter struct {

@@ -8,27 +8,26 @@ import (
 
 // config ...
 type config struct {
-	Addrs                        []string      `json:"endpoints"`
-	CertFile                     string        `json:"certFile"`
-	KeyFile                      string        `json:"keyFile"`
-	CaCert                       string        `json:"caCert"`
-	BasicAuth                    bool          `json:"basicAuth"`
-	UserName                     string        `json:"userName"`
-	Password                     string        `json:"-"`
-	ConnectTimeout               time.Duration `json:"connectTimeout"` // 连接超时时间
-	Secure                       bool          `json:"secure"`
-	AutoSyncInterval             time.Duration `json:"autoAsyncInterval"` // 自动同步member list的间隔
+	Addrs                        []string      // 地址
+	CertFile                     string        // cert file
+	KeyFile                      string        // key file
+	CaCert                       string        // ca cert
+	UserName                     string        // 用户名
+	Password                     string        // 密码
+	ConnectTimeout               time.Duration // 连接超时时间
+	AutoSyncInterval             time.Duration // 自动同步member list的间隔
+	EnableBasicAuth              bool          // 是否开启认证
+	EnableSecure                 bool          // 是否开启安全
 	EnableBlock                  bool          // 是否开启阻塞，默认开启
-	EnableFailOnNonTempDialError bool
-	TTL                          int // 单位：s
+	EnableFailOnNonTempDialError bool          // 是否开启gRPC连接的错误信息
 }
 
 // DefaultConfig 返回默认配置
 func DefaultConfig() *config {
 	return &config{
-		BasicAuth:                    false,
+		EnableBasicAuth:              false,
 		ConnectTimeout:               xtime.Duration("5s"),
-		Secure:                       false,
+		EnableSecure:                 false,
 		EnableBlock:                  true,
 		EnableFailOnNonTempDialError: true,
 	}
