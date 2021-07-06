@@ -46,6 +46,11 @@ func (m *MiniProgram) Login(code, encryptedData, iv string) (sessionKey string, 
 		return "", nil, err
 	}
 	wxUserInfo, err = m.Decrypt(wXBizDataCrypt.SessionKey, encryptedData, iv)
+	if err == nil {
+		// 在新版本的微信API里面，将无法从encrypted里面解码出来这两个，而是只能从前面步骤里面拿到
+		wxUserInfo.OpenID = wXBizDataCrypt.OpenID
+		wxUserInfo.UnionID = wXBizDataCrypt.UnionID
+	}
 	sessionKey = wXBizDataCrypt.SessionKey
 	return
 }

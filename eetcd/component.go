@@ -11,9 +11,9 @@ import (
 
 	"github.com/gotomicro/ego/core/elog"
 	grpcprom "github.com/grpc-ecosystem/go-grpc-prometheus"
-	"go.etcd.io/etcd/clientv3"
-	"go.etcd.io/etcd/clientv3/concurrency"
-	"go.etcd.io/etcd/mvcc/mvccpb"
+	"go.etcd.io/etcd/api/v3/mvccpb"
+	"go.etcd.io/etcd/client/v3"
+	"go.etcd.io/etcd/client/v3/concurrency"
 	"google.golang.org/grpc"
 )
 
@@ -54,11 +54,11 @@ func newComponent(name string, config *config, logger *elog.Component) *Componen
 
 	logger = logger.With(elog.FieldAddr(fmt.Sprintf("%s", config.Addrs)))
 
-	if !config.Secure {
+	if !config.EnableSecure {
 		conf.DialOptions = append(conf.DialOptions, grpc.WithInsecure())
 	}
 
-	if config.BasicAuth {
+	if config.EnableBasicAuth {
 		conf.Username = config.UserName
 		conf.Password = config.Password
 	}

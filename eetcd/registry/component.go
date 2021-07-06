@@ -16,9 +16,9 @@ import (
 	"github.com/gotomicro/ego/core/eregistry"
 	"github.com/gotomicro/ego/core/util/xgo"
 	"github.com/gotomicro/ego/server"
-	"go.etcd.io/etcd/clientv3"
-	"go.etcd.io/etcd/clientv3/concurrency"
-	"go.etcd.io/etcd/mvcc/mvccpb"
+	"go.etcd.io/etcd/api/v3/mvccpb"
+	"go.etcd.io/etcd/client/v3"
+	"go.etcd.io/etcd/client/v3/concurrency"
 
 	"github.com/gotomicro/ego-component/eetcd"
 )

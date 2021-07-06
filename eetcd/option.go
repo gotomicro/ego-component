@@ -28,7 +28,7 @@ func WithCaCert(caCert string) Option {
 
 func WithEnableBasicAuth(enable bool) Option {
 	return func(c *Container) {
-		c.config.BasicAuth = enable
+		c.config.EnableBasicAuth = enable
 	}
 }
 
@@ -46,6 +46,6 @@ func WithPassword(password string) Option {
 
 func WithEnableSecure(secure bool) Option {
 	return func(c *Container) {
-		c.config.Secure = secure
+		c.config.EnableSecure = secure
 	}
 }

@@ -7,8 +7,8 @@ import (
 	"github.com/gotomicro/ego/core/elog"
 
 	"github.com/gotomicro/ego/core/util/xgo"
-	"go.etcd.io/etcd/clientv3"
-	"go.etcd.io/etcd/mvcc/mvccpb"
+	"go.etcd.io/etcd/api/v3/mvccpb"
+	"go.etcd.io/etcd/client/v3"
 )
 
 // Watch A watch only tells the latest revision
@@ -30,7 +30,7 @@ func (w *Watch) IncipientKeyValues() []*mvccpb.KeyValue {
 	return w.incipientKVs
 }
 
-// NewWatch ...
+// WatchPrefix 监听某个key
 func (c *Component) WatchPrefix(ctx context.Context, prefix string) (*Watch, error) {
 	resp, err := c.Get(ctx, prefix, clientv3.WithPrefix())
 	if err != nil {
