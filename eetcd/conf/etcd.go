@@ -6,14 +6,13 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/gotomicro/ego/core/util/xcast"
-	"go.etcd.io/etcd/clientv3"
-	"go.etcd.io/etcd/mvcc/mvccpb"
-
 	"github.com/gotomicro/ego/core/econf"
 	"github.com/gotomicro/ego/core/econf/manager"
 	"github.com/gotomicro/ego/core/elog"
+	"github.com/gotomicro/ego/core/util/xcast"
 	"github.com/gotomicro/ego/core/util/xgo"
+	"go.etcd.io/etcd/api/v3/mvccpb"
+	"go.etcd.io/etcd/client/v3"
 
 	"github.com/gotomicro/ego-component/eetcd"
 )

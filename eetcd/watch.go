@@ -7,8 +7,8 @@ import (
 	"github.com/gotomicro/ego/core/elog"
 
 	"github.com/gotomicro/ego/core/util/xgo"
-	"go.etcd.io/etcd/clientv3"
-	"go.etcd.io/etcd/mvcc/mvccpb"
+	"go.etcd.io/etcd/api/v3/mvccpb"
+	"go.etcd.io/etcd/client/v3"
 )
 
 // Watch A watch only tells the latest revision
