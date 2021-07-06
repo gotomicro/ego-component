@@ -23,3 +23,18 @@ type RamUserResponse struct {
 	RequestID string      `json:"request_id"`
 	User      RamUserInfo `json:"user"`
 }
+
+type GroupInfo struct {
+	DisplayName string `json:"display_name"`
+	GroupName   string `json:"group_name"`
+	GroupId     string `json:"group_id"`
+	Comments    string `json:"comments"`
+	JoinDate    string `json:"join_date"`
+	UpdateDate  string `json:"update_date"`
+	CreateDate  string `json:"create_date"`
+}
+
+type AddOrRemoveUserToGroupRequest struct {
+	GroupName         string `json:"group_name"`
+	UserPrincipalName string `json:"user_principal_name"`
+}
