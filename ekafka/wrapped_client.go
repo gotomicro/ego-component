@@ -95,7 +95,7 @@ func (wc *Client) Metadata(ctx context.Context, req *kafka.MetadataRequest) (res
 
 func (wc *Client) CreateTopics(ctx context.Context, req *kafka.CreateTopicsRequest) (res *kafka.CreateTopicsResponse, err error) {
 	err = wc.processor(func(c *cmd) error {
-		logCmd(wc.logMode, c, "CreateTopics", nil)
+		logCmd(wc.logMode, c, "CreateTopics")
 		res, err = wc.cc.CreateTopics(ctx, req)
 		return err
 	})
