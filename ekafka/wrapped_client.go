@@ -59,7 +59,7 @@ func (wc *Client) wrapProcessor(wrapFn func(processFn) processFn) {
 
 func (wc *Client) DeleteTopics(ctx context.Context, req *kafka.DeleteTopicsRequest) (res *kafka.DeleteTopicsResponse, err error) {
 	err = wc.processor(func(c *cmd) error {
-		logCmd(wc.logMode, c, "DeleteTopics", nil)
+		logCmd(wc.logMode, c, "DeleteTopics")
 		res, err = wc.cc.DeleteTopics(ctx, req)
 		return err
 	})
@@ -68,7 +68,7 @@ func (wc *Client) DeleteTopics(ctx context.Context, req *kafka.DeleteTopicsReque
 
 func (wc *Client) ListOffsets(ctx context.Context, req *kafka.ListOffsetsRequest) (res *kafka.ListOffsetsResponse, err error) {
 	err = wc.processor(func(c *cmd) error {
-		logCmd(wc.logMode, c, "ListOffsets", nil)
+		logCmd(wc.logMode, c, "ListOffsets")
 		res, err = wc.cc.ListOffsets(ctx, req)
 		return err
 	})
@@ -77,7 +77,7 @@ func (wc *Client) ListOffsets(ctx context.Context, req *kafka.ListOffsetsRequest
 
 func (wc *Client) OffsetFetch(ctx context.Context, req *kafka.OffsetFetchRequest) (res *kafka.OffsetFetchResponse, err error) {
 	err = wc.processor(func(c *cmd) error {
-		logCmd(wc.logMode, c, "OffsetFetch", nil)
+		logCmd(wc.logMode, c, "OffsetFetch")
 		res, err = wc.cc.OffsetFetch(ctx, req)
 		return err
 	})
@@ -86,7 +86,7 @@ func (wc *Client) OffsetFetch(ctx context.Context, req *kafka.OffsetFetchRequest
 
 func (wc *Client) Metadata(ctx context.Context, req *kafka.MetadataRequest) (res *kafka.MetadataResponse, err error) {
 	err = wc.processor(func(c *cmd) error {
-		logCmd(wc.logMode, c, "Metadata", nil)
+		logCmd(wc.logMode, c, "Metadata")
 		res, err = wc.cc.Metadata(ctx, req)
 		return err
 	})
