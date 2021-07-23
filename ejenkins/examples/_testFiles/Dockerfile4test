@@ -1,0 +1,4 @@
+FROM busybox:1.24
+
+WORKDIR /root
+RUN echo 'this dockerfile is for local debug...'
