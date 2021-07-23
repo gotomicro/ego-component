@@ -2,6 +2,7 @@ package ejenkins
 
 import (
 	"fmt"
+
 	"github.com/gotomicro/ego/core/econf"
 	"github.com/gotomicro/ego/core/elog"
 )
@@ -40,4 +41,3 @@ func (c *Container) Build(options ...Option) *Component {
 	fmt.Printf("=> componentData: %+v\n", *cc)
 	return cc
 }
-

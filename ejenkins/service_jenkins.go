@@ -3,11 +3,12 @@ package ejenkins
 import (
 	"errors"
 	"fmt"
-	"github.com/gotomicro/ego/core/elog"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/gotomicro/ego/core/elog"
 )
 
 // Basic Authentication
@@ -23,7 +24,6 @@ type Jenkins struct {
 	Requester *Requester
 	logger    *elog.Component
 }
-
 
 func (j *Jenkins) Init() (*Jenkins, error) {
 	// Check Connection
@@ -81,7 +81,7 @@ func (j *Jenkins) CreateFolder(name string, parents ...string) (*Folder, error) 
 Create a new job in the folder
 	Example: CreateJobInFolder("<config></config>", "newJobName", "folder1", "folder2");
 		if create successfully, the url of the new job will be {JenkinsHost}/job/folder1/job/folder2/job/newJobName
- */
+*/
 func (j *Jenkins) CreateJobInFolder(config string, jobName string, parentIDs ...string) (*Job, error) {
 	jobObj := Job{Jenkins: j, Raw: new(JobResponse), Base: "/job/" + strings.Join(append(parentIDs, jobName), "/job/")}
 	qr := map[string]string{
@@ -93,7 +93,6 @@ func (j *Jenkins) CreateJobInFolder(config string, jobName string, parentIDs ...
 	}
 	return job, nil
 }
-
 
 // Create a new job from config(xml) File
 // Method takes XML string as first parameter, and if the name is not specified in the config file
@@ -167,7 +166,6 @@ func (j *Jenkins) GetJobObj(name string) *Job {
 	return &Job{Jenkins: j, Raw: new(JobResponse), Base: "/job/" + name}
 }
 
-
 // Invoke a job.
 // First parameter job name, second parameter is optional Build parameters.
 // Returns queue id
@@ -199,7 +197,6 @@ func (j *Jenkins) GetBuildFromQueueID(job *Job, queueId int64) (*Build, error) {
 	}
 	return build, nil
 }
-
 
 func (j *Jenkins) GetLabel(name string) (*Label, error) {
 	label := Label{Jenkins: j, Raw: new(LabelResponse), Base: "/label/" + name}
@@ -377,7 +374,7 @@ func (j *Jenkins) HasPlugin(name string) (*Plugin, error) {
 	return p.Contains(name), nil
 }
 
-//InstallPlugin with given version and name
+// InstallPlugin with given version and name
 func (j *Jenkins) InstallPlugin(name string, version string) error {
 	xml := fmt.Sprintf(`<jenkins><install plugin="%s@%s" /></jenkins>`, name, version)
 	resp, err := j.Requester.PostXML("/pluginManager/installNecessaryPlugins", nil, xml,
@@ -459,4 +456,3 @@ func (j *Jenkins) CreateView(name string, viewType string) (*View, error) {
 	}
 	return nil, errors.New(strconv.Itoa(r.StatusCode()))
 }
-

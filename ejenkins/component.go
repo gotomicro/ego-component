@@ -1,19 +1,19 @@
 package ejenkins
 
 import (
+	"strings"
+
 	"github.com/gotomicro/ego/client/ehttp"
 	"github.com/gotomicro/ego/core/elog"
-	"strings"
 )
 
 const PackageName = "component.ejenkins"
 
-
 type Component struct {
-	name 	string
-	config 	*Config
+	name    string
+	config  *Config
 	jenkins *Jenkins
-	logger 	*elog.Component
+	logger  *elog.Component
 }
 
 // New ...
@@ -32,11 +32,11 @@ func newComponent(compName string, config *Config, logger *elog.Component) *Comp
 
 	// create Jenkins
 	j := &Jenkins{
-		Server:    config.Addr,
-		Version:   "",
-		Raw:       nil,
+		Server:  config.Addr,
+		Version: "",
+		Raw:     nil,
 		Requester: &Requester{
-			Base:      config.Addr,
+			Base: config.Addr,
 			BasicAuth: &BasicAuth{
 				Username: config.Username,
 				Password: config.Credential,
@@ -45,7 +45,7 @@ func newComponent(compName string, config *Config, logger *elog.Component) *Comp
 			SslVerify: true,
 			logger:    logger,
 		},
-		logger:    logger,
+		logger: logger,
 	}
 	// init(check) jenkins
 	_, err := j.Init()
@@ -53,11 +53,10 @@ func newComponent(compName string, config *Config, logger *elog.Component) *Comp
 		logger.Panic("new ejenkins component err", elog.FieldErr(err))
 	}
 	return &Component{
-		name: 	 compName,
+		name:    compName,
 		config:  config,
 		logger:  logger,
 		jenkins: j,
-
 	}
 }
 
@@ -208,6 +207,3 @@ func (c *Component) DeleteCredential(domain string, id string, folders ...string
 func (c *Component) UpdateCredential(domain string, id string, cred interface{}, folders ...string) error {
 	return c.jenkins.NewCredentialsManager(folders...).Update(domain, id, cred)
 }
-
-
-

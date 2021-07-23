@@ -164,13 +164,13 @@ type BuildResponse struct {
 		Number int64
 		URL    string
 	} `json:"runs"`
-	NextBuild         struct {
-		Number int64    `json:"number"`
-		URL    string 	`json:"url"`
+	NextBuild struct {
+		Number int64  `json:"number"`
+		URL    string `json:"url"`
 	} `json:"nextBuild"`
 	PreviousBuild struct {
-		Number int64    `json:"number"`
-		URL    string 	`json:"url"`
+		Number int64  `json:"number"`
+		URL    string `json:"url"`
 	} `json:"previousBuild"`
 }
 
@@ -427,7 +427,7 @@ func (b *Build) GetTimestamp() time.Time {
 }
 
 func (b *Build) GetSecondsTimestamp() int64 {
-	return int64(b.Raw.Timestamp)/1000
+	return int64(b.Raw.Timestamp) / 1000
 }
 
 func (b *Build) GetDuration() float64 {

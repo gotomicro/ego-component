@@ -2,25 +2,27 @@ package main
 
 import (
 	"fmt"
-	"github.com/gotomicro/ego"
-	"github.com/gotomicro/ego-component/ejenkins"
-	"github.com/gotomicro/ego/core/elog"
 	"io/ioutil"
 	"sync"
 	"time"
+
+	"github.com/gotomicro/ego"
+	"github.com/gotomicro/ego/core/elog"
+
+	"github.com/gotomicro/ego-component/ejenkins"
 )
 
 const (
 	JobCreateXmlFile = "_testFiles/job_buildWithDockerfile.xml"
 	JobUpdateXmlFile = "_testFiles/job_update.xml"
-	TestDockerfile = "_testFiles/Dockerfile4test"
+	TestDockerfile   = "_testFiles/Dockerfile4test"
 
 	jobNameUnderDeepFolder = "job_1"
-	folderGrandpa = "folder-A"
-	folderParent = "folder-B"
-	folderChild = "folder_c"
-
+	folderGrandpa          = "folder-A"
+	folderParent           = "folder-B"
+	folderChild            = "folder_c"
 )
+
 // export EGO_DEBUG=true && go run main.go --config=config.toml
 func main() {
 	err := ego.New().Invoker(
@@ -35,8 +37,7 @@ func invokerJenkins() error {
 	// 0. get load config from config.toml && build the component
 	c := ejenkins.Load("jenkins").Build()
 
-
-	//1. get jenkins server basic info:
+	// 1. get jenkins server basic info:
 	resp, err := c.Info()
 	if err != nil {
 		fmt.Println("Get jenkins info error.", err)
@@ -49,13 +50,13 @@ func invokerJenkins() error {
 		fmt.Printf("create folder (%s) failed.\n", folderGrandpa)
 		return err
 	}
-	time.Sleep(1*time.Second)
+	time.Sleep(1 * time.Second)
 	_, err = c.CreateFolder(folderParent, folderGrandpa)
 	if err != nil {
 		fmt.Printf("create folder (%s) under folder (%s) failed\n", folderParent, folderGrandpa)
 		return err
 	}
-	time.Sleep(1*time.Second)
+	time.Sleep(1 * time.Second)
 	_, err = c.CreateFolder(folderChild, folderGrandpa, folderParent)
 	if err != nil {
 		fmt.Printf("create folder (%s) under folder (%s/%s) failed\n", folderChild, folderGrandpa, folderParent)
@@ -84,7 +85,6 @@ func invokerJenkins() error {
 		return err
 	}
 
-
 	// 5. create job in deep folder:
 	jobUnderFolder, err := c.CreateJobInFolder(string(newXmlBuf), jobNameUnderDeepFolder, folderGrandpa, folderParent, folderChild)
 	if err != nil {
@@ -92,12 +92,12 @@ func invokerJenkins() error {
 		return err
 	}
 	fmt.Printf("Create job under folder success\n")
-	time.Sleep(3*time.Second)
+	time.Sleep(3 * time.Second)
 
 	// 6. invoke parameterized pipeline(has file parameter) which created in strep 5, directly
 	buildParams := ejenkins.BuildParameters{Parameter: []ejenkins.ParameterItem{
-		{Name: "AppName", Value:"mock-app-name"},
-		{Name: "ImageFullName", Value:"mock-image-name"},
+		{Name: "AppName", Value: "mock-app-name"},
+		{Name: "ImageFullName", Value: "mock-image-name"},
 		{Name: "UUID", Value: "a-mock-uuid-string"},
 		{Name: "DockerfileInLocal", File: TestDockerfile},
 	}}
@@ -110,7 +110,7 @@ func invokerJenkins() error {
 	// 7 concurrent invoke job, and get invoked buildInfo.
 	wg := sync.WaitGroup{}
 	wg.Add(3)
-	for i:=0;i<3;i++ {
+	for i := 0; i < 3; i++ {
 		go func(i int) {
 			defer wg.Done()
 			jobUnderDeepFolder, err := c.GetJob(jobNameUnderDeepFolder, folderGrandpa, folderParent, folderChild)
@@ -119,9 +119,9 @@ func invokerJenkins() error {
 				return
 			}
 			buildParams := ejenkins.BuildParameters{Parameter: []ejenkins.ParameterItem{
-				{Name: "AppName", Value:fmt.Sprintf("mock-app-name-%d", i)},
-				{Name: "ImageFullName", Value:"mock-image-name"},
-				{Name: "UUID", Value:  fmt.Sprintf("a-mock-uuid-string-%d", i)},
+				{Name: "AppName", Value: fmt.Sprintf("mock-app-name-%d", i)},
+				{Name: "ImageFullName", Value: "mock-image-name"},
+				{Name: "UUID", Value: fmt.Sprintf("a-mock-uuid-string-%d", i)},
 				{Name: "DockerfileInLocal", File: TestDockerfile},
 			}}
 			invokedBuild, err := jobUnderDeepFolder.Invoke(nil, &buildParams, "")
@@ -138,8 +138,7 @@ func invokerJenkins() error {
 	}
 	wg.Wait()
 
-
-	//create file credential under folders
+	// create file credential under folders
 	fileCred := ejenkins.FileCredentials{
 		ID:          "testFileCredential",
 		Scope:       "GLOBAL",
@@ -153,7 +152,7 @@ func invokerJenkins() error {
 	}
 	fmt.Println("Add new fileCredential underFolder successfully.")
 
-	//create userPass credential directly:
+	// create userPass credential directly:
 	newUserPassCred := ejenkins.UsernameCredentials{
 		ID:          "testUserPass",
 		Scope:       "GLOBAL",
@@ -161,14 +160,13 @@ func invokerJenkins() error {
 		Username:    "UserNameTest",
 		Password:    "pass",
 	}
-	if err := c.AddCredential( "_", newUserPassCred); err != nil {
+	if err := c.AddCredential("_", newUserPassCred); err != nil {
 		fmt.Println("Add new userPasswordCredential failed.", err)
 		return err
 	}
 	fmt.Println("Add new userPasswordCredential successfully.")
 
-
-	//update userPass credential
+	// update userPass credential
 	updateUserPassCred := ejenkins.UsernameCredentials{
 		ID:          "testUserPass2",
 		Scope:       "GLOBAL",
@@ -196,7 +194,7 @@ func invokerJenkins() error {
 	}
 	fmt.Printf("ListCredentialsUnderFolder: %+v\n", folderCreds)
 
-	//delete credential
+	// delete credential
 	if err := c.DeleteCredential("_", "testUserPass2"); err != nil {
 		fmt.Println("Delete global credential failed.", err)
 		return err
@@ -209,4 +207,3 @@ func invokerJenkins() error {
 
 	return nil
 }
-

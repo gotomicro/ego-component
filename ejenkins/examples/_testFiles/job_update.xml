@@ -1,8 +1,10 @@
 <?xml version='1.1' encoding='UTF-8'?>
 <flow-definition plugin="workflow-job@2.41">
     <actions>
-        <org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobAction plugin="pipeline-model-definition@1.8.5"/>
-        <org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobPropertyTrackerAction plugin="pipeline-model-definition@1.8.5">
+        <org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobAction
+                plugin="pipeline-model-definition@1.8.5"/>
+        <org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobPropertyTrackerAction
+                plugin="pipeline-model-definition@1.8.5">
             <jobProperties/>
             <triggers/>
             <parameters>
@@ -37,7 +39,8 @@
                     <defaultValue>None</defaultValue>
                     <trim>true</trim>
                 </hudson.model.StringParameterDefinition>
-                <io.jenkins.plugins.file__parameters.StashedFileParameterDefinition plugin="file-parameters@146.v7d35212829d0">
+                <io.jenkins.plugins.file__parameters.StashedFileParameterDefinition
+                        plugin="file-parameters@146.v7d35212829d0">
                     <name>DockerfileInLocal</name>
                 </io.jenkins.plugins.file__parameters.StashedFileParameterDefinition>
                 <hudson.model.StringParameterDefinition>
@@ -60,31 +63,31 @@
     </properties>
     <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps@2.92">
         <script>pipeline {
-    agent {
-        label "jenkins-jenkins-agent"
-    }
-    parameters {
-        string name: 'AppName', defaultValue: 'None'
-        string name: 'GitUrl', defaultValue: 'None'
-        string name: 'GitBranch', defaultValue: 'None'
-        string name: 'CommitId', defaultValue: 'None'
-        string name: 'ImageFullName', defaultValue: 'None'
-        string name: 'NewAdded', defaultValue: 'None'
-        stashedFile 'DockerfileInLocal'
-    }
-    stages {
-        stage('echo received params:') {
-            steps {
-                echo "params.AppName: ${params.AppName}"
-                echo "params.GitUrl: ${params.GitUrl}"
-                echo "params.ImageFullName: ${params.ImageFullName}"
-                echo "->  unstash file from param:"
-                unstash 'DockerfileInLocal'
-                sh 'ls -alFh'
+            agent {
+            label "jenkins-jenkins-agent"
             }
-        }
-    }
-}
+            parameters {
+            string name: 'AppName', defaultValue: 'None'
+            string name: 'GitUrl', defaultValue: 'None'
+            string name: 'GitBranch', defaultValue: 'None'
+            string name: 'CommitId', defaultValue: 'None'
+            string name: 'ImageFullName', defaultValue: 'None'
+            string name: 'NewAdded', defaultValue: 'None'
+            stashedFile 'DockerfileInLocal'
+            }
+            stages {
+            stage('echo received params:') {
+            steps {
+            echo "params.AppName: ${params.AppName}"
+            echo "params.GitUrl: ${params.GitUrl}"
+            echo "params.ImageFullName: ${params.ImageFullName}"
+            echo "-> unstash file from param:"
+            unstash 'DockerfileInLocal'
+            sh 'ls -alFh'
+            }
+            }
+            }
+            }
         </script>
         <sandbox>true</sandbox>
     </definition>

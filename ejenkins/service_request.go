@@ -3,36 +3,36 @@ package ejenkins
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
+	"strings"
+
 	"github.com/go-resty/resty/v2"
 	"github.com/gotomicro/ego/client/ehttp"
 	"github.com/gotomicro/ego/core/elog"
 	"github.com/pkg/errors"
-	"net/url"
-	"strings"
 )
 
-
 type APIRequest struct {
-	RequestInst *resty.Request  // request instance, init in Requester.NewAPIRequest func
-	Method   	string
-	Endpoint 	string
-	Payload  	map[string]string
-	Suffix   	string
+	RequestInst *resty.Request // request instance, init in Requester.NewAPIRequest func
+	Method      string
+	Endpoint    string
+	Payload     map[string]string
+	Suffix      string
 }
 
 func (ar *APIRequest) SetHeader(key string, value string) *APIRequest {
-	//ar.Headers.Set(key, value)
+	// ar.Headers.Set(key, value)
 	ar.RequestInst.SetHeader(key, value)
 	return ar
 }
 
 func (r *Requester) NewAPIRequest(method string, endpoint string, payload map[string]string) *APIRequest {
 	ar := &APIRequest{
-		RequestInst:r.Client.R(),
-		Method:     method,
-		Endpoint:   endpoint,
-		Payload:    payload,
-		Suffix:     "",
+		RequestInst: r.Client.R(),
+		Method:      method,
+		Endpoint:    endpoint,
+		Payload:     payload,
+		Suffix:      "",
 	}
 	if r.BasicAuth != nil {
 		ar.RequestInst.SetBasicAuth(r.BasicAuth.Username, r.BasicAuth.Password)
@@ -81,7 +81,7 @@ func (r *Requester) Post(endpoint string, payload map[string]string, responseStr
 
 // Note, files in BuildParameters
 func (r *Requester) PostFiles(endpoint string, payload map[string]string, responseStruct interface{},
-querystring map[string]string, params *BuildParameters) (*resty.Response, error) {
+	querystring map[string]string, params *BuildParameters) (*resty.Response, error) {
 	ar := r.NewAPIRequest("POST", endpoint, payload)
 	if err := r.SetCrumb(ar); err != nil {
 		return nil, err
@@ -120,14 +120,13 @@ func (r *Requester) Get(endpoint string, payload map[string]string, responseStru
 	return r.Do(ar, responseStruct, querystring)
 }
 
-
 type BuildParameters struct {
 	Parameter []ParameterItem `json:"parameter"`
 }
 type ParameterItem struct {
-	Name  string 		`json:"name"`
-	Value string 		`json:"value,omitempty"`
-	File  string 		`json:"file,omitempty"`  // file with path
+	Name  string `json:"name"`
+	Value string `json:"value,omitempty"`
+	File  string `json:"file,omitempty"` // file with path
 }
 
 func (r *Requester) Do(ar *APIRequest, responseStruct interface{}, options ...interface{}) (resp *resty.Response, err error) {
@@ -152,7 +151,7 @@ func (r *Requester) Do(ar *APIRequest, responseStruct interface{}, options ...in
 			if ar.Payload == nil {
 				ar.Payload = map[string]string{}
 			}
-			//ar.Payload["json"] = getJsonString(*v)
+			// ar.Payload["json"] = getJsonString(*v)
 			for _, buildParam := range v.Parameter {
 				if buildParam.File != "" {
 					files[buildParam.Name] = buildParam.File

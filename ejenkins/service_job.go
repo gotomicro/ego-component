@@ -2,13 +2,14 @@ package ejenkins
 
 import (
 	"fmt"
-	"github.com/pkg/errors"
-	"go.uber.org/zap"
 	"net/url"
 	"path"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/pkg/errors"
+	"go.uber.org/zap"
 )
 
 type Job struct {
@@ -82,10 +83,9 @@ type JobResponse struct {
 	Views            []ViewData  `json:"views"`
 }
 
-
 type BuildFilter struct {
-	EarlySecondsTimestamp 	int64
-	FilterParams 			map[string]string
+	EarlySecondsTimestamp int64
+	FilterParams          map[string]string
 }
 
 func (j *Job) parentBase() string {
@@ -403,9 +403,9 @@ func (j *Job) IsEnabled() (bool, error) {
 	return j.Raw.Color != "disabled", nil
 }
 
-//func (j *Job) HasQueuedBuild() {
+// func (j *Job) HasQueuedBuild() {
 //	//TODO: "Not Implemented yet"
-//}
+// }
 
 func (j *Job) InvokeSimple(payload map[string]string) (int64, error) {
 	isQueued, err := j.IsQueued()
@@ -464,7 +464,7 @@ Note:
 		the error is nil, just means the job has been invoked successfully, but the invoked build may not be found currently.
 		so, if using the result *Build which this function returned, please check it is not nil before using it,
 		even the error which this function returned is nil
- */
+*/
 func (j *Job) Invoke(payload map[string]string, buildParams *BuildParameters, securityToken string) (*Build, error) {
 	isQueued, err := j.IsQueued()
 	if err != nil {
@@ -518,11 +518,11 @@ func (j *Job) Invoke(payload map[string]string, buildParams *BuildParameters, se
 
 func (j *Job) GetBuildByFilter(filter *BuildFilter, intervalSeconds int, maxTryTimes uint) (targetBuild *Build, err error) {
 	interval := 6
-	if intervalSeconds > 0 && intervalSeconds < interval{
+	if intervalSeconds > 0 && intervalSeconds < interval {
 		interval = intervalSeconds
 	}
 	maxTry := uint(10)
-	if maxTryTimes < maxTry && maxTryTimes > 0{
+	if maxTryTimes < maxTry && maxTryTimes > 0 {
 		maxTry = maxTryTimes
 	}
 	if len(filter.FilterParams) <= 0 {
@@ -541,8 +541,8 @@ func (j *Job) GetBuildByFilter(filter *BuildFilter, intervalSeconds int, maxTryT
 		if targetBuild != nil {
 			return targetBuild, nil
 		}
-		time.Sleep(time.Duration(interval)*time.Second)
-		tryTimes ++
+		time.Sleep(time.Duration(interval) * time.Second)
+		tryTimes++
 		if tryTimes > maxTry {
 			break
 		}
@@ -568,7 +568,7 @@ func (j *Job) getBuildByFilterOnce(filter *BuildFilter) (targetBuild *Build, err
 			break
 		}
 		currentBuildParams := currentBuild.GetParameters()
-		if currentBuildParams == nil || len(currentBuildParams) == 0{
+		if currentBuildParams == nil || len(currentBuildParams) == 0 {
 			continue
 		}
 		var tempFilterMap = make(map[string]string)
@@ -576,7 +576,9 @@ func (j *Job) getBuildByFilterOnce(filter *BuildFilter) (targetBuild *Build, err
 			tempFilterMap[k] = v
 		}
 		for _, buildParam := range currentBuildParams {
-			if len(tempFilterMap) == 0 {break}
+			if len(tempFilterMap) == 0 {
+				break
+			}
 			if wantValue, exist := tempFilterMap[buildParam.Name]; exist {
 				if wantValue == buildParam.Value {
 					delete(tempFilterMap, buildParam.Name)
@@ -589,7 +591,7 @@ func (j *Job) getBuildByFilterOnce(filter *BuildFilter) (targetBuild *Build, err
 			break
 		}
 		// check whether currentBuild has previous build or not. if its the first build of the job, then break
-		if currentBuild.Raw.PreviousBuild.Number  == 0 {
+		if currentBuild.Raw.PreviousBuild.Number == 0 {
 			break
 		}
 		// set currentBuild to previous build of the job
@@ -614,7 +616,7 @@ func (j *Job) Poll() (int, error) {
 	return response.StatusCode(), nil
 }
 
-//func (j *Job) History() ([]*History, error) {
+// func (j *Job) History() ([]*History, error) {
 //	var s string
 //	_, err := j.Jenkins.Requester.Get(j.Base+"/buildHistory/ajax", &s, nil)
 //	if err != nil {
@@ -622,7 +624,7 @@ func (j *Job) Poll() (int, error) {
 //	}
 //
 //	return parseBuildHistory(strings.NewReader(s)), nil
-//}
+// }
 
 func (pr *PipelineRun) ProceedInput() (bool, error) {
 	actions, _ := pr.GetPendingInputActions()
