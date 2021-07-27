@@ -1,12 +1,11 @@
 package ali
 
 import (
-	"fmt"
+	"io"
 	"time"
 
 	"github.com/gotomicro/ego/core/econf"
 	"github.com/gotomicro/ego/core/elog"
-	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
@@ -15,10 +14,15 @@ const (
 )
 
 func init() {
-	elog.Register("ali", &aliLogger{})
+	elog.Register(&aliWriterBuilder{})
 }
 
-type aliLogger struct{}
+var _ elog.WriterBuilder = &aliWriterBuilder{}
+
+type aliWriterBuilder struct {
+	zapcore.Core
+	io.Closer
+}
 
 // Config ...
 type Config struct {
@@ -56,15 +60,15 @@ func defaultConfig() *Config {
 	}
 }
 
-// Load constructs a zapcore.Core with stderr syncer
-func (*aliLogger) Load(key string, commonConfig *elog.Config, lv zap.AtomicLevel) (zapcore.Core, elog.CloseFunc) {
+// Build constructs a zapcore.Core with stderr syncer
+func (*aliWriterBuilder) Build(key string, commonConfig *elog.Config) elog.Writer {
 	c := defaultConfig()
 	if err := econf.UnmarshalKey(key, &c); err != nil {
 		panic(err)
 	}
 
 	commonConfig.Name = defaultAliFallbackCorePath
-	fallbackCore, fallbackCoreCf := elog.Provider("file").Load(key, commonConfig, lv)
+	fallbackCore := elog.Provider("file").Build(key, commonConfig)
 	core, cf := NewCore(
 		WithEncoder(newMapObjEncoder(*commonConfig.EncoderConfig())),
 		WithEndpoint(c.AliEndpoint),
@@ -73,7 +77,7 @@ func (*aliLogger) Load(key string, commonConfig *elog.Config, lv zap.AtomicLevel
 		WithProject(c.AliProject),
 		WithLogstore(c.AliLogstore),
 		WithMaxQueueSize(c.AliMaxQueueSize),
-		WithLevelEnabler(lv),
+		WithLevelEnabler(commonConfig.AtomicLevel()),
 		WithFlushBufferSize(c.FlushBufferSize),
 		WithFlushBufferInterval(c.FlushBufferInterval),
 		WithAPIBulkSize(c.AliAPIBulkSize),
@@ -86,13 +90,12 @@ func (*aliLogger) Load(key string, commonConfig *elog.Config, lv zap.AtomicLevel
 		WithAPIMaxIdleConnsPerHost(c.AliAPIMaxIdleConnsPerHost),
 		WithFallbackCore(fallbackCore),
 	)
-	return core, func() (err error) {
-		if e := cf(); e != nil {
-			err = fmt.Errorf("exec close func fail, %w ", e)
-		}
-		if e := fallbackCoreCf(); e != nil {
-			err = fmt.Errorf("exec fallbackCore close func fail, %w", e)
-		}
-		return
+	return &aliWriterBuilder{
+		Core:   core,
+		Closer: elog.CloseFunc(cf),
 	}
+}
+
+func (*aliWriterBuilder) Scheme() string {
+	return "ali"
 }
