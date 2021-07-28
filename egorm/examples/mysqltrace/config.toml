@@ -1,5 +1,5 @@
 [mysql.test]
-   debug = true # ego重写gorm debug，打开后可以看到，配置名、地址、耗时、请求数据、响应数据
+#   debug = true # ego重写gorm debug，打开后可以看到，配置名、地址、耗时、请求数据、响应数据
 #   rawDebug = true 原生gorm debug
    dsn = "root:root@tcp(127.0.0.1:3306)/test?charset=utf8&parseTime=True&loc=Local&readTimeout=1s&timeout=1s&writeTimeout=3s"
    onFail = "panic" # 失败后，直接fail fast，panic操作

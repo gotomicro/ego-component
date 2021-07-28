@@ -35,6 +35,7 @@ func debugInterceptor(compName string, dsn *dsn.DSN, op string, options *config,
 	return func(next Handler) Handler {
 		return func(db *gorm.DB) {
 			if !eapp.IsDevelopmentMode() {
+				next(db)
 				return
 			}
 			beg := time.Now()
