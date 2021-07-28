@@ -1,12 +1,14 @@
 package egorm
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log"
 	"time"
 
 	"github.com/gotomicro/ego-component/egorm/dsn"
+	"github.com/spf13/cast"
 
 	"github.com/gotomicro/ego/core/eapp"
 	"github.com/gotomicro/ego/core/elog"
@@ -32,22 +34,22 @@ type Interceptor func(string, *dsn.DSN, string, *config, *elog.Component) func(n
 func debugInterceptor(compName string, dsn *dsn.DSN, op string, options *config, logger *elog.Component) func(Handler) Handler {
 	return func(next Handler) Handler {
 		return func(db *gorm.DB) {
+			if !eapp.IsDevelopmentMode() {
+				return
+			}
 			beg := time.Now()
 			next(db)
 			cost := time.Since(beg)
-			if eapp.IsDevelopmentMode() {
-				if db.Error != nil {
-					log.Println("[egorm.response]",
-						xdebug.MakeReqResError(compName, fmt.Sprintf("%v", dsn.Addr+"/"+dsn.DBName), cost, logSQL(db.Statement.SQL.String(), db.Statement.Vars, true), db.Error.Error()),
-					)
-				} else {
-					log.Println("[egorm.response]",
-						xdebug.MakeReqResInfo(compName, fmt.Sprintf("%v", dsn.Addr+"/"+dsn.DBName), cost, logSQL(db.Statement.SQL.String(), db.Statement.Vars, true), fmt.Sprintf("%v", db.Statement.Dest)),
-					)
-				}
+			if db.Error != nil {
+				log.Println("[egorm.response]",
+					xdebug.MakeReqResError(compName, fmt.Sprintf("%v", dsn.Addr+"/"+dsn.DBName), cost, logSQL(db.Statement.SQL.String(), db.Statement.Vars, true), db.Error.Error()),
+				)
 			} else {
-				// todo log debug info
+				log.Println("[egorm.response]",
+					xdebug.MakeReqResInfo(compName, fmt.Sprintf("%v", dsn.Addr+"/"+dsn.DBName), cost, logSQL(db.Statement.SQL.String(), db.Statement.Vars, true), fmt.Sprintf("%v", db.Statement.Dest)),
+				)
 			}
+
 		}
 	}
 }
@@ -71,6 +73,14 @@ func metricInterceptor(compName string, dsn *dsn.DSN, op string, config *config,
 			if config.EnableTraceInterceptor && opentracing.IsGlobalTracerRegistered() {
 				fields = append(fields, elog.FieldTid(etrace.ExtractTraceID(db.Statement.Context)))
 			}
+
+			// 支持自定义log
+			for _, key := range eapp.EgoLogExtraKeys() {
+				if value := getContextValue(db.Statement.Context, key); value != "" {
+					fields = append(fields, elog.FieldCustomKeyValue(key, value))
+				}
+			}
+
 			// 记录监控耗时
 			emetric.ClientHandleHistogram.WithLabelValues(emetric.TypeGorm, compName, dsn.DBName+"."+db.Statement.Table, dsn.Addr).Observe(cost.Seconds())
 
@@ -141,4 +151,11 @@ func traceInterceptor(compName string, dsn *dsn.DSN, op string, options *config,
 			next(db)
 		}
 	}
+}
+
+func getContextValue(c context.Context, key string) string {
+	if key == "" {
+		return ""
+	}
+	return cast.ToString(c.Value(key))
 }

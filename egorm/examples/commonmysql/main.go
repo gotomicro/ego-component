@@ -5,7 +5,6 @@ import (
 	"github.com/gotomicro/ego/core/elog"
 
 	"github.com/gotomicro/ego-component/egorm"
-	"github.com/gotomicro/ego-component/egorm/dsn"
 )
 
 // 1.新建一个数据库叫test
@@ -34,8 +33,8 @@ var DBs []*egorm.Component
 func openDB() error {
 	DBs = []*egorm.Component{
 		egorm.Load("mysql.test").Build(),
-		egorm.Load("pg.test").Build(),
-		egorm.Load("other.test").Build(egorm.WithDSNParser(dsn.DefaultPostgresDSNParser)),
+		//egorm.Load("pg.test").Build(),
+		//egorm.Load("other.test").Build(egorm.WithDSNParser(dsn.DefaultPostgresDSNParser)),
 	}
 	models := []interface{}{
 		&User{},
