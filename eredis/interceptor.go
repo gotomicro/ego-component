@@ -9,11 +9,13 @@ import (
 	"time"
 
 	"github.com/go-redis/redis/v8"
+	"github.com/gotomicro/ego/core/eapp"
 	"github.com/gotomicro/ego/core/elog"
 	"github.com/gotomicro/ego/core/emetric"
 	"github.com/gotomicro/ego/core/etrace"
 	"github.com/gotomicro/ego/core/util/xdebug"
 	"github.com/opentracing/opentracing-go"
+	"github.com/spf13/cast"
 )
 
 const ctxBegKey = "_cmdResBegin_"
@@ -97,6 +99,9 @@ func fixedInterceptor(compName string, config *config, logger *elog.Component) *
 func debugInterceptor(compName string, config *config, logger *elog.Component) *interceptor {
 	return newInterceptor(compName, config, logger).setAfterProcess(
 		func(ctx context.Context, cmd redis.Cmder) error {
+			if !eapp.IsDevelopmentMode() {
+				return nil
+			}
 			cost := time.Since(ctx.Value(ctxBegKey).(time.Time))
 			err := cmd.Err()
 			if err != nil {
@@ -153,6 +158,13 @@ func accessInterceptor(compName string, config *config, logger *elog.Component) 
 				fields = append(fields, elog.FieldTid(etrace.ExtractTraceID(ctx)))
 			}
 
+			// 支持自定义log
+			for _, key := range eapp.EgoLogExtraKeys() {
+				if value := getContextValue(ctx, key); value != "" {
+					fields = append(fields, elog.FieldCustomKeyValue(key, value))
+				}
+			}
+
 			if config.SlowLogThreshold > time.Duration(0) && cost > config.SlowLogThreshold {
 				logger.Warn("slow", fields...)
 			}
@@ -198,4 +210,11 @@ func response(cmd redis.Cmder) string {
 	default:
 		return ""
 	}
+}
+
+func getContextValue(c context.Context, key string) string {
+	if key == "" {
+		return ""
+	}
+	return cast.ToString(c.Value(key))
 }
