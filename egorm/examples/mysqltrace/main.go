@@ -4,9 +4,9 @@ import (
 	"context"
 
 	"github.com/gotomicro/ego"
-	"github.com/gotomicro/ego/core/elog"
-
 	"github.com/gotomicro/ego-component/egorm"
+	"github.com/gotomicro/ego/core/elog"
+	"github.com/gotomicro/ego/core/transport"
 )
 
 // 1.新建一个数据库叫test
@@ -56,7 +56,7 @@ func testDB() error {
 	var user User
 	for _, db := range DBs {
 		ctx := context.Background()
-		ctx = context.WithValue(ctx, "X-Ego-Uid", 9527)
+		ctx = transport.WithValue(ctx, "X-Ego-Uid", 9527)
 		err := db.WithContext(ctx).Where("id = ?", 100).First(&user).Error
 		elog.Info("user info", elog.String("name", user.Nickname), elog.FieldErr(err))
 	}

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gotomicro/ego-component/egorm/dsn"
+	"github.com/gotomicro/ego/core/transport"
 	"github.com/spf13/cast"
 
 	"github.com/gotomicro/ego/core/eapp"
@@ -61,7 +62,10 @@ func metricInterceptor(compName string, dsn *dsn.DSN, op string, config *config,
 			beg := time.Now()
 			next(db)
 			cost := time.Since(beg)
-			var fields = make([]elog.Field, 0, 15)
+
+			loggerKeys := transport.CustomContextKeys()
+
+			var fields = make([]elog.Field, 0, 15+len(loggerKeys))
 			fields = append(fields, elog.FieldMethod(op), elog.FieldName(dsn.DBName+"."+db.Statement.Table), elog.FieldCost(cost))
 			if config.EnableAccessInterceptorReq {
 				fields = append(fields, elog.String("req", logSQL(db.Statement.SQL.String(), db.Statement.Vars, config.EnableDetailSQL)))
@@ -76,7 +80,7 @@ func metricInterceptor(compName string, dsn *dsn.DSN, op string, config *config,
 			}
 
 			// 支持自定义log
-			for _, key := range eapp.EgoLogExtraKeys() {
+			for _, key := range loggerKeys {
 				if value := getContextValue(db.Statement.Context, key); value != "" {
 					fields = append(fields, elog.FieldCustomKeyValue(key, value))
 				}
@@ -158,5 +162,5 @@ func getContextValue(c context.Context, key string) string {
 	if key == "" {
 		return ""
 	}
-	return cast.ToString(c.Value(key))
+	return cast.ToString(transport.Value(c, key))
 }

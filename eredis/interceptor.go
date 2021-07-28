@@ -13,6 +13,7 @@ import (
 	"github.com/gotomicro/ego/core/elog"
 	"github.com/gotomicro/ego/core/emetric"
 	"github.com/gotomicro/ego/core/etrace"
+	"github.com/gotomicro/ego/core/transport"
 	"github.com/gotomicro/ego/core/util/xdebug"
 	"github.com/opentracing/opentracing-go"
 	"github.com/spf13/cast"
@@ -141,7 +142,8 @@ func metricInterceptor(compName string, config *config, logger *elog.Component) 
 func accessInterceptor(compName string, config *config, logger *elog.Component) *interceptor {
 	return newInterceptor(compName, config, logger).setAfterProcess(
 		func(ctx context.Context, cmd redis.Cmder) error {
-			var fields = make([]elog.Field, 0, 15)
+			loggerKeys := transport.CustomContextKeys()
+			var fields = make([]elog.Field, 0, 15+len(loggerKeys))
 			var err = cmd.Err()
 			cost := time.Since(ctx.Value(ctxBegKey).(time.Time))
 			fields = append(fields, elog.FieldComponentName(compName), elog.FieldMethod(cmd.Name()), elog.FieldCost(cost))
@@ -159,7 +161,7 @@ func accessInterceptor(compName string, config *config, logger *elog.Component) 
 			}
 
 			// 支持自定义log
-			for _, key := range eapp.EgoLogExtraKeys() {
+			for _, key := range loggerKeys {
 				if value := getContextValue(ctx, key); value != "" {
 					fields = append(fields, elog.FieldCustomKeyValue(key, value))
 				}
@@ -216,5 +218,5 @@ func getContextValue(c context.Context, key string) string {
 	if key == "" {
 		return ""
 	}
-	return cast.ToString(c.Value(key))
+	return cast.ToString(transport.Value(c, key))
 }

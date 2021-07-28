@@ -95,6 +95,8 @@ github.com/google/uuid v1.1.2/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+
 github.com/gorilla/websocket v1.4.2/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=
 github.com/gotomicro/ego v0.6.1-0.20210727151233-43108b5f6646 h1:FkddZJKNm6kAqh73cR2dgR0qkR7EY5HAyTl1jCRDtW0=
 github.com/gotomicro/ego v0.6.1-0.20210727151233-43108b5f6646/go.mod h1:srmc4FufkH/1JHGgcc1XaDWZQKyRS/OV86x5hZQ4Lsc=
+github.com/gotomicro/ego v0.6.1 h1:YWDTlxDcsDMhZRr4aN99sBgqqd55XgsHkSNTUWA/nio=
+github.com/gotomicro/ego v0.6.1/go.mod h1:srmc4FufkH/1JHGgcc1XaDWZQKyRS/OV86x5hZQ4Lsc=
 github.com/grpc-ecosystem/grpc-gateway v1.16.0/go.mod h1:BDjrQk3hbvj6Nolgz8mAMFbcEtjT1g+wF4CSlocrBnw=
 github.com/hpcloud/tail v1.0.0/go.mod h1:ab1qPbhIpdTxEkNHXyeSf5vhxWSCs/tWer42PpOxQnU=
 github.com/jpillora/backoff v1.0.0/go.mod h1:J/6gKK9jxlEcS3zixgDgUAsiuZ7yrSoa/FX5e0EB2j4=
