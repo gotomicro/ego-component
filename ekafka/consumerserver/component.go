@@ -275,7 +275,7 @@ func (cmp *Component) launchOnConsumerEachMessage() error {
 
 		COMMIT:
 
-			err = consumer.CommitMessages(cmp.ServerCtx, message)
+			err = consumer.CommitMessages(cmp.ServerCtx, &message)
 			if err != nil {
 				cmp.consumptionErrors <- err
 				cmp.logger.Error("encountered an error while committing message", elog.FieldErr(err))

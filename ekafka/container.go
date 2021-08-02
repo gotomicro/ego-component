@@ -38,17 +38,21 @@ func Load(key string) *Container {
 
 // Build 构建Container
 func (c *Container) Build(options ...Option) *Component {
-	if options == nil {
-		options = make([]Option, 0)
+	// 放第一个时间才准确
+	options = append(options, WithClientInterceptor(fixedClientInterceptor(c.name, c.config)))
+	options = append(options, WithClientInterceptor(traceClientInterceptor(c.name, c.config)))
+	options = append(options, WithClientInterceptor(accessClientInterceptor(c.name, c.config)))
+	if c.config.EnableMetricInterceptor {
+		options = append(options, WithClientInterceptor(metricClientInterceptor(c.name, c.config)))
 	}
 
-	if c.config.Debug {
-		options = append(options, WithInterceptor(debugInterceptor(c.name, c.config)))
-	}
+	options = append(options, WithServerInterceptor(fixedServerInterceptor(c.name, c.config)))
+	options = append(options, WithServerInterceptor(traceServerInterceptor(c.name, c.config)))
+	options = append(options, WithServerInterceptor(accessServerInterceptor(c.name, c.config)))
 	if c.config.EnableMetricInterceptor {
-		options = append(options, WithInterceptor(metricInterceptor(c.name, c.config)))
+		options = append(options, WithServerInterceptor(metricServerInterceptor(c.name, c.config)))
 	}
-	options = append(options, WithInterceptor(fixedInterceptor(c.name, c.config)))
+
 	for _, option := range options {
 		option(c)
 	}

@@ -17,9 +17,9 @@ import (
 func produce(w *ekafka.Producer) {
 	// 生产3条消息
 	err := w.WriteMessages(context.Background(),
-		ekafka.Message{Key: []byte("Key-A"), Value: []byte("Hello World!")},
-		ekafka.Message{Key: []byte("Key-B"), Value: []byte("One!")},
-		ekafka.Message{Key: []byte("Key-C"), Value: []byte("Two!")},
+		&ekafka.Message{Key: []byte("Key-A"), Value: []byte("Hello World!")},
+		&ekafka.Message{Key: []byte("Key-B"), Value: []byte("One!")},
+		&ekafka.Message{Key: []byte("Key-C"), Value: []byte("Two!")},
 	)
 	if err != nil {
 		log.Fatal("failed to write messages:", err)
@@ -35,13 +35,13 @@ func consume(r *ekafka.Consumer) {
 	ctx := context.Background()
 	for {
 		// ReadMessage 再收到下一个Message时，会阻塞
-		msg, err := r.ReadMessage(ctx)
+		msg, _, err := r.ReadMessage(ctx)
 		if err != nil {
 			panic("could not read message " + err.Error())
 		}
 		// 打印消息
 		fmt.Println("received: ", string(msg.Value))
-		err = r.CommitMessages(ctx, msg)
+		err = r.CommitMessages(ctx, &msg)
 		if err != nil {
 			log.Printf("fail to commit msg:%v", err)
 		}

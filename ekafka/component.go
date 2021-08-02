@@ -24,8 +24,12 @@ type Component struct {
 	consumerGroupMu sync.RWMutex
 }
 
-func (cmp *Component) interceptorChain() func(oldProcess processFn) processFn {
-	return InterceptorChain(cmp.config.interceptors...)
+func (cmp *Component) interceptorClientChain() func(oldProcess clientProcessFn) clientProcessFn {
+	return InterceptorClientChain(cmp.config.clientInterceptors...)
+}
+
+func (cmp *Component) interceptorServerChain() func(oldProcess serverProcessFn) serverProcessFn {
+	return InterceptorServerChain(cmp.config.serverInterceptors...)
 }
 
 // Producer 返回指定名称的kafka Producer
@@ -76,10 +80,9 @@ func (cmp *Component) Producer(name string) *Producer {
 			RequiredAcks: config.RequiredAcks,
 			Async:        config.Async,
 		},
-		processor: defaultProcessor,
-		logMode:   cmp.config.Debug,
+		logMode: cmp.config.Debug,
 	}
-	producer.wrapProcessor(cmp.interceptorChain())
+	producer.setProcessor(cmp.interceptorClientChain())
 	cmp.producers[name] = producer
 
 	cmp.producerMu.Unlock()
@@ -135,10 +138,10 @@ func (cmp *Component) Consumer(name string) *Consumer {
 			ReadBackoffMin:         config.ReadBackoffMin,
 			ReadBackoffMax:         config.ReadBackoffMax,
 		}),
-		processor: defaultProcessor,
-		logMode:   cmp.config.Debug,
+		//processor: defaultProcessor,
+		logMode: cmp.config.Debug,
 	}
-	consumer.wrapProcessor(cmp.interceptorChain())
+	consumer.setProcessor(cmp.interceptorServerChain())
 	cmp.consumers[name] = consumer
 
 	cmp.consumerMu.Unlock()
@@ -195,7 +198,7 @@ func (cmp *Component) ConsumerGroup(name string) *ConsumerGroup {
 	if err != nil {
 		cmp.logger.Panic("create ConsumerGroup failed", elog.FieldErr(err))
 	}
-	consumerGroup.wrapProcessor(cmp.interceptorChain())
+	consumerGroup.wrapProcessor(cmp.interceptorClientChain())
 	cmp.consumerGroups[name] = consumerGroup
 
 	cmp.consumerGroupMu.Unlock()
@@ -207,11 +210,11 @@ func (cmp *Component) ConsumerGroup(name string) *ConsumerGroup {
 func (cmp *Component) Client() *Client {
 	cmp.clientOnce.Do(func() {
 		cmp.client = &Client{
-			cc:        &kafka.Client{Addr: kafka.TCP(cmp.config.Brokers...), Timeout: cmp.config.Client.Timeout},
-			processor: defaultProcessor,
-			logMode:   cmp.config.Debug,
+			cc: &kafka.Client{Addr: kafka.TCP(cmp.config.Brokers...), Timeout: cmp.config.Client.Timeout},
+			//processor: defaultProcessor,
+			logMode: cmp.config.Debug,
 		}
-		cmp.client.wrapProcessor(cmp.interceptorChain())
+		cmp.client.wrapProcessor(cmp.interceptorClientChain())
 	})
 
 	return cmp.client

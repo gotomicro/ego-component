@@ -8,26 +8,24 @@ import (
 
 type Producer struct {
 	w         *kafka.Writer
-	processor processor
+	processor ClientInterceptor
 	logMode   bool
 }
 
-func (w *Producer) wrapProcessor(wrapFn func(processFn) processFn) {
-	w.processor = func(fn processFn) error {
-		return wrapFn(fn)(&cmd{req: make([]interface{}, 0, 1)})
-	}
+func (p *Producer) setProcessor(c ClientInterceptor) {
+	p.processor = c
 }
 
-func (w *Producer) Close() error {
-	return w.processor(func(c *cmd) error {
-		logCmd(w.logMode, c, "ProducerClose")
-		return w.w.Close()
-	})
+func (p *Producer) Close() error {
+	return p.processor(func(ctx context.Context, msgs Messages, c *cmd) error {
+		logCmd(p.logMode, c, "ProducerClose")
+		return p.w.Close()
+	})(context.Background(), nil, &cmd{})
 }
 
-func (w *Producer) WriteMessages(ctx context.Context, msgs ...Message) error {
-	return w.processor(func(c *cmd) error {
-		logCmd(w.logMode, c, "WriteMessages", cmdWithContext(ctx), cmdWithReq(msgs))
-		return w.w.WriteMessages(ctx, msgs...)
-	})
+func (p *Producer) WriteMessages(ctx context.Context, msgs ...*Message) error {
+	return p.processor(func(ctx context.Context, req Messages, c *cmd) error {
+		logCmd(p.logMode, c, "WriteMessages")
+		return p.w.WriteMessages(ctx, req.ToNoPointer()...)
+	})(ctx, msgs, &cmd{})
 }

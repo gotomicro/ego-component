@@ -18,11 +18,15 @@ type config struct {
 	// Consumers 多个生产者，用于消费消息
 	Consumers map[string]consumerConfig `json:"consumers" toml:"consumers"`
 	// ConsumerGroups 多个消费组，用于消费消息
-	ConsumerGroups map[string]consumerGroupConfig `json:"consumerGroups" toml:"consumerGroups"`
-	interceptors   []Interceptor
-	balancers      map[string]Balancer
-
-	EnableMetricInterceptor bool // 是否开启监控，默认开启
+	ConsumerGroups             map[string]consumerGroupConfig `json:"consumerGroups" toml:"consumerGroups"`
+	clientInterceptors         []ClientInterceptor
+	serverInterceptors         []ServerInterceptor
+	balancers                  map[string]Balancer
+	EnableTraceInterceptor     bool // 是否开启链路追踪，默认开启
+	EnableAccessInterceptor    bool // 是否开启记录请求数据，默认不开启
+	EnableAccessInterceptorReq bool // 是否开启记录请求参数，默认不开启
+	EnableAccessInterceptorRes bool // 是否开启记录响应参数，默认不开启
+	EnableMetricInterceptor    bool // 是否开启监控，默认开启
 }
 
 type clientConfig struct {
@@ -118,6 +122,7 @@ const (
 func DefaultConfig() *config {
 	return &config{
 		Debug:                   true,
+		EnableTraceInterceptor:  true,
 		EnableMetricInterceptor: true,
 		balancers: map[string]Balancer{
 			balancerHash:       &kafka.Hash{},

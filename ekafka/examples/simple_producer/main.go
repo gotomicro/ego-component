@@ -38,9 +38,9 @@ func main() {
 	// 生产3条消息
 	err = producerClient.WriteMessages(
 		context.Background(),
-		ekafka.Message{Value: []byte("Hello World!")},
-		ekafka.Message{Value: []byte("One!")},
-		ekafka.Message{Value: []byte("Two!")},
+		&ekafka.Message{Value: []byte("Hello World!")},
+		&ekafka.Message{Value: []byte("One!")},
+		&ekafka.Message{Value: []byte("Two!")},
 	)
 
 	if err != nil {

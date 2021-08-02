@@ -34,7 +34,7 @@ type ConsumerGroup struct {
 	currentGen *kafka.Generation
 	genMu      sync.RWMutex
 	readerWg   sync.WaitGroup
-	processor  processor
+	processor  ClientInterceptor
 }
 
 func createTopicPartitionsFromGenAssignments(genAssignments map[string][]kafka.PartitionAssignment) []TopicPartition {
@@ -101,21 +101,19 @@ func NewConsumerGroup(options ConsumerGroupOptions) (*ConsumerGroup, error) {
 	}
 
 	cg := &ConsumerGroup{
-		logger:    options.Logger,
-		group:     group,
-		events:    make(chan interface{}, 100),
-		processor: defaultProcessor,
-		options:   &options,
+		logger: options.Logger,
+		group:  group,
+		events: make(chan interface{}, 100),
+		//processor: defaultProcessor,
+		options: &options,
 	}
 	go cg.run()
 
 	return cg, nil
 }
 
-func (cg *ConsumerGroup) wrapProcessor(wrapFn Interceptor) {
-	cg.processor = func(fn processFn) error {
-		return wrapFn(fn)(&cmd{req: make([]interface{}, 0, 1)})
-	}
+func (cg *ConsumerGroup) wrapProcessor(wrapFn ClientInterceptor) {
+	cg.processor = wrapFn
 }
 
 func (cg *ConsumerGroup) run() {
@@ -211,10 +209,10 @@ func (cg *ConsumerGroup) run() {
 }
 
 func (cg *ConsumerGroup) Poll(ctx context.Context) (msg interface{}, err error) {
-	err = cg.processor(func(c *cmd) error {
+	err = cg.processor(func(ctx context.Context, msgs Messages, c *cmd) error {
 		select {
 		case <-ctx.Done():
-			logCmd(cg.options.logMode, c, "FetchMessage", cmdWithContext(ctx))
+			logCmd(cg.options.logMode, c, "FetchMessage")
 			return ctx.Err()
 		case msg = <-cg.events:
 			var name string
@@ -228,16 +226,16 @@ func (cg *ConsumerGroup) Poll(ctx context.Context) (msg interface{}, err error) 
 			default:
 				name = "FetchError"
 			}
-			logCmd(cg.options.logMode, c, name, cmdWithContext(ctx), cmdWithRes(msg))
+			logCmd(cg.options.logMode, c, name, cmdWithRes(msg))
 			return nil
 		}
-	})
+	})(ctx, nil, &cmd{})
 	return
 }
 
 func (cg *ConsumerGroup) CommitMessages(ctx context.Context, messages ...Message) error {
-	return cg.processor(func(c *cmd) error {
-		logCmd(cg.options.logMode, c, "CommitMessages", cmdWithContext(ctx), cmdWithReq(messages))
+	return cg.processor(func(ctx context.Context, msgs Messages, c *cmd) error {
+		logCmd(cg.options.logMode, c, "CommitMessages")
 
 		cg.genMu.RLock()
 		if cg.currentGen == nil {
@@ -262,16 +260,16 @@ func (cg *ConsumerGroup) CommitMessages(ctx context.Context, messages ...Message
 		cg.genMu.RUnlock()
 
 		return err
-	})
+	})(ctx, nil, &cmd{})
 }
 
 func (cg *ConsumerGroup) Close() error {
-	return cg.processor(func(c *cmd) error {
+	return cg.processor(func(ctx context.Context, msgs Messages, c *cmd) error {
 		logCmd(cg.options.logMode, c, "ConsumerClose")
 
 		err := cg.group.Close()
 		cg.readerWg.Wait()
 		close(cg.events)
 		return err
-	})
+	})(context.Background(), nil, &cmd{})
 }
