@@ -15,9 +15,9 @@ import (
 
 func produce(w *Producer) {
 	err := w.WriteMessages(context.Background(),
-		Message{Key: []byte("Key-A"), Value: []byte("Hello World!")},
-		Message{Key: []byte("Key-B"), Value: []byte("One!")},
-		Message{Key: []byte("Key-C"), Value: []byte("Two!")},
+		&Message{Key: []byte("Key-A"), Value: []byte("Hello World!")},
+		&Message{Key: []byte("Key-B"), Value: []byte("One!")},
+		&Message{Key: []byte("Key-C"), Value: []byte("Two!")},
 	)
 	if err != nil {
 		log.Fatal("failed to write messages:", err)
@@ -32,13 +32,13 @@ func consume(r *Consumer) {
 	ctx := context.Background()
 	for {
 		// the `ReadMessage` method blocks until we receive the next event
-		msg, err := r.ReadMessage(ctx)
+		msg, _, err := r.ReadMessage(ctx)
 		if err != nil {
 			panic("could not read message " + err.Error())
 		}
 		// after receiving the message, log its value
 		fmt.Println("received: ", string(msg.Value))
-		err = r.CommitMessages(ctx, msg)
+		err = r.CommitMessages(ctx, &msg)
 		if err != nil {
 			log.Printf("fail to commit msg:%v", err)
 		}

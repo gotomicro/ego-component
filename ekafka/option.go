@@ -6,13 +6,17 @@ import (
 
 type Balancer = kafka.Balancer
 
-// WithInterceptor 注入拦截器
-func WithInterceptor(interceptors ...Interceptor) Option {
+// WithClientInterceptor 注入拦截器
+func WithClientInterceptor(interceptors ...ClientInterceptor) Option {
 	return func(c *Container) {
-		if c.config.interceptors == nil {
-			c.config.interceptors = make([]Interceptor, 0)
-		}
-		c.config.interceptors = append(c.config.interceptors, interceptors...)
+		c.config.clientInterceptors = append(c.config.clientInterceptors, interceptors...)
+	}
+}
+
+// WithServerInterceptor 注入拦截器
+func WithServerInterceptor(interceptors ...ServerInterceptor) Option {
+	return func(c *Container) {
+		c.config.serverInterceptors = append(c.config.serverInterceptors, interceptors...)
 	}
 }
 
