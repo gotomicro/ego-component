@@ -240,7 +240,7 @@ func (cmp *Component) launchOnConsumerEachMessage() error {
 				return
 			}
 
-			message, err := consumer.FetchMessage(cmp.ServerCtx)
+			message, fetchCtx, err := consumer.FetchMessage(cmp.ServerCtx)
 			if err != nil {
 				cmp.consumptionErrors <- err
 				cmp.logger.Error("encountered an error while fetching message", elog.FieldErr(err))
@@ -257,7 +257,7 @@ func (cmp *Component) launchOnConsumerEachMessage() error {
 			retryCount := 0
 		HANDLER:
 
-			err = cmp.onEachMessageHandler(cmp.ServerCtx, message)
+			err = cmp.onEachMessageHandler(fetchCtx, message)
 			if err != nil {
 				cmp.logger.Error("encountered an error while handling message", elog.FieldErr(err))
 				cmp.consumptionErrors <- err
@@ -275,7 +275,7 @@ func (cmp *Component) launchOnConsumerEachMessage() error {
 
 		COMMIT:
 
-			err = consumer.CommitMessages(cmp.ServerCtx, &message)
+			err = consumer.CommitMessages(fetchCtx, &message)
 			if err != nil {
 				cmp.consumptionErrors <- err
 				cmp.logger.Error("encountered an error while committing message", elog.FieldErr(err))
