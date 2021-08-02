@@ -90,10 +90,26 @@ func (r *Consumer) CommitMessages(ctx context.Context, msgs ...*Message) (err er
 	})(ctx, msgs, &cmd{})
 }
 
-func (r *Consumer) FetchMessage(ctx context.Context) (msg Message, err error) {
+func (r *Consumer) FetchMessage(ctx context.Context) (msg Message, ctxOutput context.Context, err error) {
 	err = r.processor(func(ctx context.Context, msgs Messages, c *cmd) error {
 		msg, err = r.r.FetchMessage(ctx)
-		logCmd(r.logMode, c, "FetchMessage", cmdWithRes(msg))
+		// 我也不想这么处理trace。奈何协议头在用户数据里，无能为力。。。
+		if opentracing.IsGlobalTracerRegistered() {
+			mds := make(map[string][]string)
+			for _, value := range msg.Headers {
+				mds[value.Key] = []string{string(value.Value)}
+			}
+			md := etrace.MetadataReaderWriter{MD: mds}
+			sc, _ := opentracing.GlobalTracer().Extract(opentracing.HTTPHeaders, md)
+
+			// 重新赋值ctx
+			_, ctxOutput = etrace.StartSpanFromContext(
+				ctx,
+				"kafka",
+				opentracing.ChildOf(sc),
+			)
+		}
+		logCmd(r.logMode, c, "FetchMessage", cmdWithMsg(msg))
 		return err
 	})(ctx, nil, &cmd{})
 	return
