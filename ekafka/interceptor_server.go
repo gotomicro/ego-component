@@ -12,6 +12,7 @@ import (
 	"github.com/gotomicro/ego/core/elog"
 	"github.com/gotomicro/ego/core/emetric"
 	"github.com/gotomicro/ego/core/etrace"
+	"github.com/gotomicro/ego/core/transport"
 	"github.com/gotomicro/ego/core/util/xdebug"
 	"github.com/gotomicro/ego/core/util/xstring"
 	"github.com/opentracing/opentracing-go"
@@ -79,8 +80,11 @@ func accessServerInterceptor(compName string, c *config) ServerInterceptor {
 	return func(next serverProcessFn) serverProcessFn {
 		return func(ctx context.Context, msgs Messages, cmd *cmd) error {
 			err := next(ctx, msgs, cmd)
+			// 为了性能考虑，如果要加日志字段，需要改变slice大小
+			loggerKeys := transport.CustomContextKeys()
 			// kafka 比较坑爹，合在一起处理链路
 			if c.EnableTraceInterceptor {
+
 				mds := make(map[string][]string)
 				for _, value := range cmd.msg.Headers {
 					mds[value.Key] = []string{string(value.Value)}
@@ -98,7 +102,7 @@ func accessServerInterceptor(compName string, c *config) ServerInterceptor {
 
 			cost := time.Since(ctx.Value(ctxStartTimeKey{}).(time.Time))
 			if c.EnableAccessInterceptor {
-				var fields = make([]elog.Field, 0, 10)
+				var fields = make([]elog.Field, 0, 10+len(loggerKeys))
 
 				fields = append(fields,
 					elog.FieldMethod(cmd.name),
@@ -108,6 +112,14 @@ func accessServerInterceptor(compName string, c *config) ServerInterceptor {
 				// 开启了链路，那么就记录链路id
 				if c.EnableTraceInterceptor && opentracing.IsGlobalTracerRegistered() {
 					fields = append(fields, elog.FieldTid(etrace.ExtractTraceID(ctx)))
+
+					for _, key := range loggerKeys {
+						for _, value := range cmd.msg.Headers {
+							if value.Key == key {
+								fields = append(fields, elog.FieldCustomKeyValue(key, string(value.Value)))
+							}
+						}
+					}
 				}
 				if c.EnableAccessInterceptorReq {
 					fields = append(fields, elog.Any("req", json.RawMessage(xstring.JSON(msgs.ToLog()))))
@@ -127,7 +139,7 @@ func accessServerInterceptor(compName string, c *config) ServerInterceptor {
 				)
 			} else {
 				log.Println("[ekafka.response]", xdebug.MakeReqResInfo(compName,
-					fmt.Sprintf("%v", c.Brokers), cost, fmt.Sprintf("%s %v", cmd.name, xstring.JSON(msgs)), xstring.JSON(messageToLog(cmd.msg))),
+					fmt.Sprintf("%v", c.Brokers), cost, fmt.Sprintf("%s %v", cmd.name, xstring.JSON(msgs.ToLog())), xstring.JSON(messageToLog(cmd.msg))),
 				)
 			}
 			return err

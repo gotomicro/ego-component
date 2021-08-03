@@ -8,15 +8,16 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gotomicro/ego/core/eapp"
 	"github.com/gotomicro/ego/core/elog"
 	"github.com/gotomicro/ego/core/emetric"
 	"github.com/gotomicro/ego/core/etrace"
+	"github.com/gotomicro/ego/core/transport"
+	"github.com/gotomicro/ego/core/util/xdebug"
 	"github.com/gotomicro/ego/core/util/xstring"
 	"github.com/opentracing/opentracing-go"
 	"github.com/segmentio/kafka-go"
-
-	"github.com/gotomicro/ego/core/eapp"
-	"github.com/gotomicro/ego/core/util/xdebug"
+	"github.com/spf13/cast"
 )
 
 type ctxStartTimeKey struct{}
@@ -62,6 +63,8 @@ func traceClientInterceptor(compName string, c *config) ClientInterceptor {
 			_, ctx = etrace.StartSpanFromContext(
 				ctx,
 				"kafka",
+				etrace.TagSpanKind("client"),
+				etrace.TagComponent("kafka"),
 			)
 			md := etrace.MetadataReaderWriter{MD: map[string][]string{}}
 			span := opentracing.SpanFromContext(ctx)
@@ -75,7 +78,7 @@ func traceClientInterceptor(compName string, c *config) ClientInterceptor {
 				return nil
 			})
 			for _, value := range msgs {
-				value.Headers = headers
+				value.Headers = append(value.Headers, headers...)
 				value.Time = time.Now()
 			}
 			err := next(ctx, msgs, cmd)
@@ -87,11 +90,30 @@ func traceClientInterceptor(compName string, c *config) ClientInterceptor {
 func accessClientInterceptor(compName string, c *config) ClientInterceptor {
 	return func(next clientProcessFn) clientProcessFn {
 		return func(ctx context.Context, msgs Messages, cmd *cmd) error {
+			loggerKeys := transport.CustomContextKeys()
+			fields := make([]elog.Field, 0, 10+len(loggerKeys))
+
+			if c.EnableAccessInterceptor {
+
+				headers := make([]kafka.Header, 0)
+				for _, key := range loggerKeys {
+					if value := cast.ToString(transport.Value(ctx, key)); value != "" {
+						fields = append(fields, elog.FieldCustomKeyValue(key, value))
+						headers = append(headers, kafka.Header{
+							Key:   key,
+							Value: []byte(value),
+						})
+					}
+				}
+				for _, value := range msgs {
+					value.Headers = append(value.Headers, headers...)
+					value.Time = time.Now()
+				}
+			}
+
 			err := next(ctx, msgs, cmd)
 			cost := time.Since(ctx.Value(ctxStartTimeKey{}).(time.Time))
 			if c.EnableAccessInterceptor {
-				var fields = make([]elog.Field, 0, 10)
-
 				fields = append(fields,
 					elog.FieldMethod(cmd.name),
 					elog.FieldCost(cost),
@@ -107,6 +129,7 @@ func accessClientInterceptor(compName string, c *config) ClientInterceptor {
 				if c.EnableAccessInterceptorRes {
 					fields = append(fields, elog.Any("res", json.RawMessage(xstring.JSON(cmd.res))))
 				}
+
 				elog.Info("access", fields...)
 			}
 
