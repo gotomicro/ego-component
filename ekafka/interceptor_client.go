@@ -87,7 +87,7 @@ func traceClientInterceptor(compName string, c *config) ClientInterceptor {
 	}
 }
 
-func accessClientInterceptor(compName string, c *config) ClientInterceptor {
+func accessClientInterceptor(compName string, c *config, logger *elog.Component) ClientInterceptor {
 	return func(next clientProcessFn) clientProcessFn {
 		return func(ctx context.Context, msgs Messages, cmd *cmd) error {
 			loggerKeys := transport.CustomContextKeys()
@@ -129,8 +129,7 @@ func accessClientInterceptor(compName string, c *config) ClientInterceptor {
 				if c.EnableAccessInterceptorRes {
 					fields = append(fields, elog.Any("res", json.RawMessage(xstring.JSON(cmd.res))))
 				}
-
-				elog.Info("access", fields...)
+				logger.Info("access", fields...)
 			}
 
 			if !eapp.IsDevelopmentMode() {
