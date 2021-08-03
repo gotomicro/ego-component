@@ -1,0 +1,13 @@
+[kafka]
+debug = true
+EnableAccessInterceptor = true
+EnableAccessInterceptorReq = true
+EnableAccessInterceptorRes = true
+brokers = ["10.8.0.1:9092"]
+[kafka.client]
+timeout = "3s"
+[kafka.producers.p1]        # 定义了名字为p1的producer
+topic = "test"  # 指定生产消息的topic
+[kafka.consumers.c1]        # 定义了名字为c1的consumer
+topic = "test"  # 指定消费的topic
+groupID = "group-1"       # 如果配置了groupID，将初始化为consumerGroup

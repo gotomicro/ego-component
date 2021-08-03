@@ -7,23 +7,18 @@ import (
 
 	"github.com/gotomicro/ego"
 	"github.com/gotomicro/ego-component/ekafka"
-	"github.com/gotomicro/ego/core/etrace"
+	"github.com/gotomicro/ego/core/transport"
 )
 
+// export EGO_DEBUG=true
 func main() {
 	ego.New().Invoker(func() error {
 		ctx := context.Background()
+		ctx = transport.WithValue(ctx, "X-Ego-Uid", 9527)
 		// 初始化ekafka组件
 		cmp := ekafka.Load("kafka").Build()
 		// 使用p1生产者生产消息
 		produce(ctx, cmp.Producer("p1"))
-
-		//md.ForeachKey(func(key, val string) error {
-		//	fmt.Println(key)
-		//	fmt.Println(val)
-		//	return nil
-		//})
-
 		// 使用c1消费者消费消息
 		consume(cmp.Consumer("c1"))
 		return nil
@@ -55,7 +50,7 @@ func consume(r *ekafka.Consumer) {
 		if err != nil {
 			panic("could not read message " + err.Error())
 		}
-		fmt.Printf("etrace.ExtractTraceID(ctxOutput)--------------->"+"%+v\n", etrace.ExtractTraceID(ctxOutput))
+
 		// 打印消息
 		fmt.Println("received headers: ", msg.Headers)
 		fmt.Println("received: ", string(msg.Value))
