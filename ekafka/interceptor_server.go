@@ -76,7 +76,7 @@ func traceServerInterceptor(compName string, c *config) ServerInterceptor {
 	}
 }
 
-func accessServerInterceptor(compName string, c *config) ServerInterceptor {
+func accessServerInterceptor(compName string, c *config, logger *elog.Component) ServerInterceptor {
 	return func(next serverProcessFn) serverProcessFn {
 		return func(ctx context.Context, msgs Messages, cmd *cmd) error {
 			err := next(ctx, msgs, cmd)
@@ -127,7 +127,7 @@ func accessServerInterceptor(compName string, c *config) ServerInterceptor {
 				if c.EnableAccessInterceptorRes {
 					fields = append(fields, elog.Any("res", json.RawMessage(xstring.JSON(messageToLog(cmd.msg)))))
 				}
-				elog.Info("access", fields...)
+				logger.Info("access", fields...)
 			}
 
 			if !eapp.IsDevelopmentMode() {

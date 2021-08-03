@@ -41,14 +41,14 @@ func (c *Container) Build(options ...Option) *Component {
 	// 放第一个时间才准确
 	options = append(options, WithClientInterceptor(fixedClientInterceptor(c.name, c.config)))
 	options = append(options, WithClientInterceptor(traceClientInterceptor(c.name, c.config)))
-	options = append(options, WithClientInterceptor(accessClientInterceptor(c.name, c.config)))
+	options = append(options, WithClientInterceptor(accessClientInterceptor(c.name, c.config, c.logger)))
 	if c.config.EnableMetricInterceptor {
 		options = append(options, WithClientInterceptor(metricClientInterceptor(c.name, c.config)))
 	}
 
 	options = append(options, WithServerInterceptor(fixedServerInterceptor(c.name, c.config)))
 	options = append(options, WithServerInterceptor(traceServerInterceptor(c.name, c.config)))
-	options = append(options, WithServerInterceptor(accessServerInterceptor(c.name, c.config)))
+	options = append(options, WithServerInterceptor(accessServerInterceptor(c.name, c.config, c.logger)))
 	if c.config.EnableMetricInterceptor {
 		options = append(options, WithServerInterceptor(metricServerInterceptor(c.name, c.config)))
 	}
