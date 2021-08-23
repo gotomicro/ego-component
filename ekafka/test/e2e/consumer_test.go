@@ -31,7 +31,7 @@ func Test_ConsumeWithConsumer(t *testing.T) {
 		)
 		consumer := cmp.Consumer("c1")
 		for {
-			msg, err := consumer.ReadMessage(ctx)
+			msg, _, err := consumer.ReadMessage(ctx)
 			if err != nil {
 				consumerGroupErr <- err
 				return

@@ -151,13 +151,21 @@ func (cmp *Component) launchOnConsumerGroupStart() error {
 	select {
 	case originErr = <-handlerExit:
 		if originErr != nil {
-			cmp.logger.Error("terminating ConsumerServer because an error", elog.FieldErr(originErr))
+			cmp.logger.Error("terminating ConsumerGroup because an error", elog.FieldErr(originErr))
 		} else {
-			cmp.logger.Info("message handler exited without any error, terminating ConsumerServer")
+			cmp.logger.Info("message handler exited without any error, terminating ConsumerGroup")
 		}
 		cmp.stopServer()
 	case <-cmp.ServerCtx.Done():
 		originErr = cmp.ServerCtx.Err()
+		cmp.logger.Error("terminating ConsumerGroup because a context error", elog.FieldErr(originErr))
+
+		err := <-handlerExit
+		if err != nil {
+			cmp.logger.Error("terminating ConsumerGroup because an error", elog.FieldErr(err))
+		} else {
+			cmp.logger.Info("message handler exited without any error")
+		}
 	}
 
 	err := cmp.closeConsumerGroup(consumerGroup)
@@ -189,13 +197,21 @@ func (cmp *Component) launchOnConsumerStart() error {
 	select {
 	case originErr = <-handlerExit:
 		if originErr != nil {
-			cmp.logger.Error("terminating ConsumerGroup because an error", elog.FieldErr(originErr))
+			cmp.logger.Error("terminating ConsumerServer because an error", elog.FieldErr(originErr))
 		} else {
-			cmp.logger.Info("message handler exited without any error, terminating ConsumerGroup")
+			cmp.logger.Info("message handler exited without any error, terminating ConsumerServer")
 		}
 		cmp.stopServer()
 	case <-cmp.ServerCtx.Done():
 		originErr = cmp.ServerCtx.Err()
+		cmp.logger.Error("terminating ConsumerServer because a context error", elog.FieldErr(originErr))
+
+		err := <-handlerExit
+		if err != nil {
+			cmp.logger.Error("terminating ConsumerServer because an error", elog.FieldErr(err))
+		} else {
+			cmp.logger.Info("message handler exited without any error")
+		}
 	}
 
 	err := cmp.closeConsumer(consumer)
