@@ -93,7 +93,7 @@ func Test_ConsumeServer_OnConsumerStart(t *testing.T) {
 		consumerServerComponent.OnStart(
 			func(ctx context.Context, consumer *ekafka.Consumer) error {
 				for {
-					msg, err := consumer.ReadMessage(ctx)
+					msg, _, err := consumer.ReadMessage(ctx)
 					if err != nil {
 						return err
 					}

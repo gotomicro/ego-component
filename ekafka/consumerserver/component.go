@@ -149,20 +149,20 @@ func (cmp *Component) launchOnConsumerGroupStart() error {
 
 	var originErr error
 	select {
-	case originErr := <-handlerExit:
+	case originErr = <-handlerExit:
 		if originErr != nil {
-			cmp.logger.Error("terminating ConsumerServer because an error", elog.FieldErr(originErr))
+			cmp.logger.Error("terminating ConsumerGroup because an error", elog.FieldErr(originErr))
 		} else {
-			cmp.logger.Info("message handler exited without any error, terminating ConsumerServer")
+			cmp.logger.Info("message handler exited without any error, terminating ConsumerGroup")
 		}
 		cmp.stopServer()
 	case <-cmp.ServerCtx.Done():
-		originErr := cmp.ServerCtx.Err()
-		cmp.logger.Error("terminating ConsumerServer because a context error", elog.FieldErr(originErr))
+		originErr = cmp.ServerCtx.Err()
+		cmp.logger.Error("terminating ConsumerGroup because a context error", elog.FieldErr(originErr))
 
 		err := <-handlerExit
 		if err != nil {
-			cmp.logger.Error("terminating ConsumerServer because an error", elog.FieldErr(err))
+			cmp.logger.Error("terminating ConsumerGroup because an error", elog.FieldErr(err))
 		} else {
 			cmp.logger.Info("message handler exited without any error")
 		}
@@ -195,20 +195,20 @@ func (cmp *Component) launchOnConsumerStart() error {
 
 	var originErr error
 	select {
-	case originErr := <-handlerExit:
+	case originErr = <-handlerExit:
 		if originErr != nil {
-			cmp.logger.Error("terminating ConsumerGroup because an error", elog.FieldErr(originErr))
+			cmp.logger.Error("terminating ConsumerServer because an error", elog.FieldErr(originErr))
 		} else {
-			cmp.logger.Info("message handler exited without any error, terminating ConsumerGroup")
+			cmp.logger.Info("message handler exited without any error, terminating ConsumerServer")
 		}
 		cmp.stopServer()
 	case <-cmp.ServerCtx.Done():
-		originErr := cmp.ServerCtx.Err()
-		cmp.logger.Error("terminating ConsumerGroup because a context error", elog.FieldErr(originErr))
+		originErr = cmp.ServerCtx.Err()
+		cmp.logger.Error("terminating ConsumerServer because a context error", elog.FieldErr(originErr))
 
 		err := <-handlerExit
 		if err != nil {
-			cmp.logger.Error("terminating ConsumerGroup because an error", elog.FieldErr(err))
+			cmp.logger.Error("terminating ConsumerServer because an error", elog.FieldErr(err))
 		} else {
 			cmp.logger.Info("message handler exited without any error")
 		}
