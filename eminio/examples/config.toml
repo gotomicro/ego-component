@@ -1,0 +1,5 @@
+[minio]
+endpoint = "localhost:9000"
+accessKeyID = "xxxxxx"
+secretAccessKey = "xxxxxx"
+useSSL = false
