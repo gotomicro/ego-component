@@ -44,6 +44,6 @@ func (c *Container) Build(options ...Option) *Component {
 func DefaultContainer() *Container {
 	return &Container{
 		Config: DefaultConfig(),
-		logger: elog.EgoLogger.With(elog.FieldComponent(PackageName)),
+		logger: elog.EgoLogger.With(elog.FieldComponent(packageName)),
 	}
 }

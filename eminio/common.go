@@ -4,10 +4,10 @@ import (
 	"strings"
 )
 
-const UsEast1 = "us-east-1"
+const usEast1 = "us-east-1"
 
 var regionMap = map[string]struct{}{
-	UsEast1:          {},
+	usEast1:          {},
 	"us-east-2":      {},
 	"us-west-1":      {},
 	"us-west-2":      {},
@@ -31,7 +31,7 @@ var regionMap = map[string]struct{}{
 	"cn-northwest-1": {},
 }
 
-func CheckRegion(region string) bool {
+func checkRegion(region string) bool {
 	region = strings.TrimSpace(region)
 	_, ok := regionMap[region]
 	return ok

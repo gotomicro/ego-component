@@ -9,7 +9,7 @@ import (
 	"github.com/minio/minio-go/v6"
 )
 
-const PackageName = "component.eminio"
+const packageName = "component.eminio"
 
 type Component struct {
 	config *config
@@ -28,7 +28,7 @@ func newComponent(compName string, config *config, logger *elog.Component) *Comp
 		err             error
 	)
 	if region != "" {
-		if !CheckRegion(region) {
+		if !checkRegion(region) {
 			panic("无效的region:" + region)
 		}
 		client, err = minio.NewWithRegion(endpoint, accessKeyID, secretAccessKey, ssl, region)
@@ -48,8 +48,8 @@ func newComponent(compName string, config *config, logger *elog.Component) *Comp
 	}
 }
 
-// MinoIOClientInstance 暴露 minio 原生 client
-func (c *Component) MinoIOClientInstance() *minio.Client {
+// Client 暴露 minio 原生 client
+func (c *Component) Client() *minio.Client {
 	return c.client
 }
 
@@ -64,9 +64,9 @@ func (c *Component) MakeBucketWithContext(ctx context.Context, bucketName string
 		return errBucketNameEmpty
 	}
 	if location == "" {
-		location = UsEast1
+		location = usEast1
 	}
-	if !CheckRegion(location) {
+	if !checkRegion(location) {
 		return fmt.Errorf("invalid location:%s", location)
 	}
 	if err := c.client.MakeBucketWithContext(ctx, bucketName, location); err != nil {
