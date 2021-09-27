@@ -94,7 +94,7 @@ func (r *Requester) PostXML(endpoint string, payload map[string]string, xml stri
 	if err := r.SetCrumb(ar); err != nil {
 		return nil, err
 	}
-	ar.SetHeader("Content-Type", "application/xml")
+	ar.SetHeader("Content-Type", "text/xml;charset=utf-8")
 	ar.Suffix = ""
 	ar.RequestInst.SetBody(xml)
 	return r.Do(ar, &responseStruct, querystring)
