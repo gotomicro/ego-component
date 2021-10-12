@@ -101,7 +101,7 @@ func debugInterceptor(compName string, config *config, logger *elog.Component) *
 	return newInterceptor(compName, config, logger).setAfterProcess(
 		func(ctx context.Context, cmd redis.Cmder) error {
 			if !eapp.IsDevelopmentMode() {
-				return nil
+				return cmd.Err()
 			}
 			cost := time.Since(ctx.Value(ctxBegKey).(time.Time))
 			err := cmd.Err()
@@ -146,7 +146,9 @@ func accessInterceptor(compName string, config *config, logger *elog.Component) 
 			var fields = make([]elog.Field, 0, 15+len(loggerKeys))
 			var err = cmd.Err()
 			cost := time.Since(ctx.Value(ctxBegKey).(time.Time))
-			fields = append(fields, elog.FieldComponentName(compName), elog.FieldMethod(cmd.Name()), elog.FieldCost(cost))
+			fields = append(fields, elog.FieldComponentName(compName),
+				elog.FieldMethod(cmd.Name()),
+				elog.FieldCost(cost))
 
 			if config.EnableAccessInterceptorReq {
 				fields = append(fields, elog.Any("req", cmd.Args()))

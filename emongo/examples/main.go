@@ -29,7 +29,7 @@ func main() {
 
 	// 初始化emongo组件
 	cmp := emongo.Load("mongo").Build()
-	coll := cmp.Client.Database("test").Collection("cells")
+	coll := cmp.Client().Database("test").Collection("cells")
 	findOne(coll)
 
 	stopCh <- true

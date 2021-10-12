@@ -66,7 +66,9 @@ func metricInterceptor(compName string, dsn *dsn.DSN, op string, config *config,
 			loggerKeys := transport.CustomContextKeys()
 
 			var fields = make([]elog.Field, 0, 15+len(loggerKeys))
-			fields = append(fields, elog.FieldMethod(op), elog.FieldName(dsn.DBName+"."+db.Statement.Table), elog.FieldCost(cost))
+			fields = append(fields,
+				elog.FieldMethod(op),
+				elog.FieldName(dsn.DBName+"."+db.Statement.Table), elog.FieldCost(cost))
 			if config.EnableAccessInterceptorReq {
 				fields = append(fields, elog.String("req", logSQL(db.Statement.SQL.String(), db.Statement.Vars, config.EnableDetailSQL)))
 			}

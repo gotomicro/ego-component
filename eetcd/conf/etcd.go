@@ -9,8 +9,7 @@ import (
 	"github.com/gotomicro/ego/core/econf"
 	"github.com/gotomicro/ego/core/econf/manager"
 	"github.com/gotomicro/ego/core/elog"
-	"github.com/gotomicro/ego/core/util/xcast"
-	"github.com/gotomicro/ego/core/util/xgo"
+	"github.com/spf13/cast"
 	"go.etcd.io/etcd/api/v3/mvccpb"
 	"go.etcd.io/etcd/client/v3"
 
@@ -55,8 +54,8 @@ func (fp *dataSource) Parse(path string, watch bool) econf.ConfigType {
 
 	fp.etcd = eetcd.DefaultContainer().Build(
 		eetcd.WithAddrs([]string{urlInfo.Host}),
-		eetcd.WithEnableBasicAuth(xcast.ToBool(urlInfo.Query().Get("basicAuth"))),
-		eetcd.WithEnableSecure(xcast.ToBool(urlInfo.Query().Get("secure"))),
+		eetcd.WithEnableBasicAuth(cast.ToBool(urlInfo.Query().Get("basicAuth"))),
+		eetcd.WithEnableSecure(cast.ToBool(urlInfo.Query().Get("secure"))),
 		eetcd.WithCertFile(urlInfo.Query().Get("certFile")),
 		eetcd.WithKeyFile(urlInfo.Query().Get("keyFile")),
 		eetcd.WithCaCert(urlInfo.Query().Get("caCert")),
@@ -69,7 +68,9 @@ func (fp *dataSource) Parse(path string, watch bool) econf.ConfigType {
 
 	if watch {
 		fp.changed = make(chan struct{}, 1)
-		xgo.Go(fp.watch)
+		go func() {
+			fp.watch()
+		}()
 	}
 	return econf.ConfigType(configType)
 }

@@ -37,21 +37,21 @@ func InterceptorChain(interceptors ...Interceptor) func(oldProcess processFn) pr
 func debugInterceptor(compName string, c *config) func(processFn) processFn {
 	return func(oldProcess processFn) processFn {
 		return func(cmd *cmd) error {
+			if !eapp.IsDevelopmentMode() {
+				return oldProcess(cmd)
+			}
+
 			beg := time.Now()
 			err := oldProcess(cmd)
 			cost := time.Since(beg)
-			if eapp.IsDevelopmentMode() {
-				if err != nil {
-					log.Println("[emongo.response]", xdebug.MakeReqResError(compName,
-						fmt.Sprintf("%v", c.DSN), cost, fmt.Sprintf("%s %v", cmd.name, mustJsonMarshal(cmd.req)), err.Error()),
-					)
-				} else {
-					log.Println("[emongo.response]", xdebug.MakeReqResInfo(compName,
-						fmt.Sprintf("%v", c.DSN), cost, fmt.Sprintf("%s %v", cmd.name, mustJsonMarshal(cmd.req)), fmt.Sprintf("%v", cmd.res)),
-					)
-				}
+			if err != nil {
+				log.Println("[emongo.response]", xdebug.MakeReqResError(compName,
+					fmt.Sprintf("%v", c.DSN), cost, fmt.Sprintf("%s %v", cmd.name, mustJsonMarshal(cmd.req)), err.Error()),
+				)
 			} else {
-				// todo log debug info
+				log.Println("[emongo.response]", xdebug.MakeReqResInfo(compName,
+					fmt.Sprintf("%v", c.DSN), cost, fmt.Sprintf("%s %v", cmd.name, mustJsonMarshal(cmd.req)), fmt.Sprintf("%v", cmd.res)),
+				)
 			}
 			return err
 		}
