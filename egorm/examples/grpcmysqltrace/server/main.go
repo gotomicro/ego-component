@@ -45,13 +45,13 @@ type Greeter struct {
 }
 
 // SayHello ...
-func (g Greeter) SayHello(ctx context.Context, request *helloworld.HelloRequest) (*helloworld.HelloReply, error) {
+func (g Greeter) SayHello(ctx context.Context, request *helloworld.HelloRequest) (*helloworld.HelloResponse, error) {
 	var user User
 	err := db.WithContext(ctx).Where("id = ?", 100).First(&user).Error
 	if err != nil {
 		return nil, fmt.Errorf("sql err: %w", err)
 	}
-	return &helloworld.HelloReply{
+	return &helloworld.HelloResponse{
 		Message: "Hello EGO, I'm " + g.server.Address(),
 	}, nil
 }

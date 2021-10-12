@@ -1,11 +1,11 @@
 package context
 
 import (
-	"github.com/gotomicro/ego/client/ehttp"
 	"net/http"
 	"sync"
 
 	"github.com/gotomicro/ego-component/ewechat/cache"
+	"github.com/gotomicro/ego/client/ehttp"
 )
 
 // Context struct

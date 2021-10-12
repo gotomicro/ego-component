@@ -14,7 +14,6 @@ import (
 	"github.com/gotomicro/ego/core/constant"
 	"github.com/gotomicro/ego/core/elog"
 	"github.com/gotomicro/ego/core/eregistry"
-	"github.com/gotomicro/ego/core/util/xgo"
 	"github.com/gotomicro/ego/server"
 	"go.etcd.io/etcd/api/v3/mvccpb"
 	"go.etcd.io/etcd/client/v3"
@@ -106,7 +105,7 @@ func (reg *Component) WatchServices(ctx context.Context, t eregistry.Target) (ch
 	}
 
 	addresses <- *al.DeepCopy()
-	xgo.Go(func() {
+	go func() {
 		for event := range watch.C() {
 			switch event.Type {
 			case mvccpb.PUT:
@@ -122,7 +121,7 @@ func (reg *Component) WatchServices(ctx context.Context, t eregistry.Target) (ch
 				elog.Warnf("invalid")
 			}
 		}
-	})
+	}()
 
 	return addresses, nil
 }

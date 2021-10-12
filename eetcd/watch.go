@@ -6,7 +6,6 @@ import (
 
 	"github.com/gotomicro/ego/core/elog"
 
-	"github.com/gotomicro/ego/core/util/xgo"
 	"go.etcd.io/etcd/api/v3/mvccpb"
 	"go.etcd.io/etcd/client/v3"
 )
@@ -43,7 +42,7 @@ func (c *Component) WatchPrefix(ctx context.Context, prefix string) (*Watch, err
 		incipientKVs: resp.Kvs,
 	}
 
-	xgo.Go(func() {
+	go func() {
 		ctx, cancel := context.WithCancel(context.Background())
 		w.cancel = cancel
 		rch := c.Client.Watch(ctx, prefix, clientv3.WithPrefix(), clientv3.WithCreatedNotify(), clientv3.WithRev(w.revision))
@@ -75,7 +74,7 @@ func (c *Component) WatchPrefix(ctx context.Context, prefix string) (*Watch, err
 				rch = c.Watch(ctx, prefix, clientv3.WithPrefix(), clientv3.WithCreatedNotify())
 			}
 		}
-	})
+	}()
 
 	return w, nil
 }
