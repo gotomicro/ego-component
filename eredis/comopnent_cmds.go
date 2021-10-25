@@ -23,7 +23,7 @@ func (r *Component) Get(ctx context.Context, key string) (string, error) {
 }
 
 // GETEX
-func (r *Component) GetEx(ctx context.Context, key string,  expire time.Duration) (string, error) {
+func (r *Component) GetEx(ctx context.Context, key string, expire time.Duration) (string, error) {
 	reply, err := r.client.GetEx(ctx, key, expire).Result()
 	if err != nil {
 		return reply, fmt.Errorf("eredis get string error %w", err)
@@ -183,6 +183,11 @@ func (r *Component) ZRevRangeWithScores(ctx context.Context, key string, start, 
 // ZRange ...
 func (r *Component) ZRange(ctx context.Context, key string, start, stop int64) ([]string, error) {
 	return r.client.ZRange(ctx, key, start, stop).Result()
+}
+
+// ZRangeByScore ...
+func (r *Component) ZRangeByScore(ctx context.Context, key string, opt *redis.ZRangeBy) ([]string, error) {
+	return r.client.ZRangeByScore(ctx, key, opt).Result()
 }
 
 // ZRangeWithScores ...

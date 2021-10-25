@@ -40,10 +40,6 @@ func Load(key string) *Container {
 
 // Build 构建Component
 func (c *Container) Build(options ...Option) *Component {
-	if options == nil {
-		options = make([]Option, 0)
-	}
-
 	options = append(options, withInterceptor(fixedInterceptor(c.name, c.config, c.logger)))
 	if c.config.Debug {
 		options = append(options, withInterceptor(debugInterceptor(c.name, c.config, c.logger)))
@@ -57,6 +53,7 @@ func (c *Container) Build(options ...Option) *Component {
 	for _, option := range options {
 		option(c)
 	}
+	redis.SetLogger(c)
 
 	var client redis.Cmdable
 	switch c.config.Mode {
@@ -178,4 +175,8 @@ func (c *Container) buildStub() *redis.Client {
 		}
 	}
 	return stubClient
+}
+
+func (c *Container) Printf(ctx context.Context, format string, v ...interface{}) {
+	c.logger.Errorf(format, v)
 }
