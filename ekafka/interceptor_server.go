@@ -152,12 +152,12 @@ func metricServerInterceptor(compName string, config *config) ServerInterceptor 
 		return func(ctx context.Context, msgs Messages, cmd *cmd) error {
 			err := next(ctx, msgs, cmd)
 			cost := time.Since(ctx.Value(ctxStartTimeKey{}).(time.Time))
-			emetric.ClientHandleHistogram.WithLabelValues("kafka", compName, cmd.name, strings.Join(config.Brokers, ",")).Observe(cost.Seconds())
+			emetric.ClientHandleHistogram.WithLabelValues("kafka", cmd.msg.Topic, cmd.name, strings.Join(config.Brokers, ",")).Observe(cost.Seconds())
 			if err != nil {
-				emetric.ClientHandleCounter.Inc("kafka", compName, cmd.name, strings.Join(config.Brokers, ","), "Error")
+				emetric.ClientHandleCounter.Inc("kafka", cmd.msg.Topic, cmd.name, strings.Join(config.Brokers, ","), "Error")
 				return err
 			}
-			emetric.ClientHandleCounter.Inc("kafka", compName, cmd.name, strings.Join(config.Brokers, ","), "OK")
+			emetric.ClientHandleCounter.Inc("kafka", cmd.msg.Topic, cmd.name, strings.Join(config.Brokers, ","), "OK")
 			return nil
 		}
 	}
