@@ -20,6 +20,12 @@ func cmdWithMsg(res Message) cmdOptsFunc {
 	}
 }
 
+func cmdWithTopic(res string) cmdOptsFunc {
+	return func(logMode bool, c *cmd) {
+		c.msg.Topic = res
+	}
+}
+
 func cmdWithRes(res interface{}) cmdOptsFunc {
 	return func(logMode bool, c *cmd) {
 		// 只有开启log模式才会记录 res

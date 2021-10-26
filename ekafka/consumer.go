@@ -15,6 +15,8 @@ type Consumer struct {
 	r         *kafka.Reader
 	processor ServerInterceptor
 	logMode   bool
+	Config    consumerConfig
+	Brokers   []string `json:"brokers" toml:"brokers"`
 }
 
 type Message = kafka.Message
@@ -88,7 +90,7 @@ func (r *Consumer) Close() error {
 
 func (r *Consumer) CommitMessages(ctx context.Context, msgs ...*Message) (err error) {
 	return r.processor(func(ctx context.Context, msgs Messages, c *cmd) error {
-		logCmd(r.logMode, c, "CommitMessages")
+		logCmd(r.logMode, c, "CommitMessages", cmdWithTopic(r.Config.Topic))
 		return r.r.CommitMessages(ctx, msgs.ToNoPointer()...)
 	})(ctx, msgs, &cmd{})
 }

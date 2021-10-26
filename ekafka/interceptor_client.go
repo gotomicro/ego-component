@@ -154,7 +154,6 @@ func metricClientInterceptor(compName string, config *config) ClientInterceptor 
 		return func(ctx context.Context, msgs Messages, cmd *cmd) error {
 			err := next(ctx, msgs, cmd)
 			cost := time.Since(ctx.Value(ctxStartTimeKey{}).(time.Time))
-			// 这里删掉 compName 采用 topic 数据作为监控
 			emetric.ClientHandleHistogram.WithLabelValues("kafka", cmd.msg.Topic, cmd.name, strings.Join(config.Brokers, ",")).Observe(cost.Seconds())
 			if err != nil {
 				emetric.ClientHandleCounter.Inc("kafka", cmd.msg.Topic, cmd.name, strings.Join(config.Brokers, ","), "Error")

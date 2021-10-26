@@ -140,6 +140,8 @@ func (cmp *Component) Consumer(name string) *Consumer {
 		}),
 		//processor: defaultProcessor,
 		logMode: cmp.config.Debug,
+		Config:  config,
+		Brokers: cmp.config.Brokers,
 	}
 	consumer.setProcessor(cmp.interceptorServerChain())
 	cmp.consumers[name] = consumer
