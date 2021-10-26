@@ -4,12 +4,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
+	"time"
 
-	"github.com/gotomicro/ego-component/ekafka"
 	"github.com/gotomicro/ego/core/constant"
 	"github.com/gotomicro/ego/core/elog"
+	"github.com/gotomicro/ego/core/emetric"
 	"github.com/gotomicro/ego/server"
 	"github.com/segmentio/kafka-go"
+
+	"github.com/gotomicro/ego-component/ekafka"
 )
 
 // OnEachMessageHandler 的最大重试次数
@@ -228,10 +232,14 @@ func (cmp *Component) launchOnConsumerStart() error {
 
 func (cmp *Component) launchOnConsumerEachMessage() error {
 	consumer := cmp.Consumer()
-
 	if cmp.onEachMessageHandler == nil {
 		return errors.New("you must define a MessageHandler first")
 	}
+
+	var (
+		compNameTopic = fmt.Sprintf("%s.%s", cmp.ekafkaComponent.GetCompName(), consumer.Config.Topic)
+		brokers       = strings.Join(consumer.Brokers, ",")
+	)
 
 	unrecoverableError := make(chan error)
 	go func() {
@@ -239,7 +247,8 @@ func (cmp *Component) launchOnConsumerEachMessage() error {
 			if cmp.ServerCtx.Err() != nil {
 				return
 			}
-
+			// The beginning of time monitoring point in time
+			now := time.Now()
 			message, fetchCtx, err := consumer.FetchMessage(cmp.ServerCtx)
 			if err != nil {
 				cmp.consumptionErrors <- err
@@ -253,11 +262,20 @@ func (cmp *Component) launchOnConsumerEachMessage() error {
 				// Otherwise, try to fetch message again.
 				continue
 			}
-
 			retryCount := 0
+
 		HANDLER:
 
 			err = cmp.onEachMessageHandler(fetchCtx, message)
+			cmp.PackageName()
+			// Record the redis time-consuming
+			emetric.ClientHandleHistogram.WithLabelValues("kafka", compNameTopic, "HANDLER", brokers).Observe(time.Since(now).Seconds())
+			if err != nil {
+				emetric.ClientHandleCounter.Inc("kafka", compNameTopic, "HANDLER", brokers, "Error")
+			} else {
+				emetric.ClientHandleCounter.Inc("kafka", compNameTopic, "HANDLER", brokers, "OK")
+			}
+
 			if err != nil {
 				cmp.logger.Error("encountered an error while handling message", elog.FieldErr(err))
 				cmp.consumptionErrors <- err
@@ -276,6 +294,15 @@ func (cmp *Component) launchOnConsumerEachMessage() error {
 		COMMIT:
 
 			err = consumer.CommitMessages(fetchCtx, &message)
+
+			// Record the redis time-consuming
+			emetric.ClientHandleHistogram.WithLabelValues("kafka", compNameTopic, "COMMIT", brokers).Observe(time.Since(now).Seconds())
+			if err != nil {
+				emetric.ClientHandleCounter.Inc("kafka", compNameTopic, "COMMIT", brokers, "Error")
+			} else {
+				emetric.ClientHandleCounter.Inc("kafka", compNameTopic, "COMMIT", brokers, "OK")
+			}
+
 			if err != nil {
 				cmp.consumptionErrors <- err
 				cmp.logger.Error("encountered an error while committing message", elog.FieldErr(err))

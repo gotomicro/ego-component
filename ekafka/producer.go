@@ -18,14 +18,14 @@ func (p *Producer) setProcessor(c ClientInterceptor) {
 
 func (p *Producer) Close() error {
 	return p.processor(func(ctx context.Context, msgs Messages, c *cmd) error {
-		logCmd(p.logMode, c, "ProducerClose")
+		logCmd(p.logMode, c, "ProducerClose", cmdWithTopic(p.w.Topic))
 		return p.w.Close()
 	})(context.Background(), nil, &cmd{})
 }
 
 func (p *Producer) WriteMessages(ctx context.Context, msgs ...*Message) error {
 	return p.processor(func(ctx context.Context, req Messages, c *cmd) error {
-		logCmd(p.logMode, c, "WriteMessages")
+		logCmd(p.logMode, c, "WriteMessages", cmdWithTopic(p.w.Topic))
 		return p.w.WriteMessages(ctx, req.ToNoPointer()...)
 	})(ctx, msgs, &cmd{})
 }
