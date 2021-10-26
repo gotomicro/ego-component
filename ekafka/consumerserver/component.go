@@ -237,8 +237,8 @@ func (cmp *Component) launchOnConsumerEachMessage() error {
 	}
 
 	var (
-		topic   = consumer.Config.Topic
-		brokers = strings.Join(consumer.Brokers, ",")
+		compNameTopic = fmt.Sprintf("%s.%s", cmp.ekafkaComponent.GetCompName(), consumer.Config.Topic)
+		brokers       = strings.Join(consumer.Brokers, ",")
 	)
 
 	unrecoverableError := make(chan error)
@@ -267,13 +267,13 @@ func (cmp *Component) launchOnConsumerEachMessage() error {
 		HANDLER:
 
 			err = cmp.onEachMessageHandler(fetchCtx, message)
-
+			cmp.PackageName()
 			// Record the redis time-consuming
-			emetric.ClientHandleHistogram.WithLabelValues("kafka", topic, "HANDLER", brokers).Observe(time.Since(now).Seconds())
+			emetric.ClientHandleHistogram.WithLabelValues("kafka", compNameTopic, "HANDLER", brokers).Observe(time.Since(now).Seconds())
 			if err != nil {
-				emetric.ClientHandleCounter.Inc("kafka", topic, "HANDLER", brokers, "Error")
+				emetric.ClientHandleCounter.Inc("kafka", compNameTopic, "HANDLER", brokers, "Error")
 			} else {
-				emetric.ClientHandleCounter.Inc("kafka", topic, "HANDLER", brokers, "OK")
+				emetric.ClientHandleCounter.Inc("kafka", compNameTopic, "HANDLER", brokers, "OK")
 			}
 
 			if err != nil {
@@ -296,11 +296,11 @@ func (cmp *Component) launchOnConsumerEachMessage() error {
 			err = consumer.CommitMessages(fetchCtx, &message)
 
 			// Record the redis time-consuming
-			emetric.ClientHandleHistogram.WithLabelValues("kafka", topic, "COMMIT", brokers).Observe(time.Since(now).Seconds())
+			emetric.ClientHandleHistogram.WithLabelValues("kafka", compNameTopic, "COMMIT", brokers).Observe(time.Since(now).Seconds())
 			if err != nil {
-				emetric.ClientHandleCounter.Inc("kafka", topic, "COMMIT", brokers, "Error")
+				emetric.ClientHandleCounter.Inc("kafka", compNameTopic, "COMMIT", brokers, "Error")
 			} else {
-				emetric.ClientHandleCounter.Inc("kafka", topic, "COMMIT", brokers, "OK")
+				emetric.ClientHandleCounter.Inc("kafka", compNameTopic, "COMMIT", brokers, "OK")
 			}
 
 			if err != nil {

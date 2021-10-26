@@ -64,6 +64,7 @@ func (c *Container) Build(options ...Option) *Component {
 		producers:      make(map[string]*Producer),
 		consumers:      make(map[string]*Consumer),
 		consumerGroups: make(map[string]*ConsumerGroup),
+		compName:       c.name,
 	}
 
 	return cmp

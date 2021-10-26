@@ -22,6 +22,11 @@ type Component struct {
 	consumerMu      sync.RWMutex
 	producerMu      sync.RWMutex
 	consumerGroupMu sync.RWMutex
+	compName        string
+}
+
+func (cmp *Component) GetCompName() string {
+	return cmp.compName
 }
 
 func (cmp *Component) interceptorClientChain() func(oldProcess clientProcessFn) clientProcessFn {
