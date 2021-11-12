@@ -7,6 +7,13 @@ import (
 // Option 可选项
 type Option func(c *Container)
 
+// WithDSN 设置dsn
+func WithDSN(dsn string) Option {
+	return func(c *Container) {
+		c.config.DSN = dsn
+	}
+}
+
 // WithDSNParser 设置自定义dsnParser
 func WithDSNParser(parser dsn.DSNParser) Option {
 	return func(c *Container) {
