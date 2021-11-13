@@ -19,3 +19,9 @@ func WithSubTokenMapParentTokenKey(key string) Option {
 		c.config.subTokenMapParentTokenKey = key
 	}
 }
+
+func WithParentAccessExpiration(key int64) Option {
+	return func(c *Storage) {
+		c.config.parentAccessExpiration = key
+	}
+}

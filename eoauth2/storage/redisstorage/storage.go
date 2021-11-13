@@ -25,7 +25,7 @@ type Storage struct {
 	config      *config
 }
 
-// NewStorage returns a new mysql Storage instance.
+// NewStorage returns a new redis Storage instance.
 func NewStorage(db *egorm.Component, redis *eredis.Component, logger *elog.Component, options ...Option) *Storage {
 	container := &Storage{
 		db:     db,
@@ -251,7 +251,7 @@ func (s *Storage) SaveAccess(ctx context.Context, data *server.AccessData) (err 
 	err = s.tokenServer.createToken(ctx, data.Client.GetId(), dto.Token{
 		Token:     data.AccessToken,
 		AuthAt:    time.Now().Unix(),
-		ExpiresIn: DefaultTokenExpireIn,
+		ExpiresIn: s.config.parentAccessExpiration,
 	}, pToken.Token)
 	if err != nil {
 		tx.Rollback()
