@@ -14,8 +14,6 @@ import (
 )
 
 const (
-	DefaultTokenExpireIn = 24 * 60 * 60
-
 	tokenRefreshLockPrefix = "ssoTokenRefreshLock:%s"
 	newTokenKeyPrefix      = "ssoNewToken:%s"
 )
@@ -25,10 +23,12 @@ type tokenServer struct {
 	uidMapParentToken *uidMapParentToken
 	parentToken       *parentToken
 	subToken          *subToken
+	config            *config
 }
 
 func initTokenServer(config *config, redis *eredis.Component) *tokenServer {
 	return &tokenServer{
+		config:            config,
 		redis:             redis,
 		uidMapParentToken: newUidMapParentToken(config, redis),
 		parentToken:       newParentToken(config, redis),
@@ -50,14 +50,12 @@ func (t *tokenServer) createParentToken(ctx context.Context, pToken dto.Token, u
 
 func (t *tokenServer) renewParentToken(ctx context.Context, pToken dto.Token) (err error) {
 	// 1 设置uid 到 parent token关系
-	err = t.parentToken.renew(ctx,pToken)
+	err = t.parentToken.renew(ctx, pToken)
 	if err != nil {
 		return fmt.Errorf("token.createParentToken: create token map failed, err:%w", err)
 	}
 	return nil
 }
-
-
 
 func (t *tokenServer) createToken(ctx context.Context, clientId string, token dto.Token, pToken string) (err error) {
 	err = t.parentToken.setToken(ctx, pToken, clientId, token)
@@ -132,7 +130,7 @@ func (t *tokenServer) refreshToken(ctx context.Context, clientId string, pToken 
 	}
 	// re-generate token
 	{
-		genNewToken = dto.NewToken(DefaultTokenExpireIn)
+		genNewToken = dto.NewToken(t.config.parentAccessExpiration)
 		tk = &genNewToken
 		err = t.createToken(ctx, clientId, genNewToken, pToken)
 		if err != nil {

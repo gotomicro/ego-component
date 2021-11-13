@@ -11,6 +11,8 @@ import (
 )
 
 type config struct {
+	parentAccessExpiration int64 // 父亲节点token
+
 	/*
 		    hashmap
 			key: sso:uid:{uid}
@@ -49,6 +51,7 @@ func defaultConfig() *config {
 		uidMapParentTokenKey:      "sso:uid:%d", // uid map parent token type
 		parentTokenMapSubTokenKey: "sso:ptk:%s", //  parent token map
 		subTokenMapParentTokenKey: "sso:stk:%s", // sub token map parent token
+		parentAccessExpiration:    24 * 3600,
 	}
 }
 
@@ -178,7 +181,6 @@ func (p *parentToken) create(ctx context.Context, pToken dto.Token, userInfo *dt
 	return nil
 }
 
-
 func (p *parentToken) renew(ctx context.Context, pToken dto.Token) error {
 	tokenStr, err := pToken.Marshal()
 	if err != nil {
@@ -192,8 +194,6 @@ func (p *parentToken) renew(ctx context.Context, pToken dto.Token) error {
 	}
 	return nil
 }
-
-
 
 func (p *parentToken) delete(ctx context.Context, pToken string) error {
 	_, err := p.redis.Del(ctx, p.getKey(pToken))
