@@ -24,6 +24,13 @@ func (u *User) Marshal() (string, error) {
 	return string(bytes), err
 }
 
+func (u *User) Unmarshal(content []byte) error {
+	if u == nil {
+		return fmt.Errorf("user is nil")
+	}
+	return json.Unmarshal(content, u)
+}
+
 // GitlabUser Gitlab OAuth 协议登录用户结构
 type GitlabUser struct {
 	Id       int    `json:"Id"`

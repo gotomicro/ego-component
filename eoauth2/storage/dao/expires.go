@@ -12,7 +12,7 @@ type Expires struct {
 	Id        int    `gorm:"not null;primary_key;AUTO_INCREMENT" json:"id" form:"id"` // 客户端
 	Token     string `gorm:"not null" json:"token" form:"token"`                      // token
 	ExpiresAt int64  `gorm:"not null" json:"expiresAt" form:"expiresAt"`              // 过期时间
-
+	Ptoken    string `gorm:"not null" json:"ptoken" form:"ptoken"`                    // parent token信息
 }
 
 func (t *Expires) TableName() string {
@@ -34,6 +34,16 @@ func ExpiresDeleteX(ctx context.Context, db *gorm.DB, conds egorm.Conds) (err er
 	sql, binds := egorm.BuildQuery(conds)
 	if err = db.WithContext(ctx).Table("expires").Where(sql, binds...).Delete(&Expires{}).Error; err != nil {
 		err = fmt.Errorf("ExpiresDeleteX, err: %w", err)
+		return
+	}
+	return
+}
+
+// ExpiresX Info的扩展方法，根据Cond查询单条记录
+func ExpiresX(ctx context.Context, db *egorm.Component, conds egorm.Conds) (resp Expires, err error) {
+	sql, binds := egorm.BuildQuery(conds)
+	if err = db.WithContext(ctx).Table("expires").Where(sql, binds...).First(&resp).Error; err != nil {
+		err = fmt.Errorf("ExpiresX, err: %w", err)
 		return
 	}
 	return
