@@ -34,6 +34,7 @@ type AuthorizeRequestParam struct {
 	ResponseType        string
 	CodeChallenge       string
 	CodeChallengeMethod string
+	ParentToken         string
 }
 
 // HandleAuthorizeRequest for handling
@@ -50,6 +51,7 @@ func (c *Component) HandleAuthorizeRequest(ctx context.Context, param AuthorizeR
 		accessTokenGen:    c.config.accessTokenGen,
 		authorizeTokenGen: c.config.authorizeTokenGen,
 		config:            c.config,
+		ParentToken:       param.ParentToken,
 	}
 
 	if c.config.EnableAccessInterceptor {
@@ -205,6 +207,7 @@ func (r *AuthorizeRequest) Build(options ...AuthorizeRequestOption) error {
 		Context:             r.Context,
 		storage:             r.storage,
 		authorizeTokenGen:   r.authorizeTokenGen,
+		ParentToken:         r.ParentToken,
 	}
 
 	// generate token code

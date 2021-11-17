@@ -8,6 +8,7 @@ require (
 	github.com/gotomicro/ego-component/eredis v0.2.3-0.20210616023629-a1d9cf7b56a5
 	github.com/pborman/uuid v1.2.1
 	github.com/spf13/cast v1.3.1
+	github.com/vmihailenco/msgpack v4.0.4+incompatible // indirect
 	go.uber.org/zap v1.17.0
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 	gorm.io/gorm v1.21.3

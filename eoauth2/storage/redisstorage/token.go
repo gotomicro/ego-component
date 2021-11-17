@@ -2,7 +2,6 @@ package redisstorage
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -37,9 +36,9 @@ func initTokenServer(config *config, redis *eredis.Component) *tokenServer {
 }
 
 // createParentToken sso的父节点token
-func (t *tokenServer) createParentToken(ctx context.Context, pToken dto.Token, userInfo *dto.User) (err error) {
+func (t *tokenServer) createParentToken(ctx context.Context, pToken dto.Token, userInfo *dto.User, clientType string) (err error) {
 	// 1 设置uid 到 parent token关系
-	err = t.uidMapParentToken.setToken(ctx, userInfo.Uid, "pc", pToken)
+	err = t.uidMapParentToken.setToken(ctx, userInfo.Uid, clientType, pToken)
 	if err != nil {
 		return fmt.Errorf("token.createParentToken: create token map failed, err:%w", err)
 	}
@@ -73,9 +72,9 @@ func (t *tokenServer) removeParentToken(ctx context.Context, pToken string) (err
 }
 
 // 获取父级token
-func (t *tokenServer) getParentToken(uid int64) (tokenInfo dto.Token, err error) {
-	return t.uidMapParentToken.getParentToken(context.Background(), uid, "pc")
-}
+//func (t *tokenServer) getParentToken(uid int64) (tokenInfo dto.Token, err error) {
+//	return t.uidMapParentToken.getParentToken(context.Background(), uid, "web")
+//}
 
 func (t *tokenServer) getToken(clientId string, pToken string) (tokenInfo dto.Token, err error) {
 	return t.parentToken.getToken(context.Background(), pToken, clientId)
@@ -157,7 +156,7 @@ func (t *tokenServer) getNewTokenFromCache(ctx context.Context, pToken string) (
 	}
 
 	tk = &dto.Token{}
-	err = json.Unmarshal(newTokenBytes, tk)
+	err = tk.Unmarshal(newTokenBytes)
 	if err != nil {
 		return nil, err
 	}
@@ -166,13 +165,13 @@ func (t *tokenServer) getNewTokenFromCache(ctx context.Context, pToken string) (
 }
 
 func (t *tokenServer) setNewTokenToCache(ctx context.Context, tk *dto.Token, pToken string) (err error) {
-	tkBytes, err := json.Marshal(tk)
+	tkBytes, err := tk.Marshal()
 	if err != nil {
 		return
 	}
 
 	// write cache
-	err = t.redis.SetEX(ctx, redisNewTokenKey(pToken), string(tkBytes), time.Minute)
+	err = t.redis.SetEX(ctx, redisNewTokenKey(pToken), tkBytes, time.Minute)
 	if err != nil {
 		return
 	}

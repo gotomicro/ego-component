@@ -27,3 +27,5 @@
     * remove authorization token
     * remove previous access token
     
+### 文献
+* https://blog.lishunyang.com/2020/05/sso-summary.html

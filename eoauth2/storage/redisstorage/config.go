@@ -2,10 +2,11 @@ package redisstorage
 
 import (
 	"context"
-	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
+	"github.com/go-redis/redis/v8"
 	"github.com/gotomicro/ego-component/eoauth2/storage/dto"
 	"github.com/gotomicro/ego-component/eredis"
 )
@@ -16,21 +17,28 @@ type config struct {
 	/*
 		    hashmap
 			key: sso:uid:{uid}
+			expiration: 最大的过期时间
 			value:
-				{clientType1}: parentTokenJsonInfo
-				{clientType2}: parentTokenJsonInfo
+				ctimeList:                 [{"clientType1|parentToken":"ctime"}]
+				expireTime:                最大过期时间
+				{clientType1|parentToken}: parentTokenJsonInfo
+				{clientType2|parentToken}: parentTokenJsonInfo
 	*/
-	uidMapParentTokenKey string // 存储token信息的hash map
+	uidMapParentTokenKey      string // 存储token信息的hash map
+	uidMapParentTokenFieldKey string // 存储token信息的hash map的field key  {clientType1|parentToken}
 	/*
-		     hashmap
-			 key: sso:ptk:{parentToken}
-			 value:
-				userInfo:              userInfo
-				tokenInfo:             tokenInfo
-				{subTokenClientId1}:   tokenJsonInfo
-				{subTokenClientId2}:   tokenJsonInfo
-				{subTokenClientId3}:   tokenJsonInfo
-			 ttl: 3600
+				     hashmap
+					 key: sso:ptk:{parentToken}
+		  			 expiration: 最大的过期时间
+					 value:
+						userInfo:              userInfo
+						tokenInfo:             tokenInfo
+						ctimeList:             [{"subTokenClientId1":"ctime"}]
+						expireTime:            最大过期时间
+						{subTokenClientId1}:   tokenJsonInfo
+						{subTokenClientId2}:   tokenJsonInfo
+						{subTokenClientId3}:   tokenJsonInfo
+					 ttl: 3600
 	*/
 	parentTokenMapSubTokenKey string // 存储token信息的hash map
 	// key token value ptoken
@@ -44,14 +52,17 @@ type config struct {
 		ttl: 3600
 	*/
 	subTokenMapParentTokenKey string // token与父级token的映射关系
+	//clientType                []string // 支持的客户端类型，web、andorid、ios，用于设置一个客户端，可以登录几个parent token。
 }
 
 func defaultConfig() *config {
 	return &config{
 		uidMapParentTokenKey:      "sso:uid:%d", // uid map parent token type
+		uidMapParentTokenFieldKey: "%s|%s",      // uid map parent token type
 		parentTokenMapSubTokenKey: "sso:ptk:%s", //  parent token map
 		subTokenMapParentTokenKey: "sso:stk:%s", // sub token map parent token
 		parentAccessExpiration:    24 * 3600,
+		//clientType:                []string{"web", "android", "ios"},
 	}
 }
 
@@ -104,14 +115,18 @@ func (s *subToken) getParentToken(ctx context.Context, subToken string) (parentT
 }
 
 type uidMapParentToken struct {
-	config *config
-	redis  *eredis.Component
+	config             *config
+	redis              *eredis.Component
+	hashExpireTimeList string
+	hashExpireTime     string
 }
 
 func newUidMapParentToken(config *config, redis *eredis.Component) *uidMapParentToken {
 	return &uidMapParentToken{
-		config: config,
-		redis:  redis,
+		config:             config,
+		redis:              redis,
+		hashExpireTimeList: "_etl", // expire time List
+		hashExpireTime:     "_et",  // max expire time，最大过期时间，unix时间戳，到了时间就会过期被删除
 	}
 }
 
@@ -119,24 +134,129 @@ func (u *uidMapParentToken) getKey(uid int64) string {
 	return fmt.Sprintf(u.config.uidMapParentTokenKey, uid)
 }
 
+func (u *uidMapParentToken) getFieldKey(clientType string, parentToken string) string {
+	return fmt.Sprintf(u.config.uidMapParentTokenFieldKey, clientType, parentToken)
+}
+
+// 并发操作redis情况不考虑，因为一个用户使用多个终端，并发登录极其少见
+// 1 先取出这个key里面的数据
+//   expireTimeList:            [{"clientType1|parentToken":"expire的时间戳"}]
+//	 expireTime:                最大过期时间
+
 func (u *uidMapParentToken) setToken(ctx context.Context, uid int64, clientType string, pToken dto.Token) error {
-	pTokenByte, err := json.Marshal(pToken)
+	fieldKey := u.getFieldKey(clientType, pToken.Token)
+
+	expireTime, err := u.getExpireTime(ctx, uid)
+	if err != nil {
+		return err
+	}
+	expireTimeList, err := u.getExpireTimeList(ctx, uid)
+	if err != nil {
+		return err
+	}
+	nowTime := time.Now().Unix()
+	newExpireTimeList := make(uidTokenExpires, 0)
+	// 新数据添加到队列前面
+	newExpireTimeList = append(newExpireTimeList, uidTokenExpire{
+		Token:      fieldKey,
+		ExpireTime: nowTime + pToken.ExpiresIn,
+	})
+
+	// 删除过期的数据
+	hdelFields := make([]string, 0)
+	for _, value := range expireTimeList {
+		// 过期时间小于当前时间，那么需要删除
+		if value.ExpireTime <= nowTime {
+			hdelFields = append(hdelFields, value.Token)
+			continue
+		}
+		newExpireTimeList = append(newExpireTimeList, value)
+	}
+	if len(hdelFields) > 0 {
+		err = u.redis.HDel(ctx, u.getKey(uid), hdelFields...)
+		if err != nil {
+			return fmt.Errorf("uidMapParentToken setToken HDel expire data failed, error: %w", err)
+		}
+	}
+
+	err = u.redis.HSet(ctx, u.getKey(uid), u.hashExpireTimeList, newExpireTimeList.Marshal())
+	if err != nil {
+		return fmt.Errorf("uidMapParentToken setToken HSet expire time failed, error: %w", err)
+	}
+
+	// 将parent token信息存入
+	pTokenByte, err := pToken.Marshal()
 	if err != nil {
 		return fmt.Errorf("uidMapParentToken.createToken failed, err: %w", err)
 	}
 
-	return u.redis.HSet(ctx, u.getKey(uid), clientType, string(pTokenByte))
+	err = u.redis.HSet(ctx, u.getKey(uid), u.getFieldKey(clientType, pToken.Token), pTokenByte)
+	if err != nil {
+		return fmt.Errorf("uidMapParentToken setToken HSet token info failed, error: %w", err)
+	}
+
+	// 如果之前没数据，那么expireTime为0，所以会写入
+	// 新的token大于，之前的过期时间，所以需要续期
+	if pToken.ExpiresIn+nowTime > expireTime {
+		err = u.redis.HSet(ctx, u.getKey(uid), u.hashExpireTime, pToken.ExpiresIn+nowTime)
+		if err != nil {
+			return fmt.Errorf("uidMapParentToken setToken HSet expire time failed, error: %w", err)
+		}
+
+		err = u.redis.Client().Expire(ctx, u.getKey(uid), time.Duration(pToken.ExpiresIn)*time.Second).Err()
+		if err != nil {
+			return fmt.Errorf("uidMapParentToken setToken expire error %w", err)
+		}
+	}
+
+	return nil
 }
 
-func (u *uidMapParentToken) getParentToken(ctx context.Context, uid int64, clientType string) (resp dto.Token, err error) {
-	value, err := u.redis.HGet(ctx, u.getKey(uid), clientType)
-	if err != nil {
-		err = fmt.Errorf("uidMapParentToken.getParentToken failed, err: %w", err)
+// 获取过期时间，快过期的在最前面。
+func (u *uidMapParentToken) getExpireTimeList(ctx context.Context, uid int64) (userInfo uidTokenExpires, err error) {
+	// 根据父节点token，获取用户信息
+	infoBytes, err := u.redis.Client().HGet(ctx, u.getKey(uid), u.hashExpireTimeList).Bytes()
+	if err != nil && !errors.Is(err, redis.Nil) {
+		err = fmt.Errorf("uidMapParentToken getExpireTimeList failed, err: %w", err)
 		return
 	}
-	err = json.Unmarshal([]byte(value), &resp)
+	if errors.Is(err, redis.Nil) {
+		err = nil
+		return
+	}
+
+	pUserInfo := &userInfo
+	err = pUserInfo.Unmarshal(infoBytes)
+	if err != nil {
+		err = fmt.Errorf("uidMapParentToken getExpireTimeList json unmarshal error, %w", err)
+		return
+	}
 	return
 }
+
+// 获取过期时间，快过期的在最前面。
+func (u *uidMapParentToken) getExpireTime(ctx context.Context, uid int64) (expireTime int64, err error) {
+	// 根据父节点token，获取用户信息
+	expireTime, err = u.redis.Client().HGet(ctx, u.getKey(uid), u.hashExpireTime).Int64()
+	if err != nil && !errors.Is(err, redis.Nil) {
+		err = fmt.Errorf("uidMapParentToken getExpireTime failed, err: %w", err)
+		return
+	}
+	if errors.Is(err, redis.Nil) {
+		err = nil
+	}
+	return
+}
+
+//func (u *uidMapParentToken) getParentToken(ctx context.Context, uid int64, clientType string) (resp dto.Token, err error) {
+//	value, err := u.redis.HGet(ctx, u.getKey(uid), clientType)
+//	if err != nil {
+//		err = fmt.Errorf("uidMapParentToken.getParentToken failed, err: %w", err)
+//		return
+//	}
+//	err = json.Unmarshal([]byte(value), &resp)
+//	return
+//}
 
 type parentToken struct {
 	config           *config
@@ -211,7 +331,8 @@ func (p *parentToken) getUser(ctx context.Context, pToken string) (userInfo *dto
 		return
 	}
 
-	err = json.Unmarshal([]byte(userInfoStr), &userInfo)
+	userInfo = &dto.User{}
+	err = userInfo.Unmarshal([]byte(userInfoStr))
 	if err != nil {
 		err = fmt.Errorf("getUserByToken json unmarshal error, %w", err)
 		return
@@ -245,8 +366,8 @@ func (p *parentToken) getToken(ctx context.Context, pToken string, clientId stri
 		err = fmt.Errorf("tokgen get redis hmget string error, %w", err)
 		return
 	}
-
-	err = json.Unmarshal([]byte(tokenValue), &tokenInfo)
+	pTokenInfo := &tokenInfo
+	err = pTokenInfo.Unmarshal([]byte(tokenValue))
 	if err != nil {
 		err = fmt.Errorf("redis token info json unmarshal errorr, err: %w", err)
 		return

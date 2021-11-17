@@ -43,6 +43,7 @@ type AuthorizeRequest struct {
 	accessTokenGen    AccessTokenGen
 	authorizeTokenGen AuthorizeTokenGen
 	config            *Config
+	ParentToken       string // 可选项，用于单点登录
 }
 
 // AuthorizeData ...
@@ -60,6 +61,7 @@ type AuthorizeData struct {
 	*Context
 	storage           Storage
 	authorizeTokenGen AuthorizeTokenGen
+	ParentToken       string // 如果存在parent token，赋值
 }
 
 // IsExpired is true if authorization expired

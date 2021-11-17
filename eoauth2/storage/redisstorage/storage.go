@@ -2,7 +2,6 @@ package redisstorage
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -91,7 +90,7 @@ func (s *Storage) SaveAuthorize(ctx context.Context, data *server.AuthorizeData)
 		return
 	}
 
-	err = s.addExpireAtData(ctx, tx, data.Code, data.ExpireAt())
+	err = s.addExpireAtData(ctx, tx, data.Code, data.ExpireAt(), data.ParentToken)
 	if err != nil {
 		tx.Rollback()
 		return
@@ -174,8 +173,8 @@ func (s *Storage) SaveAccess(ctx context.Context, data *server.AccessData) (err 
 
 	extra := cast.ToString(data.UserData)
 
-	var ssoUser *dto.User
-	err = json.Unmarshal([]byte(extra), &ssoUser)
+	ssoUser := &dto.User{}
+	err = ssoUser.Unmarshal([]byte(extra))
 	if err != nil {
 		return fmt.Errorf("解析登录用户json数据失败, err: %w", err)
 	}
@@ -183,12 +182,12 @@ func (s *Storage) SaveAccess(ctx context.Context, data *server.AccessData) (err 
 	tx := s.db.Begin()
 
 	// 1 获取父级token，也可以认为是refresh token
-	pToken, err := s.tokenServer.getParentToken(ssoUser.Uid)
-	if err != nil {
-		return err
-	}
-
-	data.RefreshToken = pToken.Token
+	//pToken, err := s.tokenServer.getParentToken(ssoUser.Uid)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//data.RefreshToken = pToken.Token
 
 	// 创建parent token和sub token关系
 	//if err = s.saveRefresh(ctx, tx, pToken.Token, data.AccessToken); err != nil {
@@ -202,6 +201,14 @@ func (s *Storage) SaveAccess(ctx context.Context, data *server.AccessData) (err 
 	//		return err
 	//	}
 	//}
+
+	// 根据之前code码，取出parent token信息
+	expires, err := dao.ExpiresX(ctx, s.db, egorm.Conds{
+		"token": data.AuthorizeData.Code,
+	})
+	if err != nil {
+		return fmt.Errorf("pToken not found, err: %w", err)
+	}
 
 	if data.Client == nil {
 		return errors.New("data.Client must not be nil")
@@ -242,17 +249,18 @@ func (s *Storage) SaveAccess(ctx context.Context, data *server.AccessData) (err 
 		return
 	}
 
-	err = s.addExpireAtData(ctx, tx, data.AccessToken, data.ExpireAt())
-	if err != nil {
-		tx.Rollback()
-		return
-	}
+	// 可以不需要了，因为我们用redis存储了
+	//err = s.addExpireAtData(ctx, tx, data.AccessToken, data.ExpireAt(), expires.Ptoken)
+	//if err != nil {
+	//	tx.Rollback()
+	//	return
+	//}
 
 	err = s.tokenServer.createToken(ctx, data.Client.GetId(), dto.Token{
 		Token:     data.AccessToken,
 		AuthAt:    time.Now().Unix(),
 		ExpiresIn: s.config.parentAccessExpiration,
-	}, pToken.Token)
+	}, expires.Ptoken)
 	if err != nil {
 		tx.Rollback()
 		return fmt.Errorf("设置redis token失败, err:%w", err)
@@ -394,10 +402,11 @@ func (s *Storage) saveRefresh(ctx context.Context, tx *gorm.DB, refresh, access 
 }
 
 // addExpireAtData add info in expires table
-func (s *Storage) addExpireAtData(ctx context.Context, tx *gorm.DB, code string, expireAt time.Time) (err error) {
+func (s *Storage) addExpireAtData(ctx context.Context, tx *gorm.DB, code string, expireAt time.Time, parentToken string) (err error) {
 	obj := dao.Expires{
 		Token:     code,
 		ExpiresAt: expireAt.Unix(),
+		Ptoken:    parentToken,
 	}
 	err = dao.ExpiresCreate(ctx, tx, &obj)
 	return
@@ -410,8 +419,8 @@ func (s *Storage) removeExpireAtData(ctx context.Context, code string) (err erro
 }
 
 // CreateParentToken 创建父级token
-func (s *Storage) CreateParentToken(ctx context.Context, pToken dto.Token, userInfo *dto.User) (err error) {
-	return s.tokenServer.createParentToken(ctx, pToken, userInfo)
+func (s *Storage) CreateParentToken(ctx context.Context, pToken dto.Token, userInfo *dto.User, clientType string) (err error) {
+	return s.tokenServer.createParentToken(ctx, pToken, userInfo, clientType)
 }
 
 // RenewParentToken 续期父级token
