@@ -38,7 +38,7 @@ func DefaultConfig() *Config {
 		AccessExpiration:            3600,
 		TokenType:                   "Bearer",
 		AllowedAuthorizeTypes:       AllowedAuthorizeTypes{CODE},
-		AllowedAccessTypes:          AllowedAccessTypes{AUTHORIZATION_CODE},
+		AllowedAccessTypes:          AllowedAccessTypes{AUTHORIZATION_CODE, REFRESH_TOKEN},
 		ErrorStatusCode:             200,
 		AllowClientSecretInParams:   true,
 		AllowGetAccessRequest:       false,

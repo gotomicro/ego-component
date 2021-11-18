@@ -36,15 +36,15 @@ func initTokenServer(config *config, redis *eredis.Component) *tokenServer {
 }
 
 // createParentToken sso的父节点token
-func (t *tokenServer) createParentToken(ctx context.Context, pToken dto.Token, userInfo *dto.User, clientType string) (err error) {
+func (t *tokenServer) createParentToken(ctx context.Context, pToken dto.Token, uid int64, platform string) (err error) {
 	// 1 设置uid 到 parent token关系
-	err = t.uidMapParentToken.setToken(ctx, userInfo.Uid, clientType, pToken)
+	err = t.uidMapParentToken.setToken(ctx, uid, platform, pToken)
 	if err != nil {
 		return fmt.Errorf("token.createParentToken: create token map failed, err:%w", err)
 	}
 
 	// 2 创建父级的token信息
-	return t.parentToken.create(ctx, pToken, userInfo)
+	return t.parentToken.create(ctx, pToken, platform, uid)
 }
 
 func (t *tokenServer) renewParentToken(ctx context.Context, pToken dto.Token) (err error) {
@@ -80,8 +80,8 @@ func (t *tokenServer) getToken(clientId string, pToken string) (tokenInfo dto.To
 	return t.parentToken.getToken(context.Background(), pToken, clientId)
 }
 
-func (t *tokenServer) getUserByParentToken(ctx context.Context, pToken string) (info *dto.User, err error) {
-	return t.parentToken.getUser(ctx, pToken)
+func (t *tokenServer) getUidByParentToken(ctx context.Context, pToken string) (uid int64, err error) {
+	return t.parentToken.getUid(ctx, pToken)
 }
 
 func (t *tokenServer) getParentTokenByToken(ctx context.Context, token string) (pToken string, err error) {
@@ -90,13 +90,13 @@ func (t *tokenServer) getParentTokenByToken(ctx context.Context, token string) (
 	return
 }
 
-func (t *tokenServer) getUserByToken(ctx context.Context, token string) (info *dto.User, err error) {
+func (t *tokenServer) getUidByToken(ctx context.Context, token string) (uid int64, err error) {
 	// 通过子系统token，获得父节点token
 	pToken, err := t.getParentTokenByToken(ctx, token)
 	if err != nil {
 		return
 	}
-	return t.getUserByParentToken(ctx, pToken)
+	return t.getUidByParentToken(ctx, pToken)
 }
 
 func (t *tokenServer) refreshToken(ctx context.Context, clientId string, pToken string) (tk *dto.Token, err error) {

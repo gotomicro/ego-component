@@ -19,7 +19,7 @@ type config struct {
 			key: sso:uid:{uid}
 			expiration: 最大的过期时间
 			value:
-				ctimeList:                 [{"clientType1|parentToken":"ctime"}]
+				expireList:                [{"clientType1|parentToken":"ctime"}]
 				expireTime:                最大过期时间
 				{clientType1|parentToken}: parentTokenJsonInfo
 				{clientType2|parentToken}: parentTokenJsonInfo
@@ -31,9 +31,9 @@ type config struct {
 					 key: sso:ptk:{parentToken}
 		  			 expiration: 最大的过期时间
 					 value:
-						userInfo:              userInfo
+						uid:                   uid
 						tokenInfo:             tokenInfo
-						ctimeList:             [{"subTokenClientId1":"ctime"}]
+						expireList:             [{"subTokenClientId1":"ctime"}]
 						expireTime:            最大过期时间
 						{subTokenClientId1}:   tokenJsonInfo
 						{subTokenClientId2}:   tokenJsonInfo
@@ -62,7 +62,7 @@ func defaultConfig() *config {
 		parentTokenMapSubTokenKey: "sso:ptk:%s", //  parent token map
 		subTokenMapParentTokenKey: "sso:stk:%s", // sub token map parent token
 		parentAccessExpiration:    24 * 3600,
-		//clientType:                []string{"web", "android", "ios"},
+		//platform:                []string{"web", "android", "ios"},
 	}
 }
 
@@ -71,15 +71,17 @@ type subToken struct {
 	hashKeyParentToken string
 	hashKeyClientId    string
 	hashKeyTokenInfo   string
+	hashKeyCtime       string
 	redis              *eredis.Component
 }
 
 func newSubToken(config *config, redis *eredis.Component) *subToken {
 	return &subToken{
 		config:             config,
-		hashKeyParentToken: "pToken",
-		hashKeyClientId:    "clientId",
-		hashKeyTokenInfo:   "tokenInfo",
+		hashKeyCtime:       "_c", // create time
+		hashKeyParentToken: "_pt",
+		hashKeyClientId:    "_id",
+		hashKeyTokenInfo:   "_t",
 		redis:              redis,
 	}
 }
@@ -89,14 +91,10 @@ func (s *subToken) getKey(subToken string) string {
 }
 
 func (s *subToken) create(ctx context.Context, token dto.Token, parentToken string, clientId string) error {
-	tokenStr, err := token.Marshal()
-	if err != nil {
-		return err
-	}
-	err = s.redis.HMSet(ctx, s.getKey(token.Token), map[string]interface{}{
+	err := s.redis.HMSet(ctx, s.getKey(token.Token), map[string]interface{}{
 		s.hashKeyParentToken: parentToken,
 		s.hashKeyClientId:    clientId,
-		s.hashKeyTokenInfo:   tokenStr,
+		s.hashKeyCtime:       time.Now().Unix(),
 	}, time.Duration(token.ExpiresIn)*time.Second)
 	if err != nil {
 		return fmt.Errorf("subToken.create token failed, err:%w", err)
@@ -126,7 +124,7 @@ func newUidMapParentToken(config *config, redis *eredis.Component) *uidMapParent
 		config:             config,
 		redis:              redis,
 		hashExpireTimeList: "_etl", // expire time List
-		hashExpireTime:     "_et",  // max expire time，最大过期时间，unix时间戳，到了时间就会过期被删除
+		hashExpireTime:     "_et",  // expire time，最大过期时间，unix时间戳，到了时间就会过期被删除
 	}
 }
 
@@ -143,8 +141,8 @@ func (u *uidMapParentToken) getFieldKey(clientType string, parentToken string) s
 //   expireTimeList:            [{"clientType1|parentToken":"expire的时间戳"}]
 //	 expireTime:                最大过期时间
 
-func (u *uidMapParentToken) setToken(ctx context.Context, uid int64, clientType string, pToken dto.Token) error {
-	fieldKey := u.getFieldKey(clientType, pToken.Token)
+func (u *uidMapParentToken) setToken(ctx context.Context, uid int64, platform string, pToken dto.Token) error {
+	fieldKey := u.getFieldKey(platform, pToken.Token)
 
 	expireTime, err := u.getExpireTime(ctx, uid)
 	if err != nil {
@@ -156,7 +154,7 @@ func (u *uidMapParentToken) setToken(ctx context.Context, uid int64, clientType 
 	}
 	nowTime := time.Now().Unix()
 	newExpireTimeList := make(uidTokenExpires, 0)
-	// 新数据添加到队列前面
+	// 新数据添加到队列前面，这样方便后续清除数据，或者对数据做一些限制
 	newExpireTimeList = append(newExpireTimeList, uidTokenExpire{
 		Token:      fieldKey,
 		ExpireTime: nowTime + pToken.ExpiresIn,
@@ -190,7 +188,7 @@ func (u *uidMapParentToken) setToken(ctx context.Context, uid int64, clientType 
 		return fmt.Errorf("uidMapParentToken.createToken failed, err: %w", err)
 	}
 
-	err = u.redis.HSet(ctx, u.getKey(uid), u.getFieldKey(clientType, pToken.Token), pTokenByte)
+	err = u.redis.HSet(ctx, u.getKey(uid), u.getFieldKey(platform, pToken.Token), pTokenByte)
 	if err != nil {
 		return fmt.Errorf("uidMapParentToken setToken HSet token info failed, error: %w", err)
 	}
@@ -212,7 +210,7 @@ func (u *uidMapParentToken) setToken(ctx context.Context, uid int64, clientType 
 	return nil
 }
 
-// 获取过期时间，快过期的在最前面。
+// 获取过期时间，最新的在最前面。
 func (u *uidMapParentToken) getExpireTimeList(ctx context.Context, uid int64) (userInfo uidTokenExpires, err error) {
 	// 根据父节点token，获取用户信息
 	infoBytes, err := u.redis.Client().HGet(ctx, u.getKey(uid), u.hashExpireTimeList).Bytes()
@@ -259,20 +257,23 @@ func (u *uidMapParentToken) getExpireTime(ctx context.Context, uid int64) (expir
 //}
 
 type parentToken struct {
-	config           *config
-	redis            *eredis.Component
-	hashKeyCtime     string
-	hashKeyUserInfo  string
-	hashKeyTokenInfo string
+	config             *config
+	redis              *eredis.Component
+	hashKeyCtime       string
+	hashKeyUid         string
+	hashKeyPlatform    string
+	hashExpireTimeList string
 }
 
 func newParentToken(config *config, redis *eredis.Component) *parentToken {
 	return &parentToken{
-		config:           config,
-		redis:            redis,
-		hashKeyCtime:     "ctime",
-		hashKeyUserInfo:  "userInfo",
-		hashKeyTokenInfo: "tokenInfo",
+		config:             config,
+		redis:              redis,
+		hashKeyCtime:       "_c",   // create time
+		hashKeyPlatform:    "_p",   // 类型
+		hashKeyUid:         "_u",   // uid
+		hashExpireTimeList: "_etl", // expire time List
+
 	}
 }
 
@@ -280,20 +281,11 @@ func (p *parentToken) getKey(pToken string) string {
 	return fmt.Sprintf(p.config.parentTokenMapSubTokenKey, pToken)
 }
 
-func (p *parentToken) create(ctx context.Context, pToken dto.Token, userInfo *dto.User) error {
-	userStr, err := userInfo.Marshal()
-	if err != nil {
-		return err
-	}
-
-	tokenStr, err := pToken.Marshal()
-	if err != nil {
-		return err
-	}
-	err = p.redis.HMSet(ctx, p.getKey(pToken.Token), map[string]interface{}{
-		p.hashKeyCtime:     time.Now().Unix(),
-		p.hashKeyUserInfo:  userStr,
-		p.hashKeyTokenInfo: tokenStr,
+func (p *parentToken) create(ctx context.Context, pToken dto.Token, platform string, uid int64) error {
+	err := p.redis.HMSet(ctx, p.getKey(pToken.Token), map[string]interface{}{
+		p.hashKeyCtime:    time.Now().Unix(),
+		p.hashKeyUid:      uid,
+		p.hashKeyPlatform: platform,
 	}, time.Duration(pToken.ExpiresIn)*time.Second)
 	if err != nil {
 		return fmt.Errorf("parentToken.create failed, err:%w", err)
@@ -302,16 +294,11 @@ func (p *parentToken) create(ctx context.Context, pToken dto.Token, userInfo *dt
 }
 
 func (p *parentToken) renew(ctx context.Context, pToken dto.Token) error {
-	tokenStr, err := pToken.Marshal()
-	if err != nil {
-		return err
-	}
-	err = p.redis.HMSet(ctx, p.getKey(pToken.Token), map[string]interface{}{
-		p.hashKeyTokenInfo: tokenStr,
-	}, time.Duration(pToken.ExpiresIn)*time.Second)
+	err := p.redis.Client().Expire(ctx, p.getKey(pToken.Token), time.Duration(pToken.ExpiresIn)*time.Second).Err()
 	if err != nil {
 		return fmt.Errorf("parentToken.renew failed, err:%w", err)
 	}
+
 	return nil
 }
 
@@ -323,28 +310,55 @@ func (p *parentToken) delete(ctx context.Context, pToken string) error {
 	return nil
 }
 
-func (p *parentToken) getUser(ctx context.Context, pToken string) (userInfo *dto.User, err error) {
+func (p *parentToken) getUid(ctx context.Context, pToken string) (uid int64, err error) {
 	// 根据父节点token，获取用户信息
-	userInfoStr, err := p.redis.HGet(ctx, p.getKey(pToken), p.hashKeyUserInfo)
+	uid, err = p.redis.Client().HGet(ctx, p.getKey(pToken), p.hashKeyUid).Int64()
 	if err != nil {
-		err = fmt.Errorf("parentToken getUser failed, err: %w", err)
-		return
-	}
-
-	userInfo = &dto.User{}
-	err = userInfo.Unmarshal([]byte(userInfoStr))
-	if err != nil {
-		err = fmt.Errorf("getUserByToken json unmarshal error, %w", err)
+		err = fmt.Errorf("parentToken getUid failed, err: %w", err)
 		return
 	}
 	return
 }
 
 func (p *parentToken) setToken(ctx context.Context, pToken string, clientId string, token dto.Token) error {
+	expireTimeList, err := p.getExpireTimeList(ctx, pToken)
+	if err != nil {
+		return err
+	}
 	// 如果不存在key，报错
-	_, err := p.redis.HGet(ctx, p.getKey(pToken), p.hashKeyCtime)
+	_, err = p.redis.HGet(ctx, p.getKey(pToken), p.hashKeyCtime)
 	if err != nil {
 		return fmt.Errorf("parentToken.createToken get key empty, err: %w", err)
+	}
+
+	nowTime := time.Now().Unix()
+	newExpireTimeList := make(uidTokenExpires, 0)
+	// 新数据添加到队列前面，这样方便后续清除数据，或者对数据做一些限制
+	newExpireTimeList = append(newExpireTimeList, uidTokenExpire{
+		Token:      clientId,
+		ExpireTime: nowTime + token.ExpiresIn,
+	})
+
+	// 删除过期的数据
+	hdelFields := make([]string, 0)
+	for _, value := range expireTimeList {
+		// 过期时间小于当前时间，那么需要删除
+		if value.ExpireTime <= nowTime {
+			hdelFields = append(hdelFields, value.Token)
+			continue
+		}
+		newExpireTimeList = append(newExpireTimeList, value)
+	}
+	if len(hdelFields) > 0 {
+		err = p.redis.HDel(ctx, p.getKey(pToken), hdelFields...)
+		if err != nil {
+			return fmt.Errorf("uidMapParentToken setToken HDel expire data failed, error: %w", err)
+		}
+	}
+
+	err = p.redis.HSet(ctx, p.getKey(pToken), p.hashExpireTimeList, newExpireTimeList.Marshal())
+	if err != nil {
+		return fmt.Errorf("uidMapParentToken setToken HSet expire time failed, error: %w", err)
 	}
 
 	tokenJsonInfo, err := token.Marshal()
@@ -352,12 +366,33 @@ func (p *parentToken) setToken(ctx context.Context, pToken string, clientId stri
 		return fmt.Errorf("parentToken.createToken json marshal failed, err: %w", err)
 	}
 
-	// setTTL token map
 	err = p.redis.HSet(ctx, p.getKey(pToken), clientId, tokenJsonInfo)
 	if err != nil {
 		return fmt.Errorf("parentToken.createToken hset failed, err:%w", err)
 	}
 	return nil
+}
+
+// 获取过期时间，最新的在最前面。
+func (p *parentToken) getExpireTimeList(ctx context.Context, pToken string) (userInfo uidTokenExpires, err error) {
+	// 根据父节点token，获取用户信息
+	infoBytes, err := p.redis.Client().HGet(ctx, p.getKey(pToken), p.hashExpireTimeList).Bytes()
+	if err != nil && !errors.Is(err, redis.Nil) {
+		err = fmt.Errorf("parentToken getExpireTimeList failed, err: %w", err)
+		return
+	}
+	if errors.Is(err, redis.Nil) {
+		err = nil
+		return
+	}
+
+	pUserInfo := &userInfo
+	err = pUserInfo.Unmarshal(infoBytes)
+	if err != nil {
+		err = fmt.Errorf("parentToken getExpireTimeList json unmarshal error, %w", err)
+		return
+	}
+	return
 }
 
 func (p *parentToken) getToken(ctx context.Context, pToken string, clientId string) (tokenInfo dto.Token, err error) {
