@@ -383,6 +383,7 @@ func (ar *AccessRequest) Build(options ...AccessRequestOption) error {
 	var ret *AccessData
 	var err error
 
+	// 默认走nil这个逻辑
 	if ar.ForceAccessData == nil {
 		// generate access token
 		ret = &AccessData{

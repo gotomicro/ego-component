@@ -154,13 +154,18 @@ func (s *Storage) RemoveAuthorize(ctx context.Context, code string) (err error) 
 // SaveAccess writes AccessData.
 // If RefreshToken is not blank, it must save in a way that can be loaded using LoadRefresh.
 func (s *Storage) SaveAccess(ctx context.Context, data *server.AccessData) (err error) {
-	prev := ""
+	prevToken := ""
 	authorizeData := &server.AuthorizeData{}
 
+	// 之前的access token
+	// 如果是authorize token，那么该数据为空
+	// 如果是refresh token，有这个数据
 	if data.AccessData != nil {
-		prev = data.AccessData.AccessToken
+		prevToken = data.AccessData.AccessToken
 	}
 
+	// 如果是authorize token，有这个数据
+	// 如果是refresh token，那么该数据为空
 	if data.AuthorizeData != nil {
 		authorizeData = data.AuthorizeData
 	}
@@ -173,41 +178,33 @@ func (s *Storage) SaveAccess(ctx context.Context, data *server.AccessData) (err 
 
 	extra := cast.ToString(data.UserData)
 
-	ssoUser := &dto.User{}
-	err = ssoUser.Unmarshal([]byte(extra))
-	if err != nil {
-		return fmt.Errorf("解析登录用户json数据失败, err: %w", err)
-	}
-
 	tx := s.db.Begin()
 
-	// 1 获取父级token，也可以认为是refresh token
-	//pToken, err := s.tokenServer.getParentToken(ssoUser.Uid)
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//data.RefreshToken = pToken.Token
-
-	// 创建parent token和sub token关系
-	//if err = s.saveRefresh(ctx, tx, pToken.Token, data.AccessToken); err != nil {
-	//	tx.Rollback()
-	//	return err
-	//}
-
-	//if data.RefreshToken != "" {
-	//	if err := s.saveRefresh(ctx, tx, data.RefreshToken, data.AccessToken); err != nil {
-	//		tx.Rollback()
-	//		return err
-	//	}
-	//}
-
-	// 根据之前code码，取出parent token信息
-	expires, err := dao.ExpiresX(ctx, s.db, egorm.Conds{
-		"token": data.AuthorizeData.Code,
-	})
-	if err != nil {
-		return fmt.Errorf("pToken not found, err: %w", err)
+	pToken := ""
+	// 这种是在authorize token的时候，会有code信息
+	if authorizeData.Code != "" {
+		// 根据之前code码，取出parent token信息
+		expires, err := dao.ExpiresX(ctx, s.db, egorm.Conds{
+			"token": authorizeData.Code,
+		})
+		if err != nil {
+			return fmt.Errorf("pToken not found1, err: %w", err)
+		}
+		pToken = expires.Ptoken
+		// refresh token的时候，没有该信息
+		// 1 拿到原先的sub token，看是否有效
+		// 2 再从sub token中找到对应parent token，看是否有效
+		// 3 刷新token
+		// 从load refresh里拿到老的access token信息，查询到ptoken，并处理老token的逻辑
+	} else {
+		// todo 老的token是需要将过期时间变短
+		pToken, err = s.tokenServer.getParentTokenByToken(ctx, prevToken)
+		if err != nil {
+			return fmt.Errorf("pToken not found2, err: %w", err)
+		}
+	}
+	if pToken == "" {
+		return fmt.Errorf("ptoken is empty")
 	}
 
 	if data.Client == nil {
@@ -217,7 +214,7 @@ func (s *Storage) SaveAccess(ctx context.Context, data *server.AccessData) (err 
 	obj := dao.Access{
 		Client:       data.Client.GetId(),
 		Authorize:    authorizeData.Code,
-		Previous:     prev,
+		Previous:     prevToken,
 		AccessToken:  data.AccessToken,
 		RefreshToken: data.RefreshToken,
 		ExpiresIn:    int(data.ExpiresIn),
@@ -249,18 +246,11 @@ func (s *Storage) SaveAccess(ctx context.Context, data *server.AccessData) (err 
 		return
 	}
 
-	// 可以不需要了，因为我们用redis存储了
-	//err = s.addExpireAtData(ctx, tx, data.AccessToken, data.ExpireAt(), expires.Ptoken)
-	//if err != nil {
-	//	tx.Rollback()
-	//	return
-	//}
-
 	err = s.tokenServer.createToken(ctx, data.Client.GetId(), dto.Token{
 		Token:     data.AccessToken,
 		AuthAt:    time.Now().Unix(),
 		ExpiresIn: s.config.parentAccessExpiration,
-	}, expires.Ptoken)
+	}, pToken)
 	if err != nil {
 		tx.Rollback()
 		return fmt.Errorf("设置redis token失败, err:%w", err)
@@ -295,11 +285,7 @@ func (s *Storage) LoadAccess(ctx context.Context, token string) (*server.AccessD
 	if err != nil {
 		return nil, err
 	}
-
 	result.Client = client
-	result.AuthorizeData, _ = s.LoadAuthorize(ctx, info.Authorize)
-	prevAccess, _ := s.LoadAccess(ctx, info.Previous)
-	result.AccessData = prevAccess
 	return &result, nil
 }
 
@@ -316,60 +302,30 @@ func (s *Storage) RemoveAccess(ctx context.Context, token string) (err error) {
 	if err != nil {
 		return
 	}
-	pToken, err := s.tokenServer.getParentTokenByToken(ctx, token)
-	if err != nil {
-		return err
-	}
+
+	// todo 应该移除子节点token，在这里设置expire sub token
+	// 不能删除parent token
+
+	//pToken, err := s.tokenServer.getParentTokenByToken(ctx, token)
+	//if err != nil {
+	//	return err
+	//}
 
 	// 删除redis token
-	s.tokenServer.removeParentToken(ctx, pToken)
+	//s.tokenServer.removeParentToken(ctx, pToken)
 	return
 }
 
 // LoadRefresh retrieves refresh AccessData. Client information MUST be loaded together.
+// 原本的load refresh，是使用refresh token来换取新的token，但是在单点登录下，可以简单操作。
+// 1 拿到原先的sub token，看是否有效
+// 2 再从sub token中找到对应parent token，看是否有效
+// 3 刷新token
+// 必须要这个信息用于给予access token，告诉oauth2老的token，用于在save access的时候，查询到ptoken，并处理老token的逻辑
 // AuthorizeData and AccessData DON'T NEED to be loaded if not easily available.
 // Optionally can return error if expired
 func (s *Storage) LoadRefresh(ctx context.Context, token string) (*server.AccessData, error) {
-	return nil, fmt.Errorf("not implement")
-	// 这里的refresh token，实际上是parent token
-	//span, ctx := etrace.StartSpanFromContext(context.Background(), "redisStorage.LoadRefresh")
-	//defer span.Finish()
-	//
-	//info, err := dao.RefreshInfoX(ctx, s.db, egorm.Conds{"token": token})
-	//if err != nil {
-	//	return nil, err
-	//}
-	//accessInfo, err := dao.AccessInfoX(ctx, s.db, egorm.Conds{"access_token": info.Access})
-	//if err != nil {
-	//	return nil, err
-	//}
-	//var result server.AccessData
-	//
-	//result.AccessToken = accessInfo.AccessToken
-	//result.RefreshToken = token
-	//result.ExpiresIn = int32(accessInfo.ExpiresIn)
-	//result.Scope = accessInfo.Scope
-	//result.RedirectUri = accessInfo.RedirectUri
-	//result.CreatedAt = time.Unix(accessInfo.Ctime, 0)
-	//result.UserData = accessInfo.Extra
-	//client, err := s.GetClient(ctx, accessInfo.Client)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//
-	//result.Client = client
-	//
-	//tk, err := s.tokenServer.refreshToken(ctx, client.GetId(), token)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//
-	//var result server.AccessData
-	//result.Client = client
-	//result.AccessToken = tk.Token
-	//result.CreatedAt = time.Unix(tk.AuthAt, 0)
-	//result.ExpiresIn = int32(tk.ExpiresIn)
-	//return result, 0
+	return s.LoadAccess(ctx, token)
 }
 
 // RemoveRefresh revokes or deletes refresh AccessData.
@@ -419,8 +375,8 @@ func (s *Storage) removeExpireAtData(ctx context.Context, code string) (err erro
 }
 
 // CreateParentToken 创建父级token
-func (s *Storage) CreateParentToken(ctx context.Context, pToken dto.Token, userInfo *dto.User, clientType string) (err error) {
-	return s.tokenServer.createParentToken(ctx, pToken, userInfo, clientType)
+func (s *Storage) CreateParentToken(ctx context.Context, pToken dto.Token, uid int64, platform string) (err error) {
+	return s.tokenServer.createParentToken(ctx, pToken, uid, platform)
 }
 
 // RenewParentToken 续期父级token
@@ -428,8 +384,8 @@ func (s *Storage) RenewParentToken(ctx context.Context, pToken dto.Token) (err e
 	return s.tokenServer.renewParentToken(ctx, pToken)
 }
 
-func (s *Storage) GetUserByParentToken(ctx context.Context, token string) (info *dto.User, err error) {
-	return s.tokenServer.getUserByParentToken(ctx, token)
+func (s *Storage) GetUidByParentToken(ctx context.Context, token string) (uid int64, err error) {
+	return s.tokenServer.getUidByParentToken(ctx, token)
 }
 
 func (s *Storage) RemoveParentToken(ctx context.Context, pToken string) (err error) {
@@ -441,8 +397,8 @@ func (s *Storage) CreateToken(ctx context.Context, clientId string, token dto.To
 	return s.tokenServer.createToken(ctx, clientId, token, pToken)
 }
 
-func (s *Storage) GetUserByToken(ctx context.Context, token string) (info *dto.User, err error) {
-	return s.tokenServer.getUserByToken(ctx, token)
+func (s *Storage) GetUidByToken(ctx context.Context, token string) (uid int64, err error) {
+	return s.tokenServer.getUidByToken(ctx, token)
 }
 
 func (s *Storage) RefreshToken(ctx context.Context, clientId string, pToken string) (tk *dto.Token, err error) {
