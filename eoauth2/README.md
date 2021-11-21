@@ -24,7 +24,6 @@
     * remove authorization token
 * 刷新token
     * save access token
-    * remove authorization token
     * remove previous access token
     
 ### 文献
