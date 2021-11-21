@@ -316,6 +316,29 @@ func (s *Storage) RemoveAccess(ctx context.Context, token string) (err error) {
 	return
 }
 
+// RemoveAllAccess 通过token，删除自己的token，以及父token
+func (s *Storage) RemoveAllAccess(ctx context.Context, token string) (err error) {
+	span, ctx := etrace.StartSpanFromContext(ctx, "redisStorage.RemoveAccess")
+	defer span.Finish()
+
+	err = dao.AccessDeleteX(ctx, s.db, egorm.Conds{"access_token": token})
+	if err != nil {
+		return
+	}
+	err = s.removeExpireAtData(ctx, token)
+	if err != nil {
+		return
+	}
+
+	pToken, err := s.tokenServer.getParentTokenByToken(ctx, token)
+	if err != nil {
+		return err
+	}
+
+	// 删除redis token
+	return s.tokenServer.removeParentToken(ctx, pToken)
+}
+
 // LoadRefresh retrieves refresh AccessData. Client information MUST be loaded together.
 // 原本的load refresh，是使用refresh token来换取新的token，但是在单点登录下，可以简单操作。
 // 1 拿到原先的sub token，看是否有效
