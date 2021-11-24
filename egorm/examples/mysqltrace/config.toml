@@ -11,4 +11,4 @@
 #   enableDetailSQL = false
 #   enableAccessInterceptor = true
 #   enableAccessInterceptorReq = true
-#   enableAccessInterceptorReply = true
+#   enableAccessInterceptorRes = true

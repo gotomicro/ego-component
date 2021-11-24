@@ -12,6 +12,7 @@ import (
 const (
 	dialectMysql    = "mysql"
 	dialectPostgres = "postgres"
+	dialectDm       = "dm"
 )
 
 var errSupportDialect = errors.New("invalid support Dialect")

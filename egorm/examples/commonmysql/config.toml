@@ -11,7 +11,8 @@
 #   enableDetailSQL = false
 #   enableAccessInterceptor = true
 #   enableAccessInterceptorReq = true
-#   enableAccessInterceptorReply = true
+#   enableAccessInterceptorRes = true
+
 
 [pg.test]
    dialect = "postgres"
@@ -27,7 +28,8 @@
 #   enableDetailSQL = false
 #   enableAccessInterceptor = true
 #   enableAccessInterceptorReq = true
-#   enableAccessInterceptorReply = true
+#   enableAccessInterceptorRes = true
+
 
 [other.test]
    dialect = "other"
@@ -43,4 +45,5 @@
 #   enableDetailSQL = false
 #   enableAccessInterceptor = true
 #   enableAccessInterceptorReq = true
-#   enableAccessInterceptorReply = true
+#   enableAccessInterceptorRes = true
+
