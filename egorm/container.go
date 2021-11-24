@@ -46,6 +46,8 @@ func (c *Container) setDSNParserIfNotExists(dialect string) error {
 		c.dsnParser = dsn.DefaultMysqlDSNParser
 	case dialectPostgres:
 		c.dsnParser = dsn.DefaultPostgresDSNParser
+	case dialectDm:
+		c.dsnParser = dsn.DefaultDmDSNParser
 	default:
 		return errSupportDialect
 	}

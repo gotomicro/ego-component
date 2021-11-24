@@ -3,13 +3,13 @@ package egorm
 import (
 	"context"
 	"errors"
+	"fmt"
 
+	"github.com/gotomicro/ego-component/egorm/dsn"
 	"github.com/gotomicro/ego/core/elog"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 	"gorm.io/gorm/schema"
-
-	"github.com/gotomicro/ego-component/egorm/dsn"
 )
 
 // PackageName ...
@@ -52,6 +52,7 @@ func WithContext(ctx context.Context, db *Component) *Component {
 // newComponent ...
 func newComponent(compName string, dsnParser dsn.DSNParser, config *config, elogger *elog.Component) (*Component, error) {
 	db, err := gorm.Open(dsnParser.GetDialector(config.DSN), &gorm.Config{})
+	fmt.Printf("err--------------->"+"%+v\n", err)
 	if err != nil {
 		return nil, err
 	}
@@ -88,6 +89,5 @@ func newComponent(compName string, dsnParser dsn.DSNParser, config *config, elog
 	replace(db.Callback().Query(), "gorm:query", config.interceptors...)
 	// replace(db.Callback().Row(), "gorm:row", config.interceptors...)
 	replace(db.Callback().Raw(), "gorm:raw", config.interceptors...)
-
 	return db, nil
 }
