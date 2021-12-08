@@ -15,8 +15,9 @@ import (
 	"github.com/gotomicro/ego/core/transport"
 	"github.com/gotomicro/ego/core/util/xdebug"
 	"github.com/gotomicro/ego/core/util/xstring"
-	"github.com/opentracing/opentracing-go"
 	"github.com/segmentio/kafka-go"
+	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type serverProcessFn func(context.Context, Messages, *cmd) error
@@ -49,23 +50,20 @@ func fixedServerInterceptor(_ string, _ *config) ServerInterceptor {
 }
 
 func traceServerInterceptor(compName string, c *config) ServerInterceptor {
+	tracer := etrace.NewTracer(trace.SpanKindConsumer)
 	return func(next serverProcessFn) serverProcessFn {
 		return func(ctx context.Context, msgs Messages, cmd *cmd) error {
-			_, ctx = etrace.StartSpanFromContext(
-				ctx,
-				"kafka",
-			)
-			md := etrace.MetadataReaderWriter{MD: map[string][]string{}}
-			span := opentracing.SpanFromContext(ctx)
-			_ = opentracing.GlobalTracer().Inject(span.Context(), opentracing.HTTPHeaders, md)
+			carrier := propagation.MapCarrier{}
+			ctx, span := tracer.Start(ctx, "kafka", carrier)
+			defer span.End()
 			headers := make([]kafka.Header, 0)
-			md.ForeachKey(func(key, val string) error {
+			for _, key := range carrier.Keys() {
 				headers = append(headers, kafka.Header{
 					Key:   key,
-					Value: []byte(val),
+					Value: []byte(carrier.Get(key)),
 				})
-				return nil
-			})
+			}
+
 			for _, value := range msgs {
 				value.Headers = headers
 				value.Time = time.Now()
@@ -77,6 +75,7 @@ func traceServerInterceptor(compName string, c *config) ServerInterceptor {
 }
 
 func accessServerInterceptor(compName string, c *config, logger *elog.Component) ServerInterceptor {
+	tracer := etrace.NewTracer(trace.SpanKindConsumer)
 	return func(next serverProcessFn) serverProcessFn {
 		return func(ctx context.Context, msgs Messages, cmd *cmd) error {
 			err := next(ctx, msgs, cmd)
@@ -85,19 +84,15 @@ func accessServerInterceptor(compName string, c *config, logger *elog.Component)
 			// kafka 比较坑爹，合在一起处理链路
 			if c.EnableTraceInterceptor {
 
-				mds := make(map[string][]string)
+				carrier := propagation.MapCarrier{}
 				for _, value := range cmd.msg.Headers {
-					mds[value.Key] = []string{string(value.Value)}
+					carrier[value.Key] = string(value.Value)
 				}
-				md := etrace.MetadataReaderWriter{MD: mds}
-				sc, _ := opentracing.GlobalTracer().Extract(opentracing.HTTPHeaders, md)
-
-				// 重新赋值ctx
-				_, ctx = etrace.StartSpanFromContext(
-					ctx,
-					"kafka",
-					opentracing.ChildOf(sc),
+				var (
+					span trace.Span
 				)
+				ctx, span = tracer.Start(ctx, "kafka", carrier)
+				defer span.End()
 			}
 
 			cost := time.Since(ctx.Value(ctxStartTimeKey{}).(time.Time))
@@ -110,7 +105,7 @@ func accessServerInterceptor(compName string, c *config, logger *elog.Component)
 				)
 
 				// 开启了链路，那么就记录链路id
-				if c.EnableTraceInterceptor && opentracing.IsGlobalTracerRegistered() {
+				if c.EnableTraceInterceptor && etrace.IsGlobalTracerRegistered() {
 					fields = append(fields, elog.FieldTid(etrace.ExtractTraceID(ctx)))
 
 					for _, key := range loggerKeys {

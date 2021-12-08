@@ -15,9 +15,10 @@ import (
 	"github.com/gotomicro/ego/core/transport"
 	"github.com/gotomicro/ego/core/util/xdebug"
 	"github.com/gotomicro/ego/core/util/xstring"
-	"github.com/opentracing/opentracing-go"
 	"github.com/segmentio/kafka-go"
 	"github.com/spf13/cast"
+	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type ctxStartTimeKey struct{}
@@ -58,25 +59,20 @@ func fixedClientInterceptor(_ string, _ *config) ClientInterceptor {
 }
 
 func traceClientInterceptor(compName string, c *config) ClientInterceptor {
+	tracer := etrace.NewTracer(trace.SpanKindProducer)
 	return func(next clientProcessFn) clientProcessFn {
 		return func(ctx context.Context, msgs Messages, cmd *cmd) error {
-			_, ctx = etrace.StartSpanFromContext(
-				ctx,
-				"kafka",
-				etrace.TagSpanKind("client"),
-				etrace.TagComponent("kafka"),
-			)
-			md := etrace.MetadataReaderWriter{MD: map[string][]string{}}
-			span := opentracing.SpanFromContext(ctx)
-			_ = opentracing.GlobalTracer().Inject(span.Context(), opentracing.HTTPHeaders, md)
+			carrier := propagation.MapCarrier{}
+			ctx, span := tracer.Start(ctx, "kafka", carrier)
+			defer span.End()
+
 			headers := make([]kafka.Header, 0)
-			md.ForeachKey(func(key, val string) error {
+			for _, key := range carrier.Keys() {
 				headers = append(headers, kafka.Header{
 					Key:   key,
-					Value: []byte(val),
+					Value: []byte(carrier.Get(key)),
 				})
-				return nil
-			})
+			}
 			for _, value := range msgs {
 				value.Headers = append(value.Headers, headers...)
 				value.Time = time.Now()
@@ -94,7 +90,6 @@ func accessClientInterceptor(compName string, c *config, logger *elog.Component)
 			fields := make([]elog.Field, 0, 10+len(loggerKeys))
 
 			if c.EnableAccessInterceptor {
-
 				headers := make([]kafka.Header, 0)
 				for _, key := range loggerKeys {
 					if value := cast.ToString(transport.Value(ctx, key)); value != "" {
@@ -120,7 +115,7 @@ func accessClientInterceptor(compName string, c *config, logger *elog.Component)
 				)
 
 				// 开启了链路，那么就记录链路id
-				if c.EnableTraceInterceptor && opentracing.IsGlobalTracerRegistered() {
+				if c.EnableTraceInterceptor && etrace.IsGlobalTracerRegistered() {
 					fields = append(fields, elog.FieldTid(etrace.ExtractTraceID(ctx)))
 				}
 				if c.EnableAccessInterceptorReq {

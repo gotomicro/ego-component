@@ -10,7 +10,6 @@ import (
 	"github.com/gotomicro/ego-component/eoauth2/server"
 	"github.com/gotomicro/ego-component/eoauth2/storage/dao"
 	"github.com/gotomicro/ego/core/elog"
-	"github.com/gotomicro/ego/core/etrace"
 	"github.com/spf13/cast"
 	"gorm.io/gorm"
 )
@@ -42,9 +41,6 @@ func (s *storage) Close() {
 
 // GetClient loads the client by id
 func (s *storage) GetClient(ctx context.Context, clientId string) (client server.Client, err error) {
-	span, ctx := etrace.StartSpanFromContext(ctx, "mysqlStorage.GetClient")
-	defer span.Finish()
-
 	app, err := dao.AppInfoX(ctx, s.db, egorm.Conds{"client_id": clientId})
 	if err != nil {
 		err = fmt.Errorf("mysql storage get client error,err: %w", err)
@@ -71,11 +67,6 @@ func (s *storage) SaveAuthorize(ctx context.Context, data *server.AuthorizeData)
 		Ctime:       data.CreatedAt.Unix(),
 		Extra:       cast.ToString(data.UserData),
 	}
-	span, ctx := etrace.StartSpanFromContext(
-		ctx,
-		"mysqlStorage.SaveAuthorize",
-	)
-	defer span.Finish()
 
 	tx := s.db.Begin()
 	err = dao.AuthorizeCreate(ctx, tx, &obj)
@@ -97,12 +88,6 @@ func (s *storage) SaveAuthorize(ctx context.Context, data *server.AuthorizeData)
 // Client information MUST be loaded together.
 // Optionally can return error if expired.
 func (s *storage) LoadAuthorize(ctx context.Context, code string) (*server.AuthorizeData, error) {
-	span, ctx := etrace.StartSpanFromContext(
-		ctx,
-		"mysqlStorage.LoadAuthorize",
-	)
-	defer span.Finish()
-
 	var data server.AuthorizeData
 
 	info, err := dao.AuthorizeInfoX(ctx, s.db, egorm.Conds{"code": code})
@@ -134,12 +119,6 @@ func (s *storage) LoadAuthorize(ctx context.Context, code string) (*server.Autho
 
 // RemoveAuthorize revokes or deletes the authorization code.
 func (s *storage) RemoveAuthorize(ctx context.Context, code string) (err error) {
-	span, ctx := etrace.StartSpanFromContext(
-		ctx,
-		"mysqlStorage.RemoveAuthorize",
-	)
-	defer span.Finish()
-
 	err = dao.AuthorizeDeleteX(ctx, s.db, egorm.Conds{"code": code})
 	if err != nil {
 		return
@@ -154,12 +133,6 @@ func (s *storage) RemoveAuthorize(ctx context.Context, code string) (err error) 
 // SaveAccess writes AccessData.
 // If RefreshToken is not blank, it must save in a way that can be loaded using LoadRefresh.
 func (s *storage) SaveAccess(ctx context.Context, data *server.AccessData) (err error) {
-	span, ctx := etrace.StartSpanFromContext(
-		ctx,
-		"mysqlStorage.SaveAccess",
-	)
-	defer span.Finish()
-
 	prev := ""
 	authorizeData := &server.AuthorizeData{}
 
@@ -233,12 +206,6 @@ func (s *storage) SaveAccess(ctx context.Context, data *server.AccessData) (err 
 // AuthorizeData and AccessData DON'T NEED to be loaded if not easily available.
 // Optionally can return error if expired.
 func (s *storage) LoadAccess(ctx context.Context, code string) (*server.AccessData, error) {
-	span, ctx := etrace.StartSpanFromContext(
-		ctx,
-		"mysqlStorage.LoadAccess",
-	)
-	defer span.Finish()
-
 	var result server.AccessData
 
 	info, err := dao.AccessInfoX(ctx, s.db, egorm.Conds{"access_token": code})
@@ -267,12 +234,6 @@ func (s *storage) LoadAccess(ctx context.Context, code string) (*server.AccessDa
 
 // RemoveAccess revokes or deletes an AccessData.
 func (s *storage) RemoveAccess(ctx context.Context, code string) (err error) {
-	span, ctx := etrace.StartSpanFromContext(
-		ctx,
-		"mysqlStorage.RemoveAccess",
-	)
-	defer span.Finish()
-
 	err = dao.AccessDeleteX(ctx, s.db, egorm.Conds{"access_token": code})
 	if err != nil {
 		return
@@ -285,9 +246,6 @@ func (s *storage) RemoveAccess(ctx context.Context, code string) (err error) {
 // AuthorizeData and AccessData DON'T NEED to be loaded if not easily available.
 // Optionally can return error if expired.
 func (s *storage) LoadRefresh(ctx context.Context, code string) (*server.AccessData, error) {
-	span, ctx := etrace.StartSpanFromContext(ctx, "mysqlStorage.LoadRefresh")
-	defer span.Finish()
-
 	info, err := dao.RefreshInfoX(ctx, s.db, egorm.Conds{"token": code})
 	if err != nil {
 		return nil, err
@@ -297,9 +255,6 @@ func (s *storage) LoadRefresh(ctx context.Context, code string) (*server.AccessD
 
 // RemoveRefresh revokes or deletes refresh AccessData.
 func (s *storage) RemoveRefresh(ctx context.Context, code string) (err error) {
-	span, ctx := etrace.StartSpanFromContext(ctx, "mysqlStorage.RemoveRefresh")
-	defer span.Finish()
-
 	err = dao.RefreshDeleteX(ctx, s.db, egorm.Conds{"token": code})
 	return
 }

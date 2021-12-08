@@ -7,10 +7,7 @@ import (
 
 	"github.com/gotomicro/ego"
 	"github.com/gotomicro/ego-component/ekafka"
-	"github.com/gotomicro/ego/core/etrace"
-	"github.com/opentracing/opentracing-go"
 	"github.com/segmentio/kafka-go"
-	"github.com/uber/jaeger-client-go"
 )
 
 func main() {
@@ -37,32 +34,32 @@ func main() {
 // produce 生产消息
 func produce(ctx context.Context, w *ekafka.Producer) {
 	// 设置一个ctx
-	_, ctx = etrace.StartSpanFromContext(
-		context.Background(),
-		"kafka",
-	)
-	md := etrace.MetadataReaderWriter{MD: map[string][]string{}}
-	span := opentracing.SpanFromContext(ctx)
-	err := opentracing.GlobalTracer().Inject(span.Context(), opentracing.HTTPHeaders, md)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
+	//_, ctx = etrace.StartSpanFromContext(
+	//	context.Background(),
+	//	"kafka",
+	//)
+	//md := etrace.MetadataReaderWriter{MD: map[string][]string{}}
+	//span := opentracing.SpanFromContext(ctx)
+	//err := opentracing.GlobalTracer().Inject(span.Context(), opentracing.HTTPHeaders, md)
+	//if err != nil {
+	//	fmt.Println(err)
+	//	return
+	//}
 	headers := make([]kafka.Header, 0)
-	md.ForeachKey(func(key, val string) error {
-		headers = append(headers, kafka.Header{
-			Key:   key,
-			Value: []byte(val),
-		})
-		return nil
-	})
+	//md.ForeachKey(func(key, val string) error {
+	//	headers = append(headers, kafka.Header{
+	//		Key:   key,
+	//		Value: []byte(val),
+	//	})
+	//	return nil
+	//})
 
-	fmt.Println(md)
-	span = opentracing.SpanFromContext(ctx)
-	fmt.Printf("tid provider--------------->"+"%+v\n", span.Context().(jaeger.SpanContext).TraceID())
+	//fmt.Println(md)
+	//span = opentracing.SpanFromContext(ctx)
+	//fmt.Printf("tid provider--------------->"+"%+v\n", span.Context().(jaeger.SpanContext).TraceID())
 
 	// 生产3条消息
-	err = w.WriteMessages(ctx,
+	err := w.WriteMessages(ctx,
 		&ekafka.Message{Headers: headers, Key: []byte("Key-A"), Value: []byte("Hello World!")},
 	)
 	if err != nil {
@@ -89,21 +86,21 @@ func consume(r *ekafka.Consumer) {
 			mds[value.Key] = []string{string(value.Value)}
 		}
 
-		md := etrace.MetadataReaderWriter{MD: mds}
+		//md := etrace.MetadataReaderWriter{MD: mds}
 
-		sc, err := opentracing.GlobalTracer().Extract(opentracing.HTTPHeaders, md)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-
-		span, ctx := etrace.StartSpanFromContext(
-			ctx,
-			"kafka",
-			opentracing.ChildOf(sc),
-		)
-
-		fmt.Printf("tid consume--------------->"+"%+v\n", span.Context().(jaeger.SpanContext).TraceID())
+		//sc, err := opentracing.GlobalTracer().Extract(opentracing.HTTPHeaders, md)
+		//if err != nil {
+		//	fmt.Println(err)
+		//	return
+		//}
+		//
+		//span, ctx := etrace.StartSpanFromContext(
+		//	ctx,
+		//	"kafka",
+		//	opentracing.ChildOf(sc),
+		//)
+		//
+		//fmt.Printf("tid consume--------------->"+"%+v\n", span.Context().(jaeger.SpanContext).TraceID())
 
 		// 打印消息
 		fmt.Println("received headers: ", msg.Headers)

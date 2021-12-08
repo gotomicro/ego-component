@@ -10,13 +10,13 @@ import (
 	"github.com/gotomicro/ego-component/egorm/dsn"
 	"github.com/gotomicro/ego/core/transport"
 	"github.com/spf13/cast"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/gotomicro/ego/core/eapp"
 	"github.com/gotomicro/ego/core/elog"
 	"github.com/gotomicro/ego/core/emetric"
 	"github.com/gotomicro/ego/core/etrace"
 	"github.com/gotomicro/ego/core/util/xdebug"
-	"github.com/opentracing/opentracing-go"
 	"gorm.io/gorm"
 )
 
@@ -77,7 +77,7 @@ func metricInterceptor(compName string, dsn *dsn.DSN, op string, config *config,
 			}
 
 			// 开启了链路，那么就记录链路id
-			if config.EnableTraceInterceptor && opentracing.IsGlobalTracerRegistered() {
+			if config.EnableTraceInterceptor && etrace.IsGlobalTracerRegistered() {
 				fields = append(fields, elog.FieldTid(etrace.ExtractTraceID(db.Statement.Context)))
 			}
 
@@ -130,28 +130,24 @@ func logSQL(sql string, args []interface{}, containArgs bool) string {
 }
 
 func traceInterceptor(compName string, dsn *dsn.DSN, op string, options *config, logger *elog.Component) func(Handler) Handler {
+	tracer := etrace.NewTracer(trace.SpanKindClient)
 	return func(next Handler) Handler {
 		return func(db *gorm.DB) {
 			if db.Statement.Context != nil {
-				span, _ := etrace.StartSpanFromContext(
-					db.Statement.Context,
-					"GORM", // TODO this op value is op or GORM
-					etrace.TagComponent("mysql"),
-					etrace.TagSpanKind("client"),
-				)
-
-				defer span.Finish()
-
+				_, span := tracer.Start(db.Statement.Context, "GORM", nil)
+				defer span.End()
 				// 延迟执行 scope.CombinedConditionSql() 避免sqlVar被重复追加
 				next(db)
 
-				span.SetTag("sql.inner", dsn.DBName)
-				span.SetTag("sql.addr", dsn.Addr)
-				span.SetTag("span.kind", "client")
-				span.SetTag("peer.service", "mysql")
-				span.SetTag("db.instance", dsn.DBName)
-				span.SetTag("peer.address", dsn.Addr)
-				span.SetTag("peer.statement", logSQL(db.Statement.SQL.String(), db.Statement.Vars, options.EnableDetailSQL))
+				span.SetAttributes(
+					etrace.String("sql.inner", dsn.DBName),
+					etrace.String("sql.addr", dsn.Addr),
+					etrace.String("span.kind", "client"),
+					etrace.String("peer.service", "mysql"),
+					etrace.String("db.instance", dsn.DBName),
+					etrace.String("peer.address", dsn.Addr),
+					etrace.String("peer.statement", logSQL(db.Statement.SQL.String(), db.Statement.Vars, options.EnableDetailSQL)),
+				)
 				return
 			}
 

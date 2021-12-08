@@ -5,7 +5,9 @@ import (
 	"sync"
 
 	"github.com/gotomicro/ego/core/elog"
+	"github.com/gotomicro/ego/core/etrace"
 	"github.com/segmentio/kafka-go"
+	"go.opentelemetry.io/otel/trace"
 )
 
 const PackageName = "component.ekafka"
@@ -147,6 +149,7 @@ func (cmp *Component) Consumer(name string) *Consumer {
 		logMode: cmp.config.Debug,
 		Config:  config,
 		Brokers: cmp.config.Brokers,
+		tracer:  etrace.NewTracer(trace.SpanKindConsumer),
 	}
 	consumer.setProcessor(cmp.interceptorServerChain())
 	cmp.consumers[name] = consumer
