@@ -12,7 +12,6 @@ import (
 	"github.com/gotomicro/ego-component/eoauth2/storage/dto"
 	"github.com/gotomicro/ego-component/eredis"
 	"github.com/gotomicro/ego/core/elog"
-	"github.com/gotomicro/ego/core/etrace"
 	"github.com/spf13/cast"
 	"gorm.io/gorm"
 )
@@ -53,9 +52,6 @@ func (s *Storage) Close() {
 
 // GetClient loads the client by id
 func (s *Storage) GetClient(ctx context.Context, clientId string) (client server.Client, err error) {
-	span, ctx := etrace.StartSpanFromContext(ctx, "redisStorage.GetClient")
-	defer span.Finish()
-
 	app, err := dao.AppInfoX(ctx, s.db, egorm.Conds{"client_id": clientId})
 	if err != nil {
 		return
@@ -70,9 +66,6 @@ func (s *Storage) GetClient(ctx context.Context, clientId string) (client server
 
 // SaveAuthorize saves authorize data.
 func (s *Storage) SaveAuthorize(ctx context.Context, data *server.AuthorizeData) (err error) {
-	span, ctx := etrace.StartSpanFromContext(ctx, "redisStorage.SaveAuthorize")
-	defer span.Finish()
-
 	obj := dao.Authorize{
 		Client:      data.Client.GetId(),
 		Code:        data.Code,
@@ -103,9 +96,6 @@ func (s *Storage) SaveAuthorize(ctx context.Context, data *server.AuthorizeData)
 // Client information MUST be loaded together.
 // Optionally can return error if expired.
 func (s *Storage) LoadAuthorize(ctx context.Context, code string) (*server.AuthorizeData, error) {
-	span, ctx := etrace.StartSpanFromContext(context.Background(), "redisStorage.LoadAuthorize")
-	defer span.Finish()
-
 	var data server.AuthorizeData
 
 	info, err := dao.AuthorizeInfoX(ctx, s.db, egorm.Conds{"code": code})
@@ -137,9 +127,6 @@ func (s *Storage) LoadAuthorize(ctx context.Context, code string) (*server.Autho
 
 // RemoveAuthorize revokes or deletes the authorization code.
 func (s *Storage) RemoveAuthorize(ctx context.Context, code string) (err error) {
-	span, ctx := etrace.StartSpanFromContext(context.Background(), "redisStorage.RemoveAuthorize")
-	defer span.Finish()
-
 	err = dao.AuthorizeDeleteX(ctx, s.db, egorm.Conds{"code": code})
 	if err != nil {
 		return
@@ -169,12 +156,6 @@ func (s *Storage) SaveAccess(ctx context.Context, data *server.AccessData) (err 
 	if data.AuthorizeData != nil {
 		authorizeData = data.AuthorizeData
 	}
-
-	span, ctx := etrace.StartSpanFromContext(
-		ctx,
-		"redisStorage.SaveAccess",
-	)
-	defer span.Finish()
 
 	extra := cast.ToString(data.UserData)
 
@@ -264,9 +245,6 @@ func (s *Storage) SaveAccess(ctx context.Context, data *server.AccessData) (err 
 // AuthorizeData and AccessData DON'T NEED to be loaded if not easily available.
 // Optionally can return error if expired.
 func (s *Storage) LoadAccess(ctx context.Context, token string) (*server.AccessData, error) {
-	span, ctx := etrace.StartSpanFromContext(ctx, "redisStorage.LoadAccess")
-	defer span.Finish()
-
 	var result server.AccessData
 
 	info, err := dao.AccessInfoX(ctx, s.db, egorm.Conds{"access_token": token})
@@ -291,9 +269,6 @@ func (s *Storage) LoadAccess(ctx context.Context, token string) (*server.AccessD
 
 // RemoveAccess revokes or deletes an AccessData.
 func (s *Storage) RemoveAccess(ctx context.Context, token string) (err error) {
-	span, ctx := etrace.StartSpanFromContext(ctx, "redisStorage.RemoveAccess")
-	defer span.Finish()
-
 	err = dao.AccessDeleteX(ctx, s.db, egorm.Conds{"access_token": token})
 	if err != nil {
 		return
@@ -318,9 +293,6 @@ func (s *Storage) RemoveAccess(ctx context.Context, token string) (err error) {
 
 // RemoveAllAccess 通过token，删除自己的token，以及父token
 func (s *Storage) RemoveAllAccess(ctx context.Context, token string) (err error) {
-	span, ctx := etrace.StartSpanFromContext(ctx, "redisStorage.RemoveAccess")
-	defer span.Finish()
-
 	err = dao.AccessDeleteX(ctx, s.db, egorm.Conds{"access_token": token})
 	if err != nil {
 		return
@@ -353,9 +325,6 @@ func (s *Storage) LoadRefresh(ctx context.Context, token string) (*server.Access
 
 // RemoveRefresh revokes or deletes refresh AccessData.
 func (s *Storage) RemoveRefresh(ctx context.Context, code string) (err error) {
-	span, ctx := etrace.StartSpanFromContext(context.Background(), "redisStorage.RemoveRefresh")
-	defer span.Finish()
-
 	err = dao.RefreshDeleteX(ctx, s.db, egorm.Conds{"token": code})
 	return
 }

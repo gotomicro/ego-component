@@ -15,7 +15,6 @@ import (
 	"github.com/gotomicro/ego/core/etrace"
 	"github.com/gotomicro/ego/core/transport"
 	"github.com/gotomicro/ego/core/util/xdebug"
-	"github.com/opentracing/opentracing-go"
 	"github.com/spf13/cast"
 )
 
@@ -158,7 +157,7 @@ func accessInterceptor(compName string, config *config, logger *elog.Component) 
 			}
 
 			// 开启了链路，那么就记录链路id
-			if config.EnableTraceInterceptor && opentracing.IsGlobalTracerRegistered() {
+			if config.EnableTraceInterceptor && etrace.IsGlobalTracerRegistered() {
 				fields = append(fields, elog.FieldTid(etrace.ExtractTraceID(ctx)))
 			}
 

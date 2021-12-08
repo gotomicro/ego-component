@@ -6,8 +6,9 @@ import (
 
 	"github.com/gotomicro/ego/core/etrace"
 	"github.com/gotomicro/ego/core/transport"
-	"github.com/opentracing/opentracing-go"
 	"github.com/segmentio/kafka-go"
+	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // Consumer 消费者/消费者组，
@@ -17,6 +18,7 @@ type Consumer struct {
 	logMode   bool
 	Config    consumerConfig
 	Brokers   []string `json:"brokers" toml:"brokers"`
+	tracer    *etrace.Tracer
 }
 
 type Message = kafka.Message
@@ -97,8 +99,11 @@ func (r *Consumer) CommitMessages(ctx context.Context, msgs ...*Message) (err er
 
 func (r *Consumer) FetchMessage(ctx context.Context) (msg Message, ctxOutput context.Context, err error) {
 	err = r.processor(func(ctx context.Context, msgs Messages, c *cmd) error {
-		msg, err = r.r.FetchMessage(ctx)
-		ctxOutput = getCtx(ctx, msg)
+		ctxOutput, span := r.getCtx(ctx, msg)
+		if span != nil {
+			defer span.End()
+		}
+		msg, err = r.r.FetchMessage(ctxOutput)
 		logCmd(r.logMode, c, "FetchMessage", cmdWithMsg(msg))
 		return err
 	})(ctx, nil, &cmd{})
@@ -124,8 +129,11 @@ func (r *Consumer) ReadLag(ctx context.Context) (lag int64, err error) {
 
 func (r *Consumer) ReadMessage(ctx context.Context) (msg Message, ctxOutput context.Context, err error) {
 	err = r.processor(func(ctx context.Context, msgs Messages, c *cmd) error {
-		msg, err = r.r.ReadMessage(ctx)
-		ctxOutput = getCtx(ctx, msg)
+		ctxOutput, span := r.getCtx(ctx, msg)
+		if span != nil {
+			defer span.End()
+		}
+		msg, err = r.r.ReadMessage(ctxOutput)
 		logCmd(r.logMode, c, "ReadMessage", cmdWithRes(msg), cmdWithMsg(msg))
 		return err
 	})(ctx, nil, &cmd{})
@@ -146,31 +154,22 @@ func (r *Consumer) SetOffsetAt(ctx context.Context, t time.Time) (err error) {
 	})(ctx, nil, &cmd{})
 }
 
-func getCtx(ctx context.Context, msg Message) context.Context {
-	ctxOutput := ctx
+func (r *Consumer) getCtx(ctx context.Context, msg Message) (context.Context, trace.Span) {
 	// 我也不想这么处理trace。奈何协议头在用户数据里，无能为力。。。
-	if opentracing.IsGlobalTracerRegistered() {
-		mds := make(map[string][]string)
+	if etrace.IsGlobalTracerRegistered() {
+		carrier := propagation.MapCarrier{}
 		for _, value := range msg.Headers {
-			mds[value.Key] = []string{string(value.Value)}
+			carrier[value.Key] = string(value.Value)
 		}
-		md := etrace.MetadataReaderWriter{MD: mds}
-		sc, _ := opentracing.GlobalTracer().Extract(opentracing.HTTPHeaders, md)
-
-		// 重新赋值ctx
-		_, ctxOutput = etrace.StartSpanFromContext(
-			ctx,
-			"kafka",
-			opentracing.ChildOf(sc),
-		)
-
+		ctx, span := r.tracer.Start(ctx, "kafka", carrier)
 		for _, key := range transport.CustomContextKeys() {
 			for _, value := range msg.Headers {
 				if value.Key == key {
-					ctxOutput = transport.WithValue(ctxOutput, value.Key, string(value.Value))
+					ctx = transport.WithValue(ctx, value.Key, string(value.Value))
 				}
 			}
 		}
+		return ctx, span
 	}
-	return ctxOutput
+	return ctx, nil
 }

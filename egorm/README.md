@@ -9,7 +9,7 @@
 - 支持自定义拦截器
 - 提供了默认的 Debug 拦截器，开启 Debug 后可输出 Request、Response 至终端。
 - 提供了默认的 Metric 拦截器，开启后可采集 Prometheus 指标数据
-- 提供了默认的 OpenTracing 拦截器，开启后可采集 Tracing Span 数据
+- 提供了默认的 OpenTelemetry 拦截器，开启后可采集 Tracing Span 数据
 
 ## 快速上手
 
