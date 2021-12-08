@@ -5,28 +5,36 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/gotomicro/ego-component/egorm/manager"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
 
 var (
-	errInvalidDSNUnescaped           = errors.New("invalid DSN: did you forget to escape a param value")
-	errInvalidDSNAddr                = errors.New("invalid DSN: network address not terminated (missing closing brace)")
-	errInvalidDSNNoSlash             = errors.New("invalid DSN: missing the slash separating the database name")
-	DefaultMysqlDSNParser            = &MysqlDSNParser{}
-	_                      DSNParser = (*MysqlDSNParser)(nil)
+	errInvalidDSNUnescaped                   = errors.New("invalid DSN: did you forget to escape a param value")
+	errInvalidDSNAddr                        = errors.New("invalid DSN: network address not terminated (missing closing brace)")
+	errInvalidDSNNoSlash                     = errors.New("invalid DSN: missing the slash separating the database name")
+	_                      manager.DSNParser = (*MysqlDSNParser)(nil)
 )
 
 type MysqlDSNParser struct {
+}
+
+func init() {
+	manager.Register(&MysqlDSNParser{})
+}
+
+func (p *MysqlDSNParser) Scheme() string {
+	return "mysql"
 }
 
 func (m *MysqlDSNParser) GetDialector(dsn string) gorm.Dialector {
 	return mysql.Open(dsn)
 }
 
-func (m *MysqlDSNParser) ParseDSN(dsn string) (cfg *DSN, err error) {
+func (m *MysqlDSNParser) ParseDSN(dsn string) (cfg *manager.DSN, err error) {
 	// New config with some default values
-	cfg = new(DSN)
+	cfg = new(manager.DSN)
 
 	// [user[:password]@][net[(addr)]]/dbname[?param1=value1&paramN=valueN]
 	// Find the last '/' (since the password or the net addr might contain a '/')
@@ -76,7 +84,7 @@ func (m *MysqlDSNParser) ParseDSN(dsn string) (cfg *DSN, err error) {
 }
 
 // username[:password]
-func parseUsernamePassword(cfg *DSN, userPassStr string) {
+func parseUsernamePassword(cfg *manager.DSN, userPassStr string) {
 	for i := 0; i < len(userPassStr); i++ {
 		if userPassStr[i] == ':' {
 			cfg.Password = userPassStr[i+1:]
@@ -87,7 +95,7 @@ func parseUsernamePassword(cfg *DSN, userPassStr string) {
 }
 
 // [protocol[(address)]]
-func parseAddrNet(cfg *DSN, addrNetStr string) error {
+func parseAddrNet(cfg *manager.DSN, addrNetStr string) error {
 	for i := 0; i < len(addrNetStr); i++ {
 		if addrNetStr[i] == '(' {
 			// dsn[i-1] must be == ')' if an address is specified
@@ -106,7 +114,7 @@ func parseAddrNet(cfg *DSN, addrNetStr string) error {
 }
 
 // param1=value1&...&paramN=valueN
-func parseDSNParams(cfg *DSN, params string) (err error) {
+func parseDSNParams(cfg *manager.DSN, params string) (err error) {
 	for _, v := range strings.Split(params, "&") {
 		param := strings.SplitN(v, "=", 2)
 		if len(param) != 2 {

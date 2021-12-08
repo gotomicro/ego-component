@@ -22,7 +22,7 @@ type (
 	Conds map[string]interface{}
 
 	// Ups 为更新某一条记录时存放的变更数据集合 map[field.name]field.value
-	Ups = map[string]interface{}
+	//Ups = map[string]interface{}
 )
 
 // assertCond 断言cond基本类型并返回Cond

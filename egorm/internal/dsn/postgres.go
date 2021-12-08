@@ -5,25 +5,33 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/gotomicro/ego-component/egorm/manager"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
 var (
-	postgresSplitRegexp                = regexp.MustCompile(`\s+`)
-	DefaultPostgresDSNParser           = &PostgresDSNParser{}
-	_                        DSNParser = (*PostgresDSNParser)(nil)
+	postgresSplitRegexp                   = regexp.MustCompile(`\s+`)
+	_                   manager.DSNParser = (*PostgresDSNParser)(nil)
 )
 
 type PostgresDSNParser struct {
+}
+
+func init() {
+	manager.Register(&PostgresDSNParser{})
+}
+
+func (p *PostgresDSNParser) Scheme() string {
+	return "postgres"
 }
 
 func (p *PostgresDSNParser) GetDialector(dsn string) gorm.Dialector {
 	return postgres.Open(dsn)
 }
 
-func (p *PostgresDSNParser) ParseDSN(dsn string) (cfg *DSN, err error) {
-	cfg = new(DSN)
+func (p *PostgresDSNParser) ParseDSN(dsn string) (cfg *manager.DSN, err error) {
+	cfg = new(manager.DSN)
 	res := postgresSplitRegexp.Split(dsn, -1)
 	var host, port string
 	for _, kvStr := range res {

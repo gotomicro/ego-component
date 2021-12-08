@@ -1,11 +1,13 @@
 package egorm
 
 import (
+	"fmt"
+
+	_ "github.com/gotomicro/ego-component/egorm/internal/dsn"
+	"github.com/gotomicro/ego-component/egorm/manager"
 	"github.com/gotomicro/ego/core/econf"
 	"github.com/gotomicro/ego/core/elog"
 	"github.com/gotomicro/ego/core/emetric"
-
-	"github.com/gotomicro/ego-component/egorm/dsn"
 )
 
 // Container ...
@@ -13,7 +15,7 @@ type Container struct {
 	config    *config
 	name      string
 	logger    *elog.Component
-	dsnParser dsn.DSNParser
+	dsnParser manager.DSNParser
 }
 
 // DefaultContainer ...
@@ -37,20 +39,12 @@ func Load(key string) *Container {
 	return c
 }
 
-func (c *Container) setDSNParserIfNotExists(dialect string) error {
-	if c.dsnParser != nil {
-		return nil
+func (c *Container) setDSNParser(dialect string) error {
+	dsnParser := manager.Get(dialect)
+	if dsnParser == nil {
+		return fmt.Errorf("invalid support Dialect: %s", dialect)
 	}
-	switch dialect {
-	case dialectMysql:
-		c.dsnParser = dsn.DefaultMysqlDSNParser
-	case dialectPostgres:
-		c.dsnParser = dsn.DefaultPostgresDSNParser
-	case dialectDm:
-		c.dsnParser = dsn.DefaultDmDSNParser
-	default:
-		return errSupportDialect
-	}
+	c.dsnParser = dsnParser
 	return nil
 }
 
@@ -77,9 +71,9 @@ func (c *Container) Build(options ...Option) *Component {
 	// timeout 1s
 	// readTimeout 5s
 	// writeTimeout 5s
-	err = c.setDSNParserIfNotExists(c.config.Dialect)
+	err = c.setDSNParser(c.config.Dialect)
 	if err != nil {
-		c.logger.Panic("setDSNParserIfNotExists err", elog.String("dialect", c.config.Dialect), elog.FieldErr(err))
+		c.logger.Panic("setDSNParser err", elog.String("dialect", c.config.Dialect), elog.FieldErr(err))
 	}
 	c.config.dsnCfg, err = c.dsnParser.ParseDSN(c.config.DSN)
 

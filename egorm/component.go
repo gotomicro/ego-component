@@ -3,7 +3,7 @@ package egorm
 import (
 	"context"
 
-	"github.com/gotomicro/ego-component/egorm/dsn"
+	"github.com/gotomicro/ego-component/egorm/manager"
 	"github.com/gotomicro/ego/core/elog"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -17,7 +17,7 @@ var (
 	// ErrRecordNotFound returns a "record not found error". Occurs only when attempting to query the database with a struct; querying with a slice won't return this error
 	ErrRecordNotFound = gorm.ErrRecordNotFound
 	// ErrInvalidTransaction occurs when you are trying to `Commit` or `Rollback`
-	ErrInvalidTransaction = gorm.ErrInvalidTransaction
+	//ErrInvalidTransaction = gorm.ErrInvalidTransaction
 )
 
 type (
@@ -47,7 +47,7 @@ func WithContext(ctx context.Context, db *Component) *Component {
 }
 
 // newComponent ...
-func newComponent(compName string, dsnParser dsn.DSNParser, config *config, elogger *elog.Component) (*Component, error) {
+func newComponent(compName string, dsnParser manager.DSNParser, config *config, elogger *elog.Component) (*Component, error) {
 	db, err := gorm.Open(dsnParser.GetDialector(config.DSN), &gorm.Config{})
 	if err != nil {
 		return nil, err
