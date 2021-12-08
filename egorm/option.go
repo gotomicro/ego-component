@@ -1,7 +1,7 @@
 package egorm
 
 import (
-	"github.com/gotomicro/ego-component/egorm/dsn"
+	"github.com/gotomicro/ego-component/egorm/manager"
 )
 
 // Option 可选项
@@ -15,7 +15,7 @@ func WithDSN(dsn string) Option {
 }
 
 // WithDSNParser 设置自定义dsnParser
-func WithDSNParser(parser dsn.DSNParser) Option {
+func WithDSNParser(parser manager.DSNParser) Option {
 	return func(c *Container) {
 		c.dsnParser = parser
 	}

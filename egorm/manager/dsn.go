@@ -1,4 +1,4 @@
-package dsn
+package manager
 
 import (
 	"gorm.io/gorm"
@@ -17,4 +17,5 @@ type DSN struct {
 type DSNParser interface {
 	GetDialector(dsn string) gorm.Dialector
 	ParseDSN(dsn string) (cfg *DSN, err error)
+	Scheme() string
 }

@@ -7,7 +7,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/gotomicro/ego-component/egorm/dsn"
+	"github.com/gotomicro/ego-component/egorm/manager"
 	"github.com/gotomicro/ego/core/transport"
 	"github.com/spf13/cast"
 	"go.opentelemetry.io/otel/trace"
@@ -30,9 +30,9 @@ type Processor interface {
 }
 
 // Interceptor ...
-type Interceptor func(string, *dsn.DSN, string, *config, *elog.Component) func(next Handler) Handler
+type Interceptor func(string, *manager.DSN, string, *config, *elog.Component) func(next Handler) Handler
 
-func debugInterceptor(compName string, dsn *dsn.DSN, op string, options *config, logger *elog.Component) func(Handler) Handler {
+func debugInterceptor(compName string, dsn *manager.DSN, op string, options *config, logger *elog.Component) func(Handler) Handler {
 	return func(next Handler) Handler {
 		return func(db *gorm.DB) {
 			if !eapp.IsDevelopmentMode() {
@@ -56,7 +56,7 @@ func debugInterceptor(compName string, dsn *dsn.DSN, op string, options *config,
 	}
 }
 
-func metricInterceptor(compName string, dsn *dsn.DSN, op string, config *config, logger *elog.Component) func(Handler) Handler {
+func metricInterceptor(compName string, dsn *manager.DSN, op string, config *config, logger *elog.Component) func(Handler) Handler {
 	return func(next Handler) Handler {
 		return func(db *gorm.DB) {
 			beg := time.Now()
@@ -129,7 +129,7 @@ func logSQL(sql string, args []interface{}, containArgs bool) string {
 	return sql
 }
 
-func traceInterceptor(compName string, dsn *dsn.DSN, op string, options *config, logger *elog.Component) func(Handler) Handler {
+func traceInterceptor(compName string, dsn *manager.DSN, op string, options *config, logger *elog.Component) func(Handler) Handler {
 	tracer := etrace.NewTracer(trace.SpanKindClient)
 	return func(next Handler) Handler {
 		return func(db *gorm.DB) {
