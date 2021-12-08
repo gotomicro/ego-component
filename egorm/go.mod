@@ -5,7 +5,7 @@ go 1.15
 require (
 	github.com/davecgh/go-spew v1.1.1
 	github.com/emirpasic/gods v1.12.0 // indirect
-	github.com/gotomicro/dmgo v1.8.4 // indirect
+	github.com/gotomicro/dmgo v1.8.5 // indirect
 	github.com/gotomicro/ego v0.7.0
 	github.com/gotomicro/gorm-driver-dm v0.0.0-20211124105326-5891acf63020 // indirect
 	github.com/jinzhu/now v1.1.2 // indirect
