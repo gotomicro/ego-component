@@ -247,6 +247,8 @@ github.com/gorilla/websocket v1.4.2 h1:+/TMaTYc4QFitKJxsQ7Yye35DkWvkdLcvGKqM+x0U
 github.com/gorilla/websocket v1.4.2/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=
 github.com/gotomicro/ego v0.7.2-0.20211207100725-07cca9b22036 h1:m+uFwF8VJFqgOOfHSzPNxUe3HhgNtUJ7kgosXONJVGM=
 github.com/gotomicro/ego v0.7.2-0.20211207100725-07cca9b22036/go.mod h1:eQDInBi4IrfrwctWZZTQmtWTBYrSVgJ0arwx2WE48ag=
+github.com/gotomicro/ego v0.8.0 h1:fzXm8ib4KgyqmtRhVf9KOWNbMs44GlAGIhCkG604Z9Y=
+github.com/gotomicro/ego v0.8.0/go.mod h1:eQDInBi4IrfrwctWZZTQmtWTBYrSVgJ0arwx2WE48ag=
 github.com/gotomicro/logrotate v0.0.0-20211108024517-45d1f9a03ff5 h1:y9nw0S0zlla/SBt1GGaTNNCF+781epJ62MntVVbekqQ=
 github.com/gotomicro/logrotate v0.0.0-20211108024517-45d1f9a03ff5/go.mod h1:jKlh8i9m79fE8HAO28kYLN70l87bb7olTLuX/Blex/U=
 github.com/grpc-ecosystem/go-grpc-middleware v1.0.1-0.20190118093823-f849b5445de4 h1:z53tR0945TRRQO/fLEVPI6SMv7ZflF0TEaTAoU7tOzg=
