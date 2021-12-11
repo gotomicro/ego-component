@@ -7,13 +7,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gotomicro/ego-component/ekafka"
 	"github.com/gotomicro/ego/core/constant"
 	"github.com/gotomicro/ego/core/elog"
 	"github.com/gotomicro/ego/core/emetric"
 	"github.com/gotomicro/ego/server"
 	"github.com/segmentio/kafka-go"
-
-	"github.com/gotomicro/ego-component/ekafka"
 )
 
 // OnEachMessageHandler 的最大重试次数
@@ -292,7 +291,6 @@ func (cmp *Component) launchOnConsumerEachMessage() error {
 			}
 
 		COMMIT:
-
 			err = consumer.CommitMessages(fetchCtx, &message)
 
 			// Record the redis time-consuming

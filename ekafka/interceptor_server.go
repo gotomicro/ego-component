@@ -50,19 +50,37 @@ func fixedServerInterceptor(_ string, _ *config) ServerInterceptor {
 }
 
 func traceServerInterceptor(compName string, c *config) ServerInterceptor {
-	tracer := etrace.NewTracer(trace.SpanKindConsumer)
+	//tracer := etrace.NewTracer(trace.SpanKindConsumer)
 	return func(next serverProcessFn) serverProcessFn {
 		return func(ctx context.Context, msgs Messages, cmd *cmd) error {
-			carrier := propagation.MapCarrier{}
-			ctx, span := tracer.Start(ctx, "kafka", carrier)
-			defer span.End()
+			//spanctx := trace.SpanContextFromContext(ctx)
+			//if spanctx.HasTraceID() {
+			//	carrier := propagation.MapCarrier{}
+			//	headers := make([]kafka.Header, 0)
+			//	for _, key := range carrier.Keys() {
+			//		headers = append(headers, kafka.Header{
+			//			Key:   key,
+			//			Value: []byte(carrier.Get(key)),
+			//		})
+			//	}
+			//
+			//	for _, value := range msgs {
+			//		value.Headers = headers
+			//		value.Time = time.Now()
+			//	}
+			//	err := next(ctx, msgs, cmd)
+			//	return err
+			//}
+			//carrier := propagation.MapCarrier{}
+			//ctx, span := tracer.Start(ctx, "kafka", carrier)
+			//defer span.End()
 			headers := make([]kafka.Header, 0)
-			for _, key := range carrier.Keys() {
-				headers = append(headers, kafka.Header{
-					Key:   key,
-					Value: []byte(carrier.Get(key)),
-				})
-			}
+			//for _, key := range carrier.Keys() {
+			//	headers = append(headers, kafka.Header{
+			//		Key:   key,
+			//		Value: []byte(carrier.Get(key)),
+			//	})
+			//}
 
 			for _, value := range msgs {
 				value.Headers = headers
@@ -81,13 +99,20 @@ func accessServerInterceptor(compName string, c *config, logger *elog.Component)
 			err := next(ctx, msgs, cmd)
 			// 为了性能考虑，如果要加日志字段，需要改变slice大小
 			loggerKeys := transport.CustomContextKeys()
-			// kafka 比较坑爹，合在一起处理链路
-			if c.EnableTraceInterceptor {
 
+			// kafka 比较坑爹，合在一起处理链路
+			// 这个地方要放next后面，因为这个时候cmd里的msg才有数据
+			if c.EnableTraceInterceptor {
 				carrier := propagation.MapCarrier{}
+				// 首先看header头里，也就是从producer里传递的trace id
 				for _, value := range cmd.msg.Headers {
 					carrier[value.Key] = string(value.Value)
 				}
+
+				//// 然后从context中获取是否有trace id。如果有的话就直接使用
+				//// 通常是fetch message后，会将context 传递给 commit message，那么这个时候，就要从context里拿到对应的trace id。
+				//propagator := propagation.TraceContext{}
+				//propagator.Inject(ctx, carrier)
 				var (
 					span trace.Span
 				)

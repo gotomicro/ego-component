@@ -7,8 +7,6 @@ import (
 	"github.com/gotomicro/ego/core/etrace"
 	"github.com/gotomicro/ego/core/transport"
 	"github.com/segmentio/kafka-go"
-	"go.opentelemetry.io/otel/propagation"
-	"go.opentelemetry.io/otel/trace"
 )
 
 // Consumer 消费者/消费者组，
@@ -99,11 +97,9 @@ func (r *Consumer) CommitMessages(ctx context.Context, msgs ...*Message) (err er
 
 func (r *Consumer) FetchMessage(ctx context.Context) (msg Message, ctxOutput context.Context, err error) {
 	err = r.processor(func(ctx context.Context, msgs Messages, c *cmd) error {
-		ctxOutput, span := r.getCtx(ctx, msg)
-		if span != nil {
-			defer span.End()
-		}
-		msg, err = r.r.FetchMessage(ctxOutput)
+		msg, err = r.r.FetchMessage(ctx)
+		// 在后面才解析了header
+		ctxOutput = r.getCtx(ctx, msg)
 		logCmd(r.logMode, c, "FetchMessage", cmdWithMsg(msg))
 		return err
 	})(ctx, nil, &cmd{})
@@ -129,11 +125,8 @@ func (r *Consumer) ReadLag(ctx context.Context) (lag int64, err error) {
 
 func (r *Consumer) ReadMessage(ctx context.Context) (msg Message, ctxOutput context.Context, err error) {
 	err = r.processor(func(ctx context.Context, msgs Messages, c *cmd) error {
-		ctxOutput, span := r.getCtx(ctx, msg)
-		if span != nil {
-			defer span.End()
-		}
 		msg, err = r.r.ReadMessage(ctxOutput)
+		ctxOutput = r.getCtx(ctx, msg)
 		logCmd(r.logMode, c, "ReadMessage", cmdWithRes(msg), cmdWithMsg(msg))
 		return err
 	})(ctx, nil, &cmd{})
@@ -154,14 +147,9 @@ func (r *Consumer) SetOffsetAt(ctx context.Context, t time.Time) (err error) {
 	})(ctx, nil, &cmd{})
 }
 
-func (r *Consumer) getCtx(ctx context.Context, msg Message) (context.Context, trace.Span) {
-	// 我也不想这么处理trace。奈何协议头在用户数据里，无能为力。。。
-	if etrace.IsGlobalTracerRegistered() {
-		carrier := propagation.MapCarrier{}
-		for _, value := range msg.Headers {
-			carrier[value.Key] = string(value.Value)
-		}
-		ctx, span := r.tracer.Start(ctx, "kafka", carrier)
+func (r *Consumer) getCtx(ctx context.Context, msg Message) context.Context {
+	// 我也不想这么处理追加的context内容。奈何协议头在用户数据里，无能为力。。。
+	if transport.CustomContextKeysLength() > 0 {
 		for _, key := range transport.CustomContextKeys() {
 			for _, value := range msg.Headers {
 				if value.Key == key {
@@ -169,7 +157,6 @@ func (r *Consumer) getCtx(ctx context.Context, msg Message) (context.Context, tr
 				}
 			}
 		}
-		return ctx, span
 	}
-	return ctx, nil
+	return ctx
 }
