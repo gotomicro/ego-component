@@ -125,7 +125,8 @@ func (r *Consumer) ReadLag(ctx context.Context) (lag int64, err error) {
 
 func (r *Consumer) ReadMessage(ctx context.Context) (msg Message, ctxOutput context.Context, err error) {
 	err = r.processor(func(ctx context.Context, msgs Messages, c *cmd) error {
-		msg, err = r.r.ReadMessage(ctxOutput)
+		msg, err = r.r.ReadMessage(ctx)
+		// 在后面才解析了header
 		ctxOutput = r.getCtx(ctx, msg)
 		logCmd(r.logMode, c, "ReadMessage", cmdWithRes(msg), cmdWithMsg(msg))
 		return err
