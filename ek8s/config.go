@@ -24,7 +24,7 @@ func DefaultConfig() *Config {
 	return &Config{
 		Addr:                    inClusterAddr(),
 		Token:                   inClusterToken(),
-		Namespaces:              []string{"default"},
+		Namespaces:              []string{inClusterNamespace()},
 		TLSClientConfigInsecure: true,
 	}
 }
@@ -50,6 +50,14 @@ func inClusterAddr() string {
 
 func inClusterToken() string {
 	t, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/token")
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(t))
+}
+
+func inClusterNamespace() string {
+	t, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
 	if err != nil {
 		return ""
 	}
