@@ -2,6 +2,7 @@ package esession
 
 import (
 	"github.com/gin-contrib/sessions"
+	"github.com/gin-contrib/sessions/memstore"
 	"github.com/gin-contrib/sessions/redis"
 	"github.com/gin-gonic/gin"
 	"github.com/gotomicro/ego/core/econf"
@@ -40,10 +41,16 @@ func (c *Container) Build(options ...Option) gin.HandlerFunc {
 		option(c)
 	}
 
-	var store redis.Store
-	store, err := redis.NewStore(c.config.Size, c.config.Network, c.config.Addr, c.config.Password, []byte(c.config.Keypairs))
-	if err != nil {
-		c.logger.Panic("config new store panic", elog.FieldErr(err))
+	var store sessions.Store
+	var err error
+	switch c.config.Mode {
+	case "redis":
+		store, err = redis.NewStore(c.config.Size, c.config.Network, c.config.Addr, c.config.Password, []byte(c.config.Keypairs))
+		if err != nil {
+			c.logger.Panic("config new store panic", elog.FieldErr(err))
+		}
+	case "memstore":
+		store = memstore.NewStore([]byte(c.config.Keypairs))
 	}
 	return sessions.Sessions(c.config.Name, store)
 }

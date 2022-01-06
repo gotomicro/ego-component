@@ -2,7 +2,7 @@ package esession
 
 // config
 type config struct {
-	Mode     string // session模式，默认redis，目前只支持redis
+	Mode     string // session模式，默认redis，目前只支持redis和memstore
 	Name     string // session名称
 	Size     int
 	Debug    bool   // debug变量
