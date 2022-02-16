@@ -9,7 +9,8 @@ import (
 
 func TestMysqlDSNParser_ParseDSN(t *testing.T) {
 	dsn := "user:password@tcp(localhost:9910)/dbname?charset=utf8&parseTime=True"
-	cfg, err := DefaultMysqlDSNParser.ParseDSN(dsn)
+	dsnParser := MysqlDSNParser{}
+	cfg, err := dsnParser.ParseDSN(dsn)
 	assert.NoError(t, err)
 	assert.Equal(t, "user", cfg.User)
 	assert.Equal(t, "password", cfg.Password)
