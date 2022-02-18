@@ -64,8 +64,8 @@ func (p *SqlServerDSNParser) ParseDSN(dsn string) (cfg *manager.DSN, err error) 
 	return cfg, nil
 }
 
-func parseNewDNS(cfg *manager.DSN, addrNetStr string) (string, string) {
-	param := strings.SplitN(addrNetStr, "?", 2)
+func parseNewDNS(cfg *manager.DSN, dsn string) (string, string) {
+	param := strings.SplitN(dsn, "?", 2)
 	if len(param) != 2 {
 		return "", ""
 	}
@@ -83,10 +83,10 @@ func parseNewDNS(cfg *manager.DSN, addrNetStr string) (string, string) {
 		cfg.User = paramUser[0]
 		cfg.Password = paramUser[1]
 	}
-	paramHost := strings.SplitN(paramUserAndHost[1], ":", 2)
-	if len(paramHost) == 2 {
-		cfg.Addr = fmt.Sprintf("%s:%s", paramHost[0], paramHost[1])
-		return paramHost[0], paramHost[1]
+	paramAddr := strings.SplitN(paramUserAndHost[1], ":", 2)
+	if len(paramAddr) == 2 {
+		cfg.Addr = fmt.Sprintf("%s:%s", paramAddr[0], paramAddr[1])
+		return paramAddr[0], paramAddr[1]
 	}
 	return "", ""
 }
