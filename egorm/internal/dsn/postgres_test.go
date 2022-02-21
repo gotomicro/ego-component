@@ -8,8 +8,8 @@ import (
 
 func TestPostgresDsnParser_ParseDSN(t *testing.T) {
 	dsn := "user=user password=password dbname=dbname port=9920 host=localhost sslmode=disable"
-
-	cfg, err := DefaultPostgresDSNParser.ParseDSN(dsn)
+	dsnParser := PostgresDSNParser{}
+	cfg, err := dsnParser.ParseDSN(dsn)
 	assert.NoError(t, err)
 	assert.Equal(t, "user", cfg.User)
 	assert.Equal(t, "password", cfg.Password)
