@@ -78,6 +78,12 @@ func traceClientInterceptor(compName string, c *config) ClientInterceptor {
 				value.Time = time.Now()
 			}
 			err := next(ctx, msgs, cmd)
+
+			span.SetAttributes(
+				etrace.String("messaging.system", "kafka"),
+				etrace.String("messaging.destination", cmd.msg.Topic),
+			)
+
 			return err
 		}
 	}

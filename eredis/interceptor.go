@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-redis/redis/extra/rediscmd/v8"
 	"github.com/go-redis/redis/v8"
 	"github.com/gotomicro/ego/core/eapp"
 	"github.com/gotomicro/ego/core/elog"
@@ -16,6 +17,9 @@ import (
 	"github.com/gotomicro/ego/core/transport"
 	"github.com/gotomicro/ego/core/util/xdebug"
 	"github.com/spf13/cast"
+	"go.opentelemetry.io/otel/codes"
+
+	"go.opentelemetry.io/otel/trace"
 )
 
 const ctxBegKey = "_cmdResBegin_"
@@ -188,6 +192,33 @@ func accessInterceptor(compName string, config *config, logger *elog.Component) 
 				logger.Info("access", fields...)
 			}
 			return err
+		},
+	)
+}
+
+func traceInterceptor(compName string, config *config, logger *elog.Component) *interceptor {
+	tracer := etrace.NewTracer(trace.SpanKindClient)
+	return newInterceptor(compName, config, logger).setBeforeProcess(func(ctx context.Context, cmd redis.Cmder) (context.Context, error) {
+		ctx, span := tracer.Start(ctx, cmd.FullName(), nil)
+
+		span.SetAttributes(
+			etrace.String("peer.service", "redis"),
+			etrace.String("db.system", "redis"),
+			etrace.String("db.statement", rediscmd.CmdString(cmd)),
+		)
+
+		return ctx, nil
+	}).setAfterProcess(
+		func(ctx context.Context, cmd redis.Cmder) error {
+			span := trace.SpanFromContext(ctx)
+
+			if err := cmd.Err(); err != nil && err != redis.Nil {
+				span.RecordError(err)
+				span.SetStatus(codes.Error, err.Error())
+			}
+
+			span.End()
+			return nil
 		},
 	)
 }

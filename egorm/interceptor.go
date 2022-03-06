@@ -5,12 +5,14 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
-	"github.com/gotomicro/ego-component/egorm/manager"
 	"github.com/gotomicro/ego/core/transport"
 	"github.com/spf13/cast"
 	"go.opentelemetry.io/otel/trace"
+
+	"github.com/gotomicro/ego-component/egorm/manager"
 
 	"github.com/gotomicro/ego/core/eapp"
 	"github.com/gotomicro/ego/core/elog"
@@ -134,19 +136,25 @@ func traceInterceptor(compName string, dsn *manager.DSN, op string, options *con
 	return func(next Handler) Handler {
 		return func(db *gorm.DB) {
 			if db.Statement.Context != nil {
-				_, span := tracer.Start(db.Statement.Context, "GORM", nil)
+				operation := "gorm:"
+				if len(db.Statement.BuildClauses) > 0 {
+					operation += strings.ToLower(db.Statement.BuildClauses[0])
+				}
+
+				_, span := tracer.Start(db.Statement.Context, operation, nil)
 				defer span.End()
 				// 延迟执行 scope.CombinedConditionSql() 避免sqlVar被重复追加
 				next(db)
 
 				span.SetAttributes(
-					etrace.String("sql.inner", dsn.DBName),
-					etrace.String("sql.addr", dsn.Addr),
-					etrace.String("span.kind", "client"),
 					etrace.String("peer.service", "mysql"),
-					etrace.String("db.instance", dsn.DBName),
-					etrace.String("peer.address", dsn.Addr),
-					etrace.String("peer.statement", logSQL(db.Statement.SQL.String(), db.Statement.Vars, options.EnableDetailSQL)),
+					etrace.String("db.system", "mysql"),
+					etrace.String("db.name", dsn.DBName),
+					etrace.String("db.statement", logSQL(db.Statement.SQL.String(), db.Statement.Vars, options.EnableDetailSQL)),
+					etrace.String("db.operation", operation),
+					etrace.String("db.sql.table", db.Statement.Table),
+					etrace.String("net.peer.name", dsn.Addr),
+					etrace.String("net.transport", dsn.Net),
 				)
 				return
 			}
