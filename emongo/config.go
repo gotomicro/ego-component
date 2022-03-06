@@ -23,6 +23,8 @@ type config struct {
 	EnableAccessInterceptorRes bool `json:"enableAccessInterceptorRes" toml:"enableAccessInterceptorRes"`
 	// EnableAccessInterceptor 是否启用access拦截器
 	EnableAccessInterceptor bool `json:"enableAccessInterceptor" toml:"enableAccessInterceptor"`
+	// EnableTraceInterceptor 是否启用trace拦截器
+	EnableTraceInterceptor bool `json:"enableTraceInterceptor" toml:"enableTraceInterceptor"`
 	// SlowLogThreshold 慢日志门限值，超过该门限值的请求，将被记录到慢日志中
 	SlowLogThreshold time.Duration
 	interceptors     []Interceptor
