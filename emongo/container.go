@@ -10,6 +10,7 @@ import (
 	"github.com/gotomicro/ego/core/elog"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.opentelemetry.io/contrib/instrumentation/go.mongodb.org/mongo-driver/mongo/otelmongo"
 )
 
 type Option func(c *Container)
@@ -49,6 +50,10 @@ func (c *Container) newSession(config config) *Client {
 	clientOpts := options.Client()
 	clientOpts.MaxPoolSize = &mps
 	clientOpts.SocketTimeout = &config.SocketTimeout
+	if c.config.EnableTraceInterceptor {
+		clientOpts.Monitor = otelmongo.NewMonitor()
+	}
+
 	client, err := Connect(context.Background(), clientOpts.ApplyURI(config.DSN))
 	if err != nil {
 		c.logger.Panic("dial mongo", elog.FieldAddr(config.DSN), elog.Any("error", err))
@@ -98,6 +103,9 @@ func (c *Container) Build(options ...Option) *Component {
 	}
 	if c.config.EnableAccessInterceptor {
 		options = append(options, WithInterceptor(accessInterceptor(c.name, c.config, c.logger)))
+	}
+	if c.config.EnableTraceInterceptor {
+		// options = append(options, WithInterceptor(traceInterceptor(c.name, c.config, c.logger)))
 	}
 	for _, option := range options {
 		option(c)
