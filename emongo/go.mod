@@ -4,10 +4,9 @@ go 1.15
 
 require (
 	github.com/BurntSushi/toml v0.3.1
-	github.com/HdrHistogram/hdrhistogram-go v1.1.0 // indirect
-	github.com/gotomicro/ego v0.8.0
+	github.com/gotomicro/ego v0.9.1
 	github.com/stretchr/testify v1.7.0
-	github.com/uber/jaeger-client-go v2.23.1+incompatible // indirect
-	github.com/uber/jaeger-lib v2.4.1+incompatible // indirect
-	go.mongodb.org/mongo-driver v1.4.4
+	go.mongodb.org/mongo-driver v1.8.4
+	go.opentelemetry.io/contrib/instrumentation/go.mongodb.org/mongo-driver/mongo/otelmongo v0.29.0 // indirect
+	go.opentelemetry.io/otel v1.4.1 // indirect
 )

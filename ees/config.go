@@ -20,6 +20,7 @@ type config struct {
 	EnableMetrics              bool          // Enable the metrics collection.
 	EnableDebugLogger          bool          // Enable the debug logging.
 	EnableMetaHeader           bool          // Disable the additional "X-Elastic-Client-Meta" HTTP header.
+	EnableTrace                bool          // Enable the trace collection.
 }
 
 // DefaultConfig 返回默认配置
@@ -39,5 +40,6 @@ func DefaultConfig() *config {
 		EnableMetrics:              false,
 		EnableDebugLogger:          false,
 		EnableMetaHeader:           false,
+		EnableTrace:                false,
 	}
 }

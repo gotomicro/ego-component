@@ -17,7 +17,7 @@ type Component struct {
 
 // New ...
 func newComponent(name string, config *config, logger *elog.Component) *Component {
-	client, err := elasticsearch.NewClient(elasticsearch.Config{
+	elasticConfig := elasticsearch.Config{
 		Addresses:             config.Addrs,
 		Username:              config.Username,
 		Password:              config.Password,
@@ -32,7 +32,13 @@ func newComponent(name string, config *config, logger *elog.Component) *Componen
 		EnableMetrics:         config.EnableMetrics,
 		EnableDebugLogger:     config.EnableDebugLogger,
 		DisableMetaHeader:     !config.EnableMetaHeader,
-	})
+	}
+
+	if config.EnableTrace {
+		elasticConfig.Transport = NewTransport()
+	}
+
+	client, err := elasticsearch.NewClient(elasticConfig)
 	if err != nil {
 		logger.Panic("component new panic", elog.FieldErr(err))
 	}
