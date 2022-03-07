@@ -50,37 +50,9 @@ func fixedServerInterceptor(_ string, _ *config) ServerInterceptor {
 }
 
 func traceServerInterceptor(compName string, c *config) ServerInterceptor {
-	// tracer := etrace.NewTracer(trace.SpanKindConsumer)
 	return func(next serverProcessFn) serverProcessFn {
 		return func(ctx context.Context, msgs Messages, cmd *cmd) error {
-			// spanctx := trace.SpanContextFromContext(ctx)
-			// if spanctx.HasTraceID() {
-			//	carrier := propagation.MapCarrier{}
-			//	headers := make([]kafka.Header, 0)
-			//	for _, key := range carrier.Keys() {
-			//		headers = append(headers, kafka.Header{
-			//			Key:   key,
-			//			Value: []byte(carrier.Get(key)),
-			//		})
-			//	}
-			//
-			//	for _, value := range msgs {
-			//		value.Headers = headers
-			//		value.Time = time.Now()
-			//	}
-			//	err := next(ctx, msgs, cmd)
-			//	return err
-			// }
-			// carrier := propagation.MapCarrier{}
-			// ctx, span := tracer.Start(ctx, "kafka", carrier)
-			// defer span.End()
 			headers := make([]kafka.Header, 0)
-			// for _, key := range carrier.Keys() {
-			//	headers = append(headers, kafka.Header{
-			//		Key:   key,
-			//		Value: []byte(carrier.Get(key)),
-			//	})
-			// }
 
 			for _, value := range msgs {
 				value.Headers = headers
