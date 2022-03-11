@@ -101,6 +101,8 @@ func fixedInterceptor(compName string, config *config, logger *elog.Component) *
 }
 
 func debugInterceptor(compName string, config *config, logger *elog.Component) *interceptor {
+	addr := config.AddrString()
+
 	return newInterceptor(compName, config, logger).setAfterProcess(
 		func(ctx context.Context, cmd redis.Cmder) error {
 			if !eapp.IsDevelopmentMode() {
@@ -110,11 +112,11 @@ func debugInterceptor(compName string, config *config, logger *elog.Component) *
 			err := cmd.Err()
 			if err != nil {
 				log.Println("[eredis.response]",
-					xdebug.MakeReqResError(compName, fmt.Sprintf("%v", config.Addrs), cost, fmt.Sprintf("%v", cmd.Args()), err.Error()),
+					xdebug.MakeReqResError(compName, addr, cost, fmt.Sprintf("%v", cmd.Args()), err.Error()),
 				)
 			} else {
 				log.Println("[eredis.response]",
-					xdebug.MakeReqResInfo(compName, fmt.Sprintf("%v", config.Addrs), cost, fmt.Sprintf("%v", cmd.Args()), response(cmd)),
+					xdebug.MakeReqResInfo(compName, addr, cost, fmt.Sprintf("%v", cmd.Args()), response(cmd)),
 				)
 			}
 			return err
@@ -123,20 +125,22 @@ func debugInterceptor(compName string, config *config, logger *elog.Component) *
 }
 
 func metricInterceptor(compName string, config *config, logger *elog.Component) *interceptor {
+	addr := config.AddrString()
+
 	return newInterceptor(compName, config, logger).setAfterProcess(
 		func(ctx context.Context, cmd redis.Cmder) error {
 			cost := time.Since(ctx.Value(ctxBegKey).(time.Time))
 			err := cmd.Err()
-			emetric.ClientHandleHistogram.WithLabelValues(emetric.TypeRedis, compName, cmd.Name(), strings.Join(config.Addrs, ",")).Observe(cost.Seconds())
+			emetric.ClientHandleHistogram.WithLabelValues(emetric.TypeRedis, compName, cmd.Name(), addr).Observe(cost.Seconds())
 			if err != nil {
 				if errors.Is(err, redis.Nil) {
-					emetric.ClientHandleCounter.Inc(emetric.TypeRedis, compName, cmd.Name(), strings.Join(config.Addrs, ","), "Empty")
+					emetric.ClientHandleCounter.Inc(emetric.TypeRedis, compName, cmd.Name(), addr, "Empty")
 					return err
 				}
-				emetric.ClientHandleCounter.Inc(emetric.TypeRedis, compName, cmd.Name(), strings.Join(config.Addrs, ","), "Error")
+				emetric.ClientHandleCounter.Inc(emetric.TypeRedis, compName, cmd.Name(), addr, "Error")
 				return err
 			}
-			emetric.ClientHandleCounter.Inc(emetric.TypeRedis, compName, cmd.Name(), strings.Join(config.Addrs, ","), "OK")
+			emetric.ClientHandleCounter.Inc(emetric.TypeRedis, compName, cmd.Name(), addr, "OK")
 			return nil
 		},
 	)
