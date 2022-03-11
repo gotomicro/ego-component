@@ -118,27 +118,31 @@ func (wc *Client) Ping(ctx context.Context, rp *readpref.ReadPref) error {
 	})
 }
 
-func (wc *Client) StartSession(opts ...*options.SessionOptions) (ss mongo.Session, err error) {
+func (wc *Client) StartSession(opts ...*options.SessionOptions) (ss Session, err error) {
 	err = wc.processor(func(c *cmd) error {
 		ss, err = wc.cc.StartSession(opts...)
 		logCmd(wc.logMode, c, "StartSession", ss)
 		return err
 	})
-	return &Session{Session: ss, logMode: wc.logMode, processor: wc.processor}, nil
+	return &session{Session: ss, logMode: wc.logMode, processor: wc.processor}, nil
 }
 
-func (wc *Client) UseSession(ctx context.Context, fn func(mongo.SessionContext) error) error {
+func (wc *Client) UseSession(ctx context.Context, fn func(SessionContext) error) error {
 	return wc.processor(func(c *cmd) error {
 		logCmd(wc.logMode, c, "UseSession", nil)
 		return wc.cc.UseSession(ctx, fn)
 	})
 }
 
-func (wc *Client) UseSessionWithOptions(ctx context.Context, opts *options.SessionOptions, fn func(mongo.SessionContext) error) error {
+func (wc *Client) UseSessionWithOptions(ctx context.Context, opts *options.SessionOptions, fn func(SessionContext) error) error {
 	return wc.processor(func(c *cmd) error {
 		logCmd(wc.logMode, c, "UseSessionWithOptions", nil)
 		return wc.cc.UseSessionWithOptions(ctx, opts, fn)
 	})
+}
+
+func WithSession(ctx context.Context, sess Session, fn func(SessionContext) error) error {
+	return mongo.WithSession(ctx, sess, fn)
 }
 
 func (wc *Client) Client() *mongo.Client { return wc.cc }
