@@ -7,7 +7,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
@@ -54,7 +53,7 @@ func TestSession(t *testing.T) {
 	defer func() {
 		_ = coll.Drop(ctx)
 	}()
-	_, err = sess.WithTransaction(context.Background(), func(sessCtx mongo.SessionContext) (interface{}, error) {
+	_, err = sess.WithTransaction(context.Background(), func(sessCtx SessionContext) (interface{}, error) {
 		res := coll.FindOne(sessCtx, bson.D{{"x", 1}})
 		return res, err
 	})
