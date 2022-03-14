@@ -50,6 +50,9 @@ func (c *Container) Build(options ...Option) *Component {
 	if c.config.EnableAccessInterceptor {
 		options = append(options, withInterceptor(accessInterceptor(c.name, c.config, c.logger)))
 	}
+	if c.config.EnableTraceInterceptor {
+		options = append(options, withInterceptor(traceInterceptor(c.name, c.config, c.logger)))
+	}
 	for _, option := range options {
 		option(c)
 	}

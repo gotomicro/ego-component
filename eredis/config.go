@@ -1,6 +1,7 @@
 package eredis
 
 import (
+	"strings"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -62,4 +63,13 @@ func DefaultConfig() *config {
 		SlowLogThreshold:        xtime.Duration("250ms"),
 		OnFail:                  "panic",
 	}
+}
+
+// AddrString 获取地址字符串, 用于 log, metric, trace 中的 label
+func (c config) AddrString() string {
+	addr := c.Addr
+	if len(c.Addrs) > 0 {
+		addr = strings.Join(c.Addrs, ",")
+	}
+	return addr
 }
