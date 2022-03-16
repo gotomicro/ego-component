@@ -15,6 +15,7 @@ EGO 的客户端组件最佳实践。
 * [ x ] [Wechat](./ewechat)
 * [ x ] [OAuth2](./eoauth2)
 * [ x ] [JIRA](./ejira)
+* [ x ] [Emqtt](./eemqtt)
 
 ## Contributors
 
@@ -38,6 +39,7 @@ Thanks for these wonderful people:
     <td align="center"><a href="https://github.com/NeoyeElf"><img src="https://avatars.githubusercontent.com/u/6872731?v=4" width="64px;" alt=""/><br /><sub><b>刘文哲</b></sub></a></td>
     <td align="center"><a href="https://github.com/UnparalleledBeauty"><img src="https://avatars.githubusercontent.com/u/37238372?v=4" width="64px;" alt=""/><br /><sub><b>Carlos</b></sub></a></td>
     <td align="center"><a href="https://github.com/livepo"><img src="https://avatars.githubusercontent.com/u/6700352?v=4" width="64px;" alt=""/><br /><sub><b>qiandiao</b></sub></a></td>
+    <td align="center"><a href="https://github.com/livepo"><img src="https://avatars.githubusercontent.com/u/17000001?s=400&u=0336f4726acdf82e13f4c19f28d6e1de39ea0b9b&v=4" width="64px;" alt=""/><br /><sub><b>soeluc</b></sub></a></td>
   </tr>
 </table>
 
