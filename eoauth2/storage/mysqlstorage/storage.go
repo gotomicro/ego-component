@@ -186,7 +186,7 @@ func (s *storage) SaveAccess(ctx context.Context, data *server.AccessData) (err 
 		return
 	}
 
-	err = tx.WithContext(ctx).Model(dao.App{}).Where("client_id = ?", data.Client.GetId()).Updates(egorm.Ups{
+	err = tx.WithContext(ctx).Model(dao.App{}).Where("client_id = ?", data.Client.GetId()).Updates(map[string]interface{}{
 		"call_no": gorm.Expr("call_no+?", 1),
 	}).Error
 	if err != nil {
