@@ -146,16 +146,24 @@ func (c *Component) PublishMsg(topic string, qos byte, msg interface{}) {
 		c.logger.Panic("msg Parse error", elog.FieldErr(err), elog.FieldValueAny(msg))
 		return
 	}
-	pr, err := c.ec.Publish(c.ServerCtx, &paho.Publish{
-		QoS:     qos,
-		Topic:   topic,
-		Payload: msgByte,
-	})
-	if err != nil {
-		c.logger.Error(fmt.Sprintf("error publishing: %s\n", err))
-	} else if pr.ReasonCode != 0 && pr.ReasonCode != 16 { // 16 = Server received message but there are no subscribers
-		c.logger.Info(fmt.Sprintf("reason code %d received\n", pr.ReasonCode))
-	}
+	go func(msg []byte) {
+		pr, err := c.ec.Publish(c.ServerCtx, &paho.Publish{
+			QoS:     qos,
+			Topic:   topic,
+			Payload: msgByte,
+		})
+		if err != nil {
+			c.logger.Error(fmt.Sprintf("error publishing: %s\n", err))
+		}
+
+		if qos > 0 {
+			if pr.ReasonCode != 0 && pr.ReasonCode != 16 { // 16 = Server received message but there are no subscribers
+				c.logger.Info(fmt.Sprintf("reason code %d received\n", pr.ReasonCode))
+			} else {
+				c.logger.Info(fmt.Sprintf("reason code %d publish success ", pr.ReasonCode))
+			}
+		}
+	}(msgByte)
 }
 
 func (c *Component) Stop() {
