@@ -1,3 +1,6 @@
+deprecated
+use [https://github.com/ego-component/eoauth2](https://github.com/ego-component/eoauth2)
+
 # eoauth2 组件使用指南
 ## 简介 
 - 根据开源项目``github.com/RangelReale/osin``做了改造
