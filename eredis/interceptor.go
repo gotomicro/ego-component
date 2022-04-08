@@ -22,9 +22,9 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-type eredisContextKeyType int
+type eredisContextKeyType struct {}
 
-const ctxBegKey eredisContextKeyType = iota
+var ctxBegKey = eredisContextKeyType{}
 
 type interceptor struct {
 	beforeProcess         func(ctx context.Context, cmd redis.Cmder) (context.Context, error)
