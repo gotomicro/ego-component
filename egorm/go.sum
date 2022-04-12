@@ -240,12 +240,8 @@ github.com/gorilla/mux v1.6.2/go.mod h1:1lud6UwP+6orDFRuTfBEV8e9/aOM/c4fVVCaMa2z
 github.com/gorilla/mux v1.7.3/go.mod h1:1lud6UwP+6orDFRuTfBEV8e9/aOM/c4fVVCaMa2zaAs=
 github.com/gorilla/websocket v0.0.0-20170926233335-4201258b820c/go.mod h1:E7qHFY5m1UJ88s3WnNqhKjPHQ0heANvMoAMk2YaljkQ=
 github.com/gorilla/websocket v1.4.2/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=
-github.com/gotomicro/ego v0.9.3-0.20220412082501-b64dde721a00 h1:+9JtEPZLpG4OSCkhXgMu+iX14Lf41NObh18f4MJ6fzY=
-github.com/gotomicro/ego v0.9.3-0.20220412082501-b64dde721a00/go.mod h1:Pjt+5kIVGMqzpKYMxeN4s/Dc2TrNO9R58yQwt9zoXck=
-github.com/gotomicro/ego v0.9.3-0.20220412083728-f25daa10249e h1:f2yEMP3raoDBZMi0JN7H5iQMjX1wbX4AYEz1wcphdf0=
-github.com/gotomicro/ego v0.9.3-0.20220412083728-f25daa10249e/go.mod h1:Pjt+5kIVGMqzpKYMxeN4s/Dc2TrNO9R58yQwt9zoXck=
-github.com/gotomicro/ego v0.9.3-0.20220412090441-70b52f59051d h1:44MMiBdueKIY8fJcTPq0KiUSybCAFl1upfgTlMdItpk=
-github.com/gotomicro/ego v0.9.3-0.20220412090441-70b52f59051d/go.mod h1:Pjt+5kIVGMqzpKYMxeN4s/Dc2TrNO9R58yQwt9zoXck=
+github.com/gotomicro/ego v1.0.0 h1:2v7im+ovFMyZDGCG90+fQb8wXySA9fbZGHw3VnCActU=
+github.com/gotomicro/ego v1.0.0/go.mod h1:Pjt+5kIVGMqzpKYMxeN4s/Dc2TrNO9R58yQwt9zoXck=
 github.com/gotomicro/logrotate v0.0.0-20211108024517-45d1f9a03ff5 h1:y9nw0S0zlla/SBt1GGaTNNCF+781epJ62MntVVbekqQ=
 github.com/gotomicro/logrotate v0.0.0-20211108024517-45d1f9a03ff5/go.mod h1:jKlh8i9m79fE8HAO28kYLN70l87bb7olTLuX/Blex/U=
 github.com/grpc-ecosystem/go-grpc-middleware v1.0.1-0.20190118093823-f849b5445de4/go.mod h1:FiyG127CGDf3tlThmgyCl78X/SZQqEOJBCDaAfeWzPs=
