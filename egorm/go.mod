@@ -4,7 +4,7 @@ go 1.16
 
 require (
 	github.com/davecgh/go-spew v1.1.1
-	github.com/gotomicro/ego v0.9.3-0.20220412090441-70b52f59051d
+	github.com/gotomicro/ego v1.0.0
 	github.com/json-iterator/go v1.1.12
 	github.com/spf13/cast v1.3.1
 	github.com/stretchr/testify v1.7.0
