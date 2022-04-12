@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 	"time"
 
@@ -17,12 +18,14 @@ import (
 	"github.com/gotomicro/ego/core/transport"
 	"github.com/gotomicro/ego/core/util/xdebug"
 	"github.com/spf13/cast"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
+	semconv "go.opentelemetry.io/otel/semconv/v1.7.0"
 
 	"go.opentelemetry.io/otel/trace"
 )
 
-type eredisContextKeyType struct {}
+type eredisContextKeyType struct{}
 
 var ctxBegKey = eredisContextKeyType{}
 
@@ -203,16 +206,20 @@ func accessInterceptor(compName string, config *config, logger *elog.Component) 
 }
 
 func traceInterceptor(compName string, config *config, logger *elog.Component) *interceptor {
+	ip, port := peerInfo(config.Addr)
 	tracer := etrace.NewTracer(trace.SpanKindClient)
+	attrs := []attribute.KeyValue{
+		semconv.NetHostIPKey.String(ip),
+		semconv.NetPeerPortKey.Int(port),
+		semconv.DBSystemRedis,
+		semconv.DBNameKey.Int(config.DB),
+	}
 	return newInterceptor(compName, config, logger).setBeforeProcess(func(ctx context.Context, cmd redis.Cmder) (context.Context, error) {
-		ctx, span := tracer.Start(ctx, cmd.FullName(), nil)
-
+		ctx, span := tracer.Start(ctx, cmd.FullName(), nil, trace.WithAttributes(attrs...))
 		span.SetAttributes(
-			etrace.String("peer.service", "redis"),
-			etrace.String("db.system", "redis"),
-			etrace.String("db.statement", rediscmd.CmdString(cmd)),
+			semconv.DBOperationKey.String(cmd.Name()),
+			semconv.DBStatementKey.String(rediscmd.CmdString(cmd)),
 		)
-
 		return ctx, nil
 	}).setAfterProcess(
 		func(ctx context.Context, cmd redis.Cmder) error {
@@ -257,4 +264,15 @@ func getContextValue(c context.Context, key string) string {
 		return ""
 	}
 	return cast.ToString(transport.Value(c, key))
+}
+
+func peerInfo(addr string) (hostname string, port int) {
+	if idx := strings.IndexByte(addr, '['); idx >= 0 {
+		hostname = hostname[:idx]
+	}
+	if idx := strings.IndexByte(addr, ':'); idx >= 0 {
+		port = func(p int, e error) int { return p }(strconv.Atoi(hostname[idx+1:]))
+		hostname = hostname[:idx]
+	}
+	return hostname, port
 }
