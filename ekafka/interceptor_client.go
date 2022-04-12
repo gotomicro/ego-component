@@ -17,7 +17,9 @@ import (
 	"github.com/gotomicro/ego/core/util/xstring"
 	"github.com/segmentio/kafka-go"
 	"github.com/spf13/cast"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/propagation"
+	semconv "go.opentelemetry.io/otel/semconv/v1.7.0"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -60,10 +62,13 @@ func fixedClientInterceptor(_ string, _ *config) ClientInterceptor {
 
 func traceClientInterceptor(compName string, c *config) ClientInterceptor {
 	tracer := etrace.NewTracer(trace.SpanKindProducer)
+	attrs := []attribute.KeyValue{
+		semconv.MessagingSystemKey.String("kafka"),
+	}
 	return func(next clientProcessFn) clientProcessFn {
 		return func(ctx context.Context, msgs Messages, cmd *cmd) error {
 			carrier := propagation.MapCarrier{}
-			ctx, span := tracer.Start(ctx, "kafka", carrier)
+			ctx, span := tracer.Start(ctx, "kafka", carrier, trace.WithAttributes(attrs...))
 			defer span.End()
 
 			headers := make([]kafka.Header, 0)
@@ -80,8 +85,7 @@ func traceClientInterceptor(compName string, c *config) ClientInterceptor {
 			err := next(ctx, msgs, cmd)
 
 			span.SetAttributes(
-				etrace.String("messaging.system", "kafka"),
-				etrace.String("messaging.destination", cmd.msg.Topic),
+				semconv.MessagingDestinationKindKey.String(cmd.msg.Topic),
 			)
 
 			return err

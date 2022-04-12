@@ -5,20 +5,22 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 	"time"
 
-	"github.com/gotomicro/ego/core/transport"
-	"github.com/spf13/cast"
-	"go.opentelemetry.io/otel/trace"
-
 	"github.com/gotomicro/ego-component/egorm/manager"
-
 	"github.com/gotomicro/ego/core/eapp"
 	"github.com/gotomicro/ego/core/elog"
 	"github.com/gotomicro/ego/core/emetric"
 	"github.com/gotomicro/ego/core/etrace"
+	"github.com/gotomicro/ego/core/transport"
 	"github.com/gotomicro/ego/core/util/xdebug"
+	"github.com/spf13/cast"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	semconv "go.opentelemetry.io/otel/semconv/v1.7.0"
+	"go.opentelemetry.io/otel/trace"
 	"gorm.io/gorm"
 )
 
@@ -46,11 +48,11 @@ func debugInterceptor(compName string, dsn *manager.DSN, op string, options *con
 			cost := time.Since(beg)
 			if db.Error != nil {
 				log.Println("[egorm.response]",
-					xdebug.MakeReqResError(compName, fmt.Sprintf("%v", dsn.Addr+"/"+dsn.DBName), cost, logSQL(db.Statement.SQL.String(), db.Statement.Vars, true), db.Error.Error()),
+					xdebug.MakeReqResError(compName, fmt.Sprintf("%v", dsn.Addr+"/"+dsn.DBName), cost, logSQL(db, true), db.Error.Error()),
 				)
 			} else {
 				log.Println("[egorm.response]",
-					xdebug.MakeReqResInfo(compName, fmt.Sprintf("%v", dsn.Addr+"/"+dsn.DBName), cost, logSQL(db.Statement.SQL.String(), db.Statement.Vars, true), fmt.Sprintf("%v", db.Statement.Dest)),
+					xdebug.MakeReqResInfo(compName, fmt.Sprintf("%v", dsn.Addr+"/"+dsn.DBName), cost, logSQL(db, true), fmt.Sprintf("%v", db.Statement.Dest)),
 				)
 			}
 
@@ -72,7 +74,7 @@ func metricInterceptor(compName string, dsn *manager.DSN, op string, config *con
 				elog.FieldMethod(op),
 				elog.FieldName(dsn.DBName+"."+db.Statement.Table), elog.FieldCost(cost))
 			if config.EnableAccessInterceptorReq {
-				fields = append(fields, elog.String("req", logSQL(db.Statement.SQL.String(), db.Statement.Vars, config.EnableDetailSQL)))
+				fields = append(fields, elog.String("req", logSQL(db, config.EnableDetailSQL)))
 			}
 			if config.EnableAccessInterceptorRes {
 				fields = append(fields, elog.Any("res", db.Statement.Dest))
@@ -124,14 +126,21 @@ func metricInterceptor(compName string, dsn *manager.DSN, op string, config *con
 	}
 }
 
-func logSQL(sql string, args []interface{}, containArgs bool) string {
-	if containArgs {
-		return bindSQL(sql, args)
+func logSQL(db *gorm.DB, enableDetailSQL bool) string {
+	if enableDetailSQL {
+		return db.Explain(db.Statement.SQL.String(), db.Statement.Vars...)
 	}
-	return sql
+	return db.Statement.SQL.String()
 }
 
 func traceInterceptor(compName string, dsn *manager.DSN, op string, options *config, logger *elog.Component) func(Handler) Handler {
+	ip, port := peerInfo(dsn.Addr)
+	attrs := []attribute.KeyValue{
+		semconv.NetHostIPKey.String(ip),
+		semconv.NetPeerPortKey.Int(port),
+		semconv.NetTransportKey.String(dsn.Net),
+		semconv.DBNameKey.String(dsn.DBName),
+	}
 	tracer := etrace.NewTracer(trace.SpanKindClient)
 	return func(next Handler) Handler {
 		return func(db *gorm.DB) {
@@ -141,21 +150,24 @@ func traceInterceptor(compName string, dsn *manager.DSN, op string, options *con
 					operation += strings.ToLower(db.Statement.BuildClauses[0])
 				}
 
-				_, span := tracer.Start(db.Statement.Context, operation, nil)
+				_, span := tracer.Start(db.Statement.Context, operation, nil, trace.WithAttributes(attrs...))
 				defer span.End()
 				// 延迟执行 scope.CombinedConditionSql() 避免sqlVar被重复追加
 				next(db)
-
 				span.SetAttributes(
-					etrace.String("peer.service", "mysql"),
-					etrace.String("db.system", "mysql"),
-					etrace.String("db.name", dsn.DBName),
-					etrace.String("db.statement", logSQL(db.Statement.SQL.String(), db.Statement.Vars, options.EnableDetailSQL)),
-					etrace.String("db.operation", operation),
-					etrace.String("db.sql.table", db.Statement.Table),
-					etrace.String("net.peer.name", dsn.Addr),
-					etrace.String("net.transport", dsn.Net),
+					semconv.DBSystemKey.String(db.Dialector.Name()),
+					semconv.DBStatementKey.String(logSQL(db, options.EnableDetailSQL)),
+					semconv.DBOperationKey.String(operation),
+					semconv.DBSQLTableKey.String(db.Statement.Table),
+					semconv.NetPeerNameKey.String(dsn.Addr),
+					attribute.Int64("db.rows_affected", db.RowsAffected),
 				)
+				if db.Error != nil {
+					span.RecordError(db.Error)
+					span.SetStatus(codes.Error, db.Error.Error())
+					return
+				}
+				span.SetStatus(codes.Ok, "OK")
 				return
 			}
 
@@ -169,4 +181,15 @@ func getContextValue(c context.Context, key string) string {
 		return ""
 	}
 	return cast.ToString(transport.Value(c, key))
+}
+
+func peerInfo(addr string) (hostname string, port int) {
+	if idx := strings.IndexByte(addr, '['); idx >= 0 {
+		hostname = hostname[:idx]
+	}
+	if idx := strings.IndexByte(addr, ':'); idx >= 0 {
+		port = func(p int, e error) int { return p }(strconv.Atoi(hostname[idx+1:]))
+		hostname = hostname[:idx]
+	}
+	return hostname, port
 }
