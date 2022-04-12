@@ -183,13 +183,11 @@ func getContextValue(c context.Context, key string) string {
 	return cast.ToString(transport.Value(c, key))
 }
 
+// todo ipv6
 func peerInfo(addr string) (hostname string, port int) {
-	if idx := strings.IndexByte(addr, '['); idx >= 0 {
-		hostname = hostname[:idx]
-	}
 	if idx := strings.IndexByte(addr, ':'); idx >= 0 {
-		port = func(p int, e error) int { return p }(strconv.Atoi(hostname[idx+1:]))
-		hostname = hostname[:idx]
+		hostname = addr[:idx]
+		port, _ = strconv.Atoi(addr[idx+1:])
 	}
 	return hostname, port
 }
