@@ -5,17 +5,17 @@
 
 EGO 的客户端组件最佳实践。
 
-* [ x ] [Gorm](./egorm)
-* [ x ] [Redis](./eredis)
-* [ x ] [Kafka](./ekafka)
-* [ x ] [Mongo](./emongo)
-* [ x ] [Session](./esession)
-* [ x ] [ETCD](./eetcd)
-* [ x ] [Dingtalk](./edingtalk)
-* [ x ] [Wechat](./ewechat)
-* [ x ] [OAuth2](./eoauth2)
-* [ x ] [JIRA](./ejira)
-* [ x ] [Emqtt](./eemqtt)
+* [Gorm](https://github.com/ego-component/egorm)
+* [Redis](https://github.com/ego-component/eredis)
+* [Kafka](./ekafka)
+* [Mongo](./emongo)
+* [Session](./esession)
+* [ETCD](./eetcd)
+* [Dingtalk](./edingtalk)
+* [Wechat](./ewechat)
+* [OAuth2](https://github.com/ego-component/eoauth2)
+* [JIRA](./ejira)
+* [Emqtt](./eemqtt)
 
 ## Contributors
 
