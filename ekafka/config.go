@@ -19,6 +19,9 @@ type config struct {
 	Consumers map[string]consumerConfig `json:"consumers" toml:"consumers"`
 	// ConsumerGroups 多个消费组，用于消费消息
 	ConsumerGroups             map[string]consumerGroupConfig `json:"consumerGroups" toml:"consumerGroups"`
+	SASLUserName               string                         `json:"saslUserName" toml:"saslUserName"`
+	SASLPassword               string                         `json:"saslPassword" toml:"saslPassword"`
+	SASLMechanism              string                         `json:"saslMechanism" toml:"saslMechanism"`
 	clientInterceptors         []ClientInterceptor
 	serverInterceptors         []ServerInterceptor
 	balancers                  map[string]Balancer
@@ -27,6 +30,7 @@ type config struct {
 	EnableAccessInterceptorReq bool // 是否开启记录请求参数，默认不开启
 	EnableAccessInterceptorRes bool // 是否开启记录响应参数，默认不开启
 	EnableMetricInterceptor    bool // 是否开启监控，默认开启
+
 }
 
 type clientConfig struct {
@@ -58,6 +62,12 @@ type producerConfig struct {
 	RequiredAcks kafka.RequiredAcks `json:"requiredAcks" toml:"requiredAcks"`
 	// Async 设置成true时会导致WriteMessages非阻塞，会导致调用WriteMessages方法获取不到error
 	Async bool `json:"async" toml:"async"`
+	// Compression 压缩
+	// compress.Gzip (1)
+	// compress.Snappy (2)
+	// compress.Lz4 (3)
+	// compress.Zstd (4)
+	Compression int `json:"compression"  toml:"compression"`
 }
 
 type consumerConfig struct {

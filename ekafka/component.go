@@ -7,6 +7,9 @@ import (
 	"github.com/gotomicro/ego/core/elog"
 	"github.com/gotomicro/ego/core/etrace"
 	"github.com/segmentio/kafka-go"
+	"github.com/segmentio/kafka-go/sasl"
+	"github.com/segmentio/kafka-go/sasl/plain"
+	"github.com/segmentio/kafka-go/sasl/scram"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -73,20 +76,64 @@ func (cmp *Component) Producer(name string) *Producer {
 			cmp.config.balancers,
 		))
 	}
+
+	var mechanism sasl.Mechanism
+	var err error
+	if cmp.config.SASLMechanism != "" {
+		switch cmp.config.SASLMechanism {
+		case "SCRAM-SHA-256":
+			mechanism, err = scram.Mechanism(scram.SHA256, cmp.config.SASLUserName, cmp.config.SASLPassword)
+			if err != nil {
+				cmp.consumerMu.Unlock()
+				cmp.logger.Panic("create mechanism error", elog.String("mechanism", cmp.config.SASLMechanism))
+			}
+		case "SCRAM-SHA-512":
+			mechanism, err = scram.Mechanism(scram.SHA512, cmp.config.SASLUserName, cmp.config.SASLPassword)
+			if err != nil {
+				cmp.consumerMu.Unlock()
+				cmp.logger.Panic("create mechanism error", elog.String("mechanism", cmp.config.SASLMechanism))
+			}
+		case "PLAIN":
+			mechanism = plain.Mechanism{
+				Username: cmp.config.SASLUserName,
+				Password: cmp.config.SASLPassword,
+			}
+		default:
+			cmp.consumerMu.Unlock()
+			cmp.logger.Panic("unknown mechanism", elog.String("mechanism", cmp.config.SASLMechanism))
+		}
+	}
+
+	var transport kafka.RoundTripper
+	if mechanism != nil {
+		transport = &kafka.Transport{
+			SASL: mechanism,
+		}
+	}
+
+	kafkaWriter := &kafka.Writer{
+		Addr:         kafka.TCP(cmp.config.Brokers...),
+		Topic:        config.Topic,
+		Balancer:     balancer,
+		MaxAttempts:  config.MaxAttempts,
+		BatchSize:    config.BatchSize,
+		BatchBytes:   config.BatchBytes,
+		BatchTimeout: config.BatchTimeout,
+		ReadTimeout:  config.ReadTimeout,
+		WriteTimeout: config.WriteTimeout,
+		RequiredAcks: config.RequiredAcks,
+		Async:        config.Async,
+	}
+
+	if transport != nil {
+		kafkaWriter.Transport = transport
+	}
+	if config.Compression > 0 {
+		kafkaWriter.Compression = kafka.Compression(config.Compression)
+	}
+
 	producer := &Producer{
-		w: &kafka.Writer{
-			Addr:         kafka.TCP(cmp.config.Brokers...),
-			Topic:        config.Topic,
-			Balancer:     balancer,
-			MaxAttempts:  config.MaxAttempts,
-			BatchSize:    config.BatchSize,
-			BatchBytes:   config.BatchBytes,
-			BatchTimeout: config.BatchTimeout,
-			ReadTimeout:  config.ReadTimeout,
-			WriteTimeout: config.WriteTimeout,
-			RequiredAcks: config.RequiredAcks,
-			Async:        config.Async,
-		},
+		w:       kafkaWriter,
 		logMode: cmp.config.Debug,
 	}
 	producer.setProcessor(cmp.interceptorClientChain())
@@ -121,30 +168,68 @@ func (cmp *Component) Consumer(name string) *Consumer {
 	}
 	logger := newKafkaLogger(cmp.logger)
 	errorLogger := newKafkaErrorLogger(cmp.logger)
+
+	var mechanism sasl.Mechanism
+	var err error
+	if cmp.config.SASLMechanism != "" {
+		switch cmp.config.SASLMechanism {
+		case "SCRAM-SHA-256":
+			mechanism, err = scram.Mechanism(scram.SHA256, cmp.config.SASLUserName, cmp.config.SASLPassword)
+			if err != nil {
+				cmp.consumerMu.Unlock()
+				cmp.logger.Panic("create mechanism error", elog.String("mechanism", cmp.config.SASLMechanism))
+			}
+		case "SCRAM-SHA-512":
+			mechanism, err = scram.Mechanism(scram.SHA512, cmp.config.SASLUserName, cmp.config.SASLPassword)
+			if err != nil {
+				cmp.consumerMu.Unlock()
+				cmp.logger.Panic("create mechanism error", elog.String("mechanism", cmp.config.SASLMechanism))
+			}
+		case "PLAIN":
+			mechanism = plain.Mechanism{
+				Username: cmp.config.SASLUserName,
+				Password: cmp.config.SASLPassword,
+			}
+		default:
+			cmp.consumerMu.Unlock()
+			cmp.logger.Panic("unknown mechanism", elog.String("mechanism", cmp.config.SASLMechanism))
+		}
+	}
+
+	readerConfig := kafka.ReaderConfig{
+		Brokers:                cmp.config.Brokers,
+		Topic:                  config.Topic,
+		GroupID:                config.GroupID,
+		Partition:              config.Partition,
+		MinBytes:               config.MinBytes,
+		MaxBytes:               config.MaxBytes,
+		WatchPartitionChanges:  config.WatchPartitionChanges,
+		PartitionWatchInterval: config.PartitionWatchInterval,
+		RebalanceTimeout:       config.RebalanceTimeout,
+		MaxWait:                config.MaxWait,
+		ReadLagInterval:        config.ReadLagInterval,
+		Logger:                 logger,
+		ErrorLogger:            errorLogger,
+		HeartbeatInterval:      config.HeartbeatInterval,
+		CommitInterval:         config.CommitInterval,
+		SessionTimeout:         config.SessionTimeout,
+		JoinGroupBackoff:       config.JoinGroupBackoff,
+		RetentionTime:          config.RetentionTime,
+		StartOffset:            config.StartOffset,
+		ReadBackoffMin:         config.ReadBackoffMin,
+		ReadBackoffMax:         config.ReadBackoffMax,
+	}
+
+	if mechanism != nil {
+		dialer := &kafka.Dialer{
+			DualStack:     true,
+			SASLMechanism: mechanism,
+		}
+		readerConfig.Dialer = dialer
+	}
+
 	consumer := &Consumer{
-		r: kafka.NewReader(kafka.ReaderConfig{
-			Brokers:                cmp.config.Brokers,
-			Topic:                  config.Topic,
-			GroupID:                config.GroupID,
-			Partition:              config.Partition,
-			MinBytes:               config.MinBytes,
-			MaxBytes:               config.MaxBytes,
-			WatchPartitionChanges:  config.WatchPartitionChanges,
-			PartitionWatchInterval: config.PartitionWatchInterval,
-			RebalanceTimeout:       config.RebalanceTimeout,
-			MaxWait:                config.MaxWait,
-			ReadLagInterval:        config.ReadLagInterval,
-			Logger:                 logger,
-			ErrorLogger:            errorLogger,
-			HeartbeatInterval:      config.HeartbeatInterval,
-			CommitInterval:         config.CommitInterval,
-			SessionTimeout:         config.SessionTimeout,
-			JoinGroupBackoff:       config.JoinGroupBackoff,
-			RetentionTime:          config.RetentionTime,
-			StartOffset:            config.StartOffset,
-			ReadBackoffMin:         config.ReadBackoffMin,
-			ReadBackoffMax:         config.ReadBackoffMax,
-		}),
+		r: kafka.NewReader(readerConfig),
 		//processor: defaultProcessor,
 		logMode: cmp.config.Debug,
 		Config:  config,
