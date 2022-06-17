@@ -3,7 +3,6 @@ package ekafka
 import (
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/gotomicro/ego/core/elog"
 	"github.com/gotomicro/ego/core/etrace"
@@ -191,7 +190,6 @@ func (cmp *Component) Consumer(name string) *Consumer {
 	}
 
 	dialer := &kafka.Dialer{
-		Timeout:   10 * time.Second,
 		DualStack: true,
 	}
 
