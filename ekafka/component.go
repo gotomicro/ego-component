@@ -3,10 +3,14 @@ package ekafka
 import (
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/gotomicro/ego/core/elog"
 	"github.com/gotomicro/ego/core/etrace"
 	"github.com/segmentio/kafka-go"
+	"github.com/segmentio/kafka-go/sasl"
+	"github.com/segmentio/kafka-go/sasl/plain"
+	"github.com/segmentio/kafka-go/sasl/scram"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -73,6 +77,41 @@ func (cmp *Component) Producer(name string) *Producer {
 			cmp.config.balancers,
 		))
 	}
+
+	var mechanism sasl.Mechanism
+	var err error
+	if config.SASLMechanism != "" {
+		switch config.SASLMechanism {
+		case "SCRAM-SHA-256":
+			mechanism, err = scram.Mechanism(scram.SHA256, config.SASLUserName, config.SASLPassword)
+			if err != nil {
+				cmp.consumerMu.Unlock()
+				cmp.logger.Panic("create mechanism error", elog.String("mechanism", config.SASLMechanism))
+			}
+		case "SCRAM-SHA-512":
+			mechanism, err = scram.Mechanism(scram.SHA512, config.SASLUserName, config.SASLPassword)
+			if err != nil {
+				cmp.consumerMu.Unlock()
+				cmp.logger.Panic("create mechanism error", elog.String("mechanism", config.SASLMechanism))
+			}
+		case "PLAIN":
+			mechanism = plain.Mechanism{
+				Username: config.SASLUserName,
+				Password: config.SASLPassword,
+			}
+		default:
+			cmp.consumerMu.Unlock()
+			cmp.logger.Panic("unknown mechanism", elog.String("mechanism", config.SASLMechanism))
+		}
+	}
+
+	var transport kafka.RoundTripper
+	if mechanism != nil {
+		transport = &kafka.Transport{
+			SASL: mechanism,
+		}
+	}
+
 	producer := &Producer{
 		w: &kafka.Writer{
 			Addr:         kafka.TCP(cmp.config.Brokers...),
@@ -86,6 +125,8 @@ func (cmp *Component) Producer(name string) *Producer {
 			WriteTimeout: config.WriteTimeout,
 			RequiredAcks: config.RequiredAcks,
 			Async:        config.Async,
+			Transport:    transport,
+			Compression:  kafka.Compression(config.Compression),
 		},
 		logMode: cmp.config.Debug,
 	}
@@ -121,6 +162,43 @@ func (cmp *Component) Consumer(name string) *Consumer {
 	}
 	logger := newKafkaLogger(cmp.logger)
 	errorLogger := newKafkaErrorLogger(cmp.logger)
+
+	var mechanism sasl.Mechanism
+	var err error
+	if config.SASLMechanism != "" {
+		switch config.SASLMechanism {
+		case "SCRAM-SHA-256":
+			mechanism, err = scram.Mechanism(scram.SHA256, config.SASLUserName, config.SASLPassword)
+			if err != nil {
+				cmp.consumerMu.Unlock()
+				cmp.logger.Panic("create mechanism error", elog.String("mechanism", config.SASLMechanism))
+			}
+		case "SCRAM-SHA-512":
+			mechanism, err = scram.Mechanism(scram.SHA512, config.SASLUserName, config.SASLPassword)
+			if err != nil {
+				cmp.consumerMu.Unlock()
+				cmp.logger.Panic("create mechanism error", elog.String("mechanism", config.SASLMechanism))
+			}
+		case "PLAIN":
+			mechanism = plain.Mechanism{
+				Username: config.SASLUserName,
+				Password: config.SASLPassword,
+			}
+		default:
+			cmp.consumerMu.Unlock()
+			cmp.logger.Panic("unknown mechanism", elog.String("mechanism", config.SASLMechanism))
+		}
+	}
+
+	dialer := &kafka.Dialer{
+		Timeout:   10 * time.Second,
+		DualStack: true,
+	}
+
+	if mechanism != nil {
+		dialer.SASLMechanism = mechanism
+	}
+
 	consumer := &Consumer{
 		r: kafka.NewReader(kafka.ReaderConfig{
 			Brokers:                cmp.config.Brokers,
@@ -144,6 +222,7 @@ func (cmp *Component) Consumer(name string) *Consumer {
 			StartOffset:            config.StartOffset,
 			ReadBackoffMin:         config.ReadBackoffMin,
 			ReadBackoffMax:         config.ReadBackoffMax,
+			Dialer:                 dialer,
 		}),
 		//processor: defaultProcessor,
 		logMode: cmp.config.Debug,

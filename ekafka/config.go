@@ -58,6 +58,15 @@ type producerConfig struct {
 	RequiredAcks kafka.RequiredAcks `json:"requiredAcks" toml:"requiredAcks"`
 	// Async 设置成true时会导致WriteMessages非阻塞，会导致调用WriteMessages方法获取不到error
 	Async bool `json:"async" toml:"async"`
+	// Compression 压缩
+	// compress.Gzip (1)
+	// compress.Snappy (2)
+	// compress.Lz4 (3)
+	// compress.Zstd (4)
+	Compression   int    `json:"compression"  toml:"compression"`
+	SASLUserName  string `json:"saslUserName" toml:"saslUserName"`
+	SASLPassword  string `json:"saslPassword" toml:"saslPassword"`
+	SASLMechanism string `json:"saslMechanism" toml:"saslMechanism"`
 }
 
 type consumerConfig struct {
@@ -89,6 +98,9 @@ type consumerConfig struct {
 	StartOffset       int64         `json:"startOffset" toml:"startOffset"`
 	ReadBackoffMin    time.Duration `json:"readBackoffMin" toml:"readBackoffMin"`
 	ReadBackoffMax    time.Duration `json:"readBackoffMax" toml:"readBackoffMax"`
+	SASLUserName      string        `json:"saslUserName" toml:"saslUserName"`
+	SASLPassword      string        `json:"saslPassword" toml:"saslPassword"`
+	SASLMechanism     string        `json:"saslMechanism" toml:"saslMechanism"`
 }
 
 type consumerGroupConfig struct {
