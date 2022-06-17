@@ -79,28 +79,28 @@ func (cmp *Component) Producer(name string) *Producer {
 
 	var mechanism sasl.Mechanism
 	var err error
-	if config.SASLMechanism != "" {
-		switch config.SASLMechanism {
+	if cmp.config.SASLMechanism != "" {
+		switch cmp.config.SASLMechanism {
 		case "SCRAM-SHA-256":
-			mechanism, err = scram.Mechanism(scram.SHA256, config.SASLUserName, config.SASLPassword)
+			mechanism, err = scram.Mechanism(scram.SHA256, cmp.config.SASLUserName, cmp.config.SASLPassword)
 			if err != nil {
 				cmp.consumerMu.Unlock()
-				cmp.logger.Panic("create mechanism error", elog.String("mechanism", config.SASLMechanism))
+				cmp.logger.Panic("create mechanism error", elog.String("mechanism", cmp.config.SASLMechanism))
 			}
 		case "SCRAM-SHA-512":
-			mechanism, err = scram.Mechanism(scram.SHA512, config.SASLUserName, config.SASLPassword)
+			mechanism, err = scram.Mechanism(scram.SHA512, cmp.config.SASLUserName, cmp.config.SASLPassword)
 			if err != nil {
 				cmp.consumerMu.Unlock()
-				cmp.logger.Panic("create mechanism error", elog.String("mechanism", config.SASLMechanism))
+				cmp.logger.Panic("create mechanism error", elog.String("mechanism", cmp.config.SASLMechanism))
 			}
 		case "PLAIN":
 			mechanism = plain.Mechanism{
-				Username: config.SASLUserName,
-				Password: config.SASLPassword,
+				Username: cmp.config.SASLUserName,
+				Password: cmp.config.SASLPassword,
 			}
 		default:
 			cmp.consumerMu.Unlock()
-			cmp.logger.Panic("unknown mechanism", elog.String("mechanism", config.SASLMechanism))
+			cmp.logger.Panic("unknown mechanism", elog.String("mechanism", cmp.config.SASLMechanism))
 		}
 	}
 
@@ -171,28 +171,28 @@ func (cmp *Component) Consumer(name string) *Consumer {
 
 	var mechanism sasl.Mechanism
 	var err error
-	if config.SASLMechanism != "" {
-		switch config.SASLMechanism {
+	if cmp.config.SASLMechanism != "" {
+		switch cmp.config.SASLMechanism {
 		case "SCRAM-SHA-256":
-			mechanism, err = scram.Mechanism(scram.SHA256, config.SASLUserName, config.SASLPassword)
+			mechanism, err = scram.Mechanism(scram.SHA256, cmp.config.SASLUserName, cmp.config.SASLPassword)
 			if err != nil {
 				cmp.consumerMu.Unlock()
-				cmp.logger.Panic("create mechanism error", elog.String("mechanism", config.SASLMechanism))
+				cmp.logger.Panic("create mechanism error", elog.String("mechanism", cmp.config.SASLMechanism))
 			}
 		case "SCRAM-SHA-512":
-			mechanism, err = scram.Mechanism(scram.SHA512, config.SASLUserName, config.SASLPassword)
+			mechanism, err = scram.Mechanism(scram.SHA512, cmp.config.SASLUserName, cmp.config.SASLPassword)
 			if err != nil {
 				cmp.consumerMu.Unlock()
-				cmp.logger.Panic("create mechanism error", elog.String("mechanism", config.SASLMechanism))
+				cmp.logger.Panic("create mechanism error", elog.String("mechanism", cmp.config.SASLMechanism))
 			}
 		case "PLAIN":
 			mechanism = plain.Mechanism{
-				Username: config.SASLUserName,
-				Password: config.SASLPassword,
+				Username: cmp.config.SASLUserName,
+				Password: cmp.config.SASLPassword,
 			}
 		default:
 			cmp.consumerMu.Unlock()
-			cmp.logger.Panic("unknown mechanism", elog.String("mechanism", config.SASLMechanism))
+			cmp.logger.Panic("unknown mechanism", elog.String("mechanism", cmp.config.SASLMechanism))
 		}
 	}
 
