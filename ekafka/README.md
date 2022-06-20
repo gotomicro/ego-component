@@ -477,8 +477,8 @@ func main() {
 | ------ | --------|
 |  1     | Gzip   |
 |  2     | Snappy |
-|  2     | Lz4 |
-|  2     | Zstd |
+|  3     | Lz4 |
+|  4     | Zstd |
 
 
 ##SASL Support
