@@ -3,12 +3,14 @@
 ## Table of contents
 
 - [基本组件](#基本组件)
-	- [快速上手](#快速上手)
+    - [快速上手](#快速上手)
 - [ConsumerGroup](#ConsumerGroup)
 - [Consumer Server 组件](#Consumer-Server-组件)
 - [Producer](#Producer)
+- [compression](#compression)
+- [SASL Support](#SASL Support)
 - [测试](#测试)
-	- [E2E 测试](#E2E-测试)
+    - [E2E 测试](#E2E-测试)
 
 ## 注意事项
 如果生产、消费kafka比较慢，并不一定是kafka慢，而是你的配置不正确，请认真查看文档：https://github.com/segmentio/kafka-go/issues/417
@@ -457,6 +459,55 @@ func main() {
 	fmt.Println(`produce message success --------------->`)
 }
 ```
+
+##compression
+以下是压缩的相关配置
+```toml
+[kafka]
+	brokers=["localhost:9091","localhost:9092","localhost:9093"]
+	[kafka.client]
+		timeout="3s"
+	[kafka.producers.p1]        # 定义了名字为 p1 的 producer
+		topic="test_topic"        # 指定生产消息的 topic
+		compression=1 #指定压缩类型
+```
+目前支持的compression如下：
+
+| 配置值 | 说明  |
+| ------ | --------|
+|  1     | Gzip   |
+|  2     | Snappy |
+|  3     | Lz4 |
+|  4     | Zstd |
+
+
+##SASL Support
+
+以下是相关配置样例
+
+```toml
+[kafka]
+	debug=true
+	brokers=["localhost:9091","localhost:9092","localhost:9093"]
+	saslMechanism="PLAIN" #SASL Authentication Types
+	saslUserName="username" #用户名
+	saslPassword="password" #密码
+	[kafka.client]
+        timeout="3s"
+	[kafka.producers.p1]
+		topic="sre-infra-test"
+	[kafka.consumers.c1]
+		topic="sre-infra-test"
+		groupID="group-1"
+```
+saslMechanism 相关配置枚举如下：
+
+| 配置值 | 说明  |
+| ---------------- | ------------|
+|  PLAIN           | Plain       |
+|  SCRAM-SHA-256   | Scram       |
+|  SCRAM-SHA-512   | Scram       |
+
 
 ## 测试
 
