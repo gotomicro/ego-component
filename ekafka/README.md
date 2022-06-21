@@ -7,8 +7,8 @@
 - [ConsumerGroup](#ConsumerGroup)
 - [Consumer Server 组件](#Consumer-Server-组件)
 - [Producer](#Producer)
-- [compression](#compression)
-- [SASL Support](#SASL Support)
+- [Compression](#Compression)
+- [SASL Support](#SASL-Support)
 - [测试](#测试)
     - [E2E 测试](#E2E-测试)
 
@@ -460,7 +460,8 @@ func main() {
 }
 ```
 
-##compression
+##Compression
+
 以下是压缩的相关配置
 ```toml
 [kafka]
