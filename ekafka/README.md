@@ -460,7 +460,7 @@ func main() {
 }
 ```
 
-##Compression
+## Compression
 
 以下是压缩的相关配置
 ```toml
@@ -482,7 +482,7 @@ func main() {
 |  4     | Zstd |
 
 
-##SASL Support
+## SASL Support
 
 以下是相关配置样例
 
