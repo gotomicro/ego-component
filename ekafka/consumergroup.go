@@ -84,7 +84,12 @@ type ConsumerGroupOptions struct {
 func NewConsumerGroup(options ConsumerGroupOptions) (*ConsumerGroup, error) {
 	logger := newKafkaLogger(options.Logger)
 	errorLogger := newKafkaErrorLogger(options.Logger)
-	group, err := kafka.NewConsumerGroup(kafka.ConsumerGroupConfig{
+	mechanism, err := NewMechanism(options.SASLMechanism, options.SASLUserName, options.SASLPassword)
+	if err != nil {
+		return nil, err
+	}
+
+	readerConfig := kafka.ConsumerGroupConfig{
 		Brokers:                options.Brokers,
 		ID:                     options.GroupID,
 		Topics:                 []string{options.Topic},
@@ -98,7 +103,17 @@ func NewConsumerGroup(options ConsumerGroupOptions) (*ConsumerGroup, error) {
 		RetentionTime:          options.RetentionTime,
 		Logger:                 logger,
 		ErrorLogger:            errorLogger,
-	})
+	}
+
+	if mechanism != nil {
+		dialer := &kafka.Dialer{
+			Timeout:       10 * time.Second,
+			DualStack:     true,
+			SASLMechanism: mechanism,
+		}
+		readerConfig.Dialer = dialer
+	}
+	group, err := kafka.NewConsumerGroup(readerConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -128,12 +143,10 @@ func (cg *ConsumerGroup) run() {
 		cg.genMu.Lock()
 		cg.currentGen = gen
 		cg.genMu.Unlock()
-
 		if err != nil {
 			if errors.Is(err, kafka.ErrGroupClosed) {
 				return
 			}
-
 			cg.events <- err
 			return
 		}
