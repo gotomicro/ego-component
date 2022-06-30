@@ -261,8 +261,18 @@ func (cmp *Component) ConsumerGroup(name string) *ConsumerGroup {
 // Client 返回kafka Client
 func (cmp *Component) Client() *Client {
 	cmp.clientOnce.Do(func() {
+		mechanism, err := NewMechanism(cmp.config.SASLMechanism, cmp.config.SASLUserName, cmp.config.SASLPassword)
+		if err != nil {
+			cmp.logger.Panic("create mechanism error", elog.String("mechanism", cmp.config.SASLMechanism), elog.String("errorDetail", err.Error()))
+		}
+		var transport kafka.RoundTripper
+		if mechanism != nil {
+			transport = &kafka.Transport{
+				SASL: mechanism,
+			}
+		}
 		cmp.client = &Client{
-			cc: &kafka.Client{Addr: kafka.TCP(cmp.config.Brokers...), Timeout: cmp.config.Client.Timeout},
+			cc: &kafka.Client{Addr: kafka.TCP(cmp.config.Brokers...), Timeout: cmp.config.Client.Timeout, Transport: transport},
 			//processor: defaultProcessor,
 			logMode: cmp.config.Debug,
 		}
