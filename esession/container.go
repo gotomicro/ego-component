@@ -1,6 +1,7 @@
 package esession
 
 import (
+	"github.com/ego-component/eredis"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/memstore"
 	"github.com/gin-contrib/sessions/redis"
@@ -49,6 +50,23 @@ func (c *Container) Build(options ...Option) gin.HandlerFunc {
 		if err != nil {
 			c.logger.Panic("config new store panic", elog.FieldErr(err))
 		}
+	case "eredis":
+		var options = []eredis.Option{
+			eredis.WithAddr(c.config.Addr),
+			eredis.WithMasterName(c.config.MasterName),
+			eredis.WithAddrs(c.config.Addrs),
+			eredis.WithPoolSize(c.config.Size),
+		}
+		switch c.config.Mode {
+		case "sentinel":
+			options = append(options, eredis.WithSentinel())
+		case "cluster":
+			options = append(options, eredis.WithCluster())
+		default:
+			options = append(options, eredis.WithStub())
+		}
+		rc := eredis.DefaultContainer().Build(options...)
+		store = NewERedisStore(rc.Client(), []byte(c.config.Keypairs))
 	case "memstore":
 		store = memstore.NewStore([]byte(c.config.Keypairs))
 	}
