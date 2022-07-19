@@ -9,7 +9,7 @@ require (
 )
 
 require (
-	github.com/ego-component/eredis v1.0.4
+	github.com/ego-component/eredis v1.0.4-0.20220718105855-39dcbd2124b3
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/gorilla/securecookie v1.1.1
 	github.com/gorilla/sessions v1.2.1
@@ -60,5 +60,3 @@ require (
 	google.golang.org/protobuf v1.27.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
-
-replace github.com/ego-component/eredis => github.com/clannadxr/eredis v1.0.4
