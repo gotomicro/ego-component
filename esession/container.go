@@ -57,7 +57,7 @@ func (c *Container) Build(options ...Option) gin.HandlerFunc {
 			eredis.WithAddrs(c.config.Addrs),
 			eredis.WithPoolSize(c.config.Size),
 		}
-		switch c.config.Mode {
+		switch c.config.RedisMode {
 		case "sentinel":
 			options = append(options, eredis.WithSentinel())
 		case "cluster":
