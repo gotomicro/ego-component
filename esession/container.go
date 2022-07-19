@@ -56,6 +56,7 @@ func (c *Container) Build(options ...Option) gin.HandlerFunc {
 			eredis.WithMasterName(c.config.MasterName),
 			eredis.WithAddrs(c.config.Addrs),
 			eredis.WithPoolSize(c.config.Size),
+			eredis.WithPassword(c.config.Password),
 		}
 		switch c.config.RedisMode {
 		case "sentinel":
