@@ -107,7 +107,6 @@ func NewConsumerGroup(options ConsumerGroupOptions) (*ConsumerGroup, error) {
 
 	if mechanism != nil {
 		dialer := &kafka.Dialer{
-			Timeout:       10 * time.Second,
 			DualStack:     true,
 			SASLMechanism: mechanism,
 		}
