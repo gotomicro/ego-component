@@ -233,6 +233,7 @@ func (cmp *Component) ConsumerGroup(name string) *ConsumerGroup {
 		JoinGroupBackoff:       config.JoinGroupBackoff,
 		StartOffset:            config.StartOffset,
 		RetentionTime:          config.RetentionTime,
+		Timeout:                config.Timeout,
 		SASLMechanism:          cmp.config.SASLMechanism,
 		SASLUserName:           cmp.config.SASLUserName,
 		SASLPassword:           cmp.config.SASLPassword,
