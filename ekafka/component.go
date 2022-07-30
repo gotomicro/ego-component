@@ -67,17 +67,23 @@ func (cmp *Component) Producer(name string) *Producer {
 	balancer, ok := cmp.config.balancers[config.Balancer]
 	if !ok {
 		cmp.producerMu.Unlock()
-		panic(fmt.Sprintf(
-			"producer.Balancer is not in registered balancers, %s, %v",
-			config.Balancer,
-			cmp.config.balancers,
-		))
+		panic(
+			fmt.Sprintf(
+				"producer.Balancer is not in registered balancers, %s, %v",
+				config.Balancer,
+				cmp.config.balancers,
+			),
+		)
 	}
 
 	mechanism, err := NewMechanism(cmp.config.SASLMechanism, cmp.config.SASLUserName, cmp.config.SASLPassword)
 	if err != nil {
 		cmp.consumerMu.Unlock()
-		cmp.logger.Panic("create mechanism error", elog.String("mechanism", cmp.config.SASLMechanism), elog.String("errorDetail", err.Error()))
+		cmp.logger.Panic(
+			"create mechanism error",
+			elog.String("mechanism", cmp.config.SASLMechanism),
+			elog.String("errorDetail", err.Error()),
+		)
 	}
 
 	var transport kafka.RoundTripper
@@ -147,7 +153,11 @@ func (cmp *Component) Consumer(name string) *Consumer {
 	mechanism, err := NewMechanism(cmp.config.SASLMechanism, cmp.config.SASLUserName, cmp.config.SASLPassword)
 	if err != nil {
 		cmp.consumerMu.Unlock()
-		cmp.logger.Panic("create mechanism error", elog.String("mechanism", cmp.config.SASLMechanism), elog.String("errorDetail", err.Error()))
+		cmp.logger.Panic(
+			"create mechanism error",
+			elog.String("mechanism", cmp.config.SASLMechanism),
+			elog.String("errorDetail", err.Error()),
+		)
 	}
 
 	readerConfig := kafka.ReaderConfig{
@@ -184,7 +194,7 @@ func (cmp *Component) Consumer(name string) *Consumer {
 
 	consumer := &Consumer{
 		r: kafka.NewReader(readerConfig),
-		//processor: defaultProcessor,
+		// processor: defaultProcessor,
 		logMode: cmp.config.Debug,
 		Config:  config,
 		Brokers: cmp.config.Brokers,
@@ -220,33 +230,36 @@ func (cmp *Component) ConsumerGroup(name string) *ConsumerGroup {
 		cmp.consumerGroupMu.Unlock()
 		cmp.logger.Panic("consumerGroup config not exists", elog.String("name", name))
 	}
-	consumerGroup, err := NewConsumerGroup(ConsumerGroupOptions{
-		Logger:                 cmp.logger,
-		Brokers:                cmp.config.Brokers,
-		GroupID:                config.GroupID,
-		Topic:                  config.Topic,
-		HeartbeatInterval:      config.HeartbeatInterval,
-		PartitionWatchInterval: config.PartitionWatchInterval,
-		WatchPartitionChanges:  config.WatchPartitionChanges,
-		SessionTimeout:         config.SessionTimeout,
-		RebalanceTimeout:       config.RebalanceTimeout,
-		JoinGroupBackoff:       config.JoinGroupBackoff,
-		StartOffset:            config.StartOffset,
-		RetentionTime:          config.RetentionTime,
-		SASLMechanism:          cmp.config.SASLMechanism,
-		SASLUserName:           cmp.config.SASLUserName,
-		SASLPassword:           cmp.config.SASLPassword,
-		Reader: readerOptions{
-			MinBytes:        config.MinBytes,
-			MaxBytes:        config.MaxBytes,
-			MaxWait:         config.MaxWait,
-			ReadLagInterval: config.ReadLagInterval,
-			CommitInterval:  config.CommitInterval,
-			ReadBackoffMin:  config.ReadBackoffMin,
-			ReadBackoffMax:  config.ReadBackoffMax,
+	consumerGroup, err := NewConsumerGroup(
+		ConsumerGroupOptions{
+			Logger:                 cmp.logger,
+			Brokers:                cmp.config.Brokers,
+			GroupID:                config.GroupID,
+			Topic:                  config.Topic,
+			HeartbeatInterval:      config.HeartbeatInterval,
+			PartitionWatchInterval: config.PartitionWatchInterval,
+			WatchPartitionChanges:  config.WatchPartitionChanges,
+			SessionTimeout:         config.SessionTimeout,
+			RebalanceTimeout:       config.RebalanceTimeout,
+			JoinGroupBackoff:       config.JoinGroupBackoff,
+			StartOffset:            config.StartOffset,
+			RetentionTime:          config.RetentionTime,
+			Timeout:                config.Timeout,
+			SASLMechanism:          cmp.config.SASLMechanism,
+			SASLUserName:           cmp.config.SASLUserName,
+			SASLPassword:           cmp.config.SASLPassword,
+			Reader: readerOptions{
+				MinBytes:        config.MinBytes,
+				MaxBytes:        config.MaxBytes,
+				MaxWait:         config.MaxWait,
+				ReadLagInterval: config.ReadLagInterval,
+				CommitInterval:  config.CommitInterval,
+				ReadBackoffMin:  config.ReadBackoffMin,
+				ReadBackoffMax:  config.ReadBackoffMax,
+			},
+			logMode: cmp.config.Debug,
 		},
-		logMode: cmp.config.Debug,
-	})
+	)
 	if err != nil {
 		cmp.logger.Panic("create ConsumerGroup failed", elog.FieldErr(err))
 	}
@@ -260,24 +273,32 @@ func (cmp *Component) ConsumerGroup(name string) *ConsumerGroup {
 
 // Client 返回kafka Client
 func (cmp *Component) Client() *Client {
-	cmp.clientOnce.Do(func() {
-		mechanism, err := NewMechanism(cmp.config.SASLMechanism, cmp.config.SASLUserName, cmp.config.SASLPassword)
-		if err != nil {
-			cmp.logger.Panic("create mechanism error", elog.String("mechanism", cmp.config.SASLMechanism), elog.String("errorDetail", err.Error()))
-		}
-		var transport kafka.RoundTripper
-		if mechanism != nil {
-			transport = &kafka.Transport{
-				SASL: mechanism,
+	cmp.clientOnce.Do(
+		func() {
+			mechanism, err := NewMechanism(cmp.config.SASLMechanism, cmp.config.SASLUserName, cmp.config.SASLPassword)
+			if err != nil {
+				cmp.logger.Panic(
+					"create mechanism error",
+					elog.String("mechanism", cmp.config.SASLMechanism),
+					elog.String("errorDetail", err.Error()),
+				)
 			}
-		}
-		cmp.client = &Client{
-			cc: &kafka.Client{Addr: kafka.TCP(cmp.config.Brokers...), Timeout: cmp.config.Client.Timeout, Transport: transport},
-			//processor: defaultProcessor,
-			logMode: cmp.config.Debug,
-		}
-		cmp.client.wrapProcessor(cmp.interceptorClientChain())
-	})
+			var transport kafka.RoundTripper
+			if mechanism != nil {
+				transport = &kafka.Transport{
+					SASL: mechanism,
+				}
+			}
+			cmp.client = &Client{
+				cc: &kafka.Client{
+					Addr: kafka.TCP(cmp.config.Brokers...), Timeout: cmp.config.Client.Timeout, Transport: transport,
+				},
+				// processor: defaultProcessor,
+				logMode: cmp.config.Debug,
+			}
+			cmp.client.wrapProcessor(cmp.interceptorClientChain())
+		},
+	)
 
 	return cmp.client
 }

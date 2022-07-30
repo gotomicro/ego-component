@@ -41,11 +41,13 @@ func createTopicPartitionsFromGenAssignments(genAssignments map[string][]kafka.P
 	topicPartitions := make([]TopicPartition, 0)
 	for topic, assignments := range genAssignments {
 		for _, assignment := range assignments {
-			topicPartitions = append(topicPartitions, TopicPartition{
-				Topic:     topic,
-				Partition: assignment.ID,
-				Offset:    assignment.Offset,
-			})
+			topicPartitions = append(
+				topicPartitions, TopicPartition{
+					Topic:     topic,
+					Partition: assignment.ID,
+					Offset:    assignment.Offset,
+				},
+			)
 		}
 	}
 	return topicPartitions
@@ -74,6 +76,7 @@ type ConsumerGroupOptions struct {
 	JoinGroupBackoff       time.Duration
 	StartOffset            int64
 	RetentionTime          time.Duration
+	Timeout                time.Duration
 	Reader                 readerOptions
 	logMode                bool
 	SASLUserName           string
@@ -101,6 +104,7 @@ func NewConsumerGroup(options ConsumerGroupOptions) (*ConsumerGroup, error) {
 		JoinGroupBackoff:       options.JoinGroupBackoff,
 		StartOffset:            options.StartOffset,
 		RetentionTime:          options.RetentionTime,
+		Timeout:                options.Timeout,
 		Logger:                 logger,
 		ErrorLogger:            errorLogger,
 	}
@@ -121,7 +125,7 @@ func NewConsumerGroup(options ConsumerGroupOptions) (*ConsumerGroup, error) {
 		logger: options.Logger,
 		group:  group,
 		events: make(chan interface{}, 100),
-		//processor: defaultProcessor,
+		// processor: defaultProcessor,
 		options: &options,
 	}
 	go cg.run()
@@ -176,7 +180,11 @@ func (cg *ConsumerGroup) run() {
 			errorLogger := newKafkaErrorLogger(cg.logger)
 			mechanism, err := NewMechanism(cg.options.SASLMechanism, cg.options.SASLUserName, cg.options.SASLPassword)
 			if err != nil {
-				logger.Panic("create mechanism error", elog.String("mechanism", cg.options.SASLMechanism), elog.String("errorDetail", err.Error()))
+				logger.Panic(
+					"create mechanism error",
+					elog.String("mechanism", cg.options.SASLMechanism),
+					elog.String("errorDetail", err.Error()),
+				)
 			}
 
 			readerConfig := kafka.ReaderConfig{
@@ -201,104 +209,114 @@ func (cg *ConsumerGroup) run() {
 				}
 				readerConfig.Dialer = dialer
 			}
-			gen.Start(func(ctx context.Context) {
-				reader := kafka.NewReader(readerConfig)
-				defer reader.Close()
+			gen.Start(
+				func(ctx context.Context) {
+					reader := kafka.NewReader(readerConfig)
+					defer reader.Close()
 
-				// seek to the last committed offset for this partition.
-				reader.SetOffset(offset)
-				for {
-					msg, err := reader.FetchMessage(ctx)
+					// seek to the last committed offset for this partition.
+					reader.SetOffset(offset)
+					for {
+						msg, err := reader.FetchMessage(ctx)
 
-					switch err {
-					case kafka.ErrGroupClosed:
-						return
-					case kafka.ErrGenerationEnded:
-						// emit RevokedPartitions event
-						revokeOnce.Do(func() {
-							cg.events <- RevokedPartitions{
-								Partitions: topicPartitions,
-							}
-						})
+						switch err {
+						case kafka.ErrGroupClosed:
+							return
+						case kafka.ErrGenerationEnded:
+							// emit RevokedPartitions event
+							revokeOnce.Do(
+								func() {
+									cg.events <- RevokedPartitions{
+										Partitions: topicPartitions,
+									}
+								},
+							)
 
-						return
-					case io.EOF:
-						// Reader has been closed
-						return
-					case nil:
-						// message received.
-						cg.events <- msg
-					default:
-						cg.events <- err
+							return
+						case io.EOF:
+							// Reader has been closed
+							return
+						case nil:
+							// message received.
+							cg.events <- msg
+						default:
+							cg.events <- err
+						}
 					}
-				}
-			})
+				},
+			)
 		}
 	}
 }
 
 func (cg *ConsumerGroup) Poll(ctx context.Context) (msg interface{}, err error) {
-	err = cg.processor(func(ctx context.Context, msgs Messages, c *cmd) error {
-		select {
-		case <-ctx.Done():
-			logCmd(cg.options.logMode, c, "FetchMessage")
-			return ctx.Err()
-		case msg = <-cg.events:
-			var name string
-			switch msg.(type) {
-			case AssignedPartitions:
-				name = "AssignedPartitions"
-			case RevokedPartitions:
-				name = "RevokedPartitions"
-			case Message:
-				name = "FetchMessage"
-			default:
-				name = "FetchError"
+	err = cg.processor(
+		func(ctx context.Context, msgs Messages, c *cmd) error {
+			select {
+			case <-ctx.Done():
+				logCmd(cg.options.logMode, c, "FetchMessage")
+				return ctx.Err()
+			case msg = <-cg.events:
+				var name string
+				switch msg.(type) {
+				case AssignedPartitions:
+					name = "AssignedPartitions"
+				case RevokedPartitions:
+					name = "RevokedPartitions"
+				case Message:
+					name = "FetchMessage"
+				default:
+					name = "FetchError"
+				}
+				logCmd(cg.options.logMode, c, name, cmdWithRes(msg))
+				return nil
 			}
-			logCmd(cg.options.logMode, c, name, cmdWithRes(msg))
-			return nil
-		}
-	})(ctx, nil, &cmd{})
+		},
+	)(ctx, nil, &cmd{})
 	return
 }
 
 func (cg *ConsumerGroup) CommitMessages(ctx context.Context, messages ...Message) error {
-	return cg.processor(func(ctx context.Context, msgs Messages, c *cmd) error {
-		logCmd(cg.options.logMode, c, "CommitMessages")
+	return cg.processor(
+		func(ctx context.Context, msgs Messages, c *cmd) error {
+			logCmd(cg.options.logMode, c, "CommitMessages")
 
-		cg.genMu.RLock()
-		if cg.currentGen == nil {
-			cg.genMu.RUnlock()
-			return fmt.Errorf("generation haven't been created yet")
-		}
-
-		partitions := make(map[int]int64)
-		for _, message := range messages {
-			messageOffset := message.Offset + 1
-			currentOffset, ok := partitions[message.Partition]
-			if ok && currentOffset >= messageOffset {
-				continue
+			cg.genMu.RLock()
+			if cg.currentGen == nil {
+				cg.genMu.RUnlock()
+				return fmt.Errorf("generation haven't been created yet")
 			}
-			partitions[message.Partition] = messageOffset
-		}
 
-		offsets := make(map[string]map[int]int64)
-		offsets[cg.options.Topic] = partitions
+			partitions := make(map[int]int64)
+			for _, message := range messages {
+				messageOffset := message.Offset + 1
+				currentOffset, ok := partitions[message.Partition]
+				if ok && currentOffset >= messageOffset {
+					continue
+				}
+				partitions[message.Partition] = messageOffset
+			}
 
-		err := cg.currentGen.CommitOffsets(offsets)
-		cg.genMu.RUnlock()
+			offsets := make(map[string]map[int]int64)
+			offsets[cg.options.Topic] = partitions
 
-		return err
-	})(ctx, nil, &cmd{})
+			err := cg.currentGen.CommitOffsets(offsets)
+			cg.genMu.RUnlock()
+
+			return err
+		},
+	)(ctx, nil, &cmd{})
 }
 
 func (cg *ConsumerGroup) Close() error {
-	return cg.processor(func(ctx context.Context, msgs Messages, c *cmd) error {
-		logCmd(cg.options.logMode, c, "ConsumerClose")
+	return cg.processor(
+		func(ctx context.Context, msgs Messages, c *cmd) error {
+			logCmd(cg.options.logMode, c, "ConsumerClose")
 
-		err := cg.group.Close()
-		cg.readerWg.Wait()
-		close(cg.events)
-		return err
-	})(context.Background(), nil, &cmd{})
+			err := cg.group.Close()
+			cg.readerWg.Wait()
+			close(cg.events)
+			return err
+		},
+	)(context.Background(), nil, &cmd{})
 }
