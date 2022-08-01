@@ -74,6 +74,7 @@ type ConsumerGroupOptions struct {
 	JoinGroupBackoff       time.Duration
 	StartOffset            int64
 	RetentionTime          time.Duration
+	Timeout                time.Duration
 	Reader                 readerOptions
 	logMode                bool
 	SASLUserName           string
@@ -101,6 +102,7 @@ func NewConsumerGroup(options ConsumerGroupOptions) (*ConsumerGroup, error) {
 		JoinGroupBackoff:       options.JoinGroupBackoff,
 		StartOffset:            options.StartOffset,
 		RetentionTime:          options.RetentionTime,
+		Timeout:                options.Timeout,
 		Logger:                 logger,
 		ErrorLogger:            errorLogger,
 	}

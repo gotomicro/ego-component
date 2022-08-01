@@ -152,6 +152,16 @@ startOffset = "-2"
 #
 # Default: -1
 retentionTime = "-1"
+# Timeout is the network timeout used when communicating with the consumer
+# group coordinator.  This value should not be too small since errors
+# communicating with the broker will generally cause a consumer group
+# rebalance, and it's undesirable that a transient network error intoduce
+# that overhead.  Similarly, it should not be too large or the consumer
+# group may be slow to respond to the coordinator failing over to another
+# broker.
+#
+# Default: 5s
+timeout = "5s"
 # MinBytes indicates to the broker the minimum batch size that the consumer
 # will accept. Setting a high minimum when consuming from a low-volume topic
 # may result in delayed delivery when the broker does not have enough data to
