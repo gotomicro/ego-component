@@ -76,12 +76,22 @@ func (cmp *Component) Producer(name string) *Producer {
 
 	mechanism, err := NewMechanism(cmp.config.SASLMechanism, cmp.config.SASLUserName, cmp.config.SASLPassword)
 	if err != nil {
-		cmp.consumerMu.Unlock()
-		cmp.logger.Panic("create mechanism error", elog.String("mechanism", cmp.config.SASLMechanism), elog.String("errorDetail", err.Error()))
+		cmp.producerMu.Unlock()
+		cmp.logger.Panic(
+			"create mechanism error",
+			elog.String("mechanism", cmp.config.SASLMechanism),
+			elog.String("errorDetail", err.Error()),
+		)
 	}
 
 	var transport kafka.RoundTripper
 	if mechanism != nil {
+		cmp.logger.Debug(
+			"new transport with sasl mechanism",
+			elog.String("mechanism", cmp.config.SASLMechanism),
+			elog.String("username", cmp.config.SASLUserName),
+			elog.String("password", cmp.config.SASLPassword),
+		)
 		transport = &kafka.Transport{
 			SASL: mechanism,
 		}
@@ -105,6 +115,7 @@ func (cmp *Component) Producer(name string) *Producer {
 		kafkaWriter.Transport = transport
 	}
 	if config.Compression > 0 {
+		cmp.logger.Debug("setup writer compression", elog.Int("compression", config.Compression))
 		kafkaWriter.Compression = kafka.Compression(config.Compression)
 	}
 
