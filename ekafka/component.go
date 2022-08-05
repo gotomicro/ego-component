@@ -7,6 +7,7 @@ import (
 	"github.com/gotomicro/ego/core/elog"
 	"github.com/gotomicro/ego/core/etrace"
 	"github.com/segmentio/kafka-go"
+	"github.com/segmentio/kafka-go/sasl"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -92,9 +93,7 @@ func (cmp *Component) Producer(name string) *Producer {
 			elog.String("username", cmp.config.SASLUserName),
 			elog.String("password", cmp.config.SASLPassword),
 		)
-		transport = &kafka.Transport{
-			SASL: mechanism,
-		}
+		transport = cmp.newProducerSASLTransport(mechanism)
 	}
 
 	kafkaWriter := &kafka.Writer{
@@ -279,17 +278,30 @@ func (cmp *Component) Client() *Client {
 		}
 		var transport kafka.RoundTripper
 		if mechanism != nil {
-			transport = &kafka.Transport{
-				SASL: mechanism,
-			}
+			transport = cmp.newProducerSASLTransport(mechanism)
 		}
 		cmp.client = &Client{
-			cc: &kafka.Client{Addr: kafka.TCP(cmp.config.Brokers...), Timeout: cmp.config.Client.Timeout, Transport: transport},
-			//processor: defaultProcessor,
+			cc: &kafka.Client{
+				Addr:      kafka.TCP(cmp.config.Brokers...),
+				Timeout:   cmp.config.Client.Timeout,
+				Transport: transport,
+			},
+			// processor: defaultProcessor,
 			logMode: cmp.config.Debug,
 		}
 		cmp.client.wrapProcessor(cmp.interceptorClientChain())
-	})
+	},
+	)
 
 	return cmp.client
+}
+
+// newProducerSASLTransport make transport with SASL mechanism
+func (cmp *Component) newProducerSASLTransport(m sasl.Mechanism) kafka.RoundTripper {
+	// Upgrade kafka-go >= v0.4.31 fixed "WriteMessages got unexpected EOF" issue
+	// Reference:
+	// https://github.com/segmentio/kafka-go/pull/869
+	return &kafka.Transport{
+		SASL: m,
+	}
 }
