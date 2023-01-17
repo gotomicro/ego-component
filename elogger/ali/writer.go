@@ -219,7 +219,7 @@ func (w *writer) flush() error {
 			if end > len(waitedEntries) {
 				end = len(waitedEntries)
 			}
-			lg := pb.LogGroup{Logs: waitedEntries[start:end]}
+			lg := pb.LogGroup{Logs: waitedEntries[start*w.apiBulkSize : end]}
 			if e := w.store.putLogs(&lg); e != nil {
 				log.Println("[sls] putLogs to sls fail,try to write to fallback logger now,", e)
 				// if error occurs we put logs to fallback logger
