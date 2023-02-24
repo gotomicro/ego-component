@@ -126,11 +126,21 @@ func (c *Component) Oauth2SnsAuthorize(state string) string {
 	// 最大300s
 	// ctx.SetCookie(c.config.Oauth2StateCookieName, url.QueryEscape(hashedState), 300, "/", "", false, true)
 	// ctx.Redirect(http.StatusFound, fmt.Sprintf(Addr+ApiOauth2Redirect, c.config.Oauth2AppKey, state, c.config.Oauth2RedirectUri))
-	return fmt.Sprintf(Addr+ApiOauth2SnsAuthorize, c.config.Oauth2AppKey, state, c.config.Oauth2RedirectUri)
+
+	return fmt.Sprintf(
+		Addr+ApiOauth2SnsAuthorize,
+		url.QueryEscape(c.config.Oauth2AppKey),
+		url.QueryEscape(state),
+		url.QueryEscape(c.config.Oauth2RedirectUri),
+	)
 }
 
 func (c *Component) Oauth2Qrconnect(state string) string {
-	return fmt.Sprintf(Addr+ApiOauth2Qrconnect, c.config.Oauth2AppKey, state, c.config.Oauth2RedirectUri)
+	return fmt.Sprintf(Addr+ApiOauth2Qrconnect,
+		url.QueryEscape(c.config.Oauth2AppKey),
+		url.QueryEscape(state),
+		url.QueryEscape(c.config.Oauth2RedirectUri),
+	)
 }
 
 // 根据code，获取用户信息
