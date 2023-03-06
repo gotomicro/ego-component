@@ -17,7 +17,7 @@ type Config struct {
 // DefaultConfig 返回默认配置
 func DefaultConfig() *Config {
 	return &Config{
-		Addr:                       "127.0.0.1:8080",
+		Addr:                       "http://127.0.0.1:8080",
 		Username:                   "admin",
 		Credential:                 "admin",
 		Debug:                      false,

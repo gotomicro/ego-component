@@ -3,7 +3,6 @@ package ejenkins
 import (
 	"errors"
 	"fmt"
-	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -26,17 +25,18 @@ type Jenkins struct {
 }
 
 func (j *Jenkins) Init() (*Jenkins, error) {
+	if j.Raw == nil {
+		j.Raw = new(ExecutorResponse)
+	}
 	// Check Connection
-	j.Raw = new(ExecutorResponse)
 	rsp, err := j.Requester.GetJSON("/", nil, j.Raw, nil)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("connect to jenkins failed, please verify that the addr(%s) and the credential for username(%s) are correct. %w",
+			j.Requester.Base, j.Requester.BasicAuth.Username, err)
 	}
 
 	j.Version = rsp.Header().Get("X-Jenkins")
-	if j.Raw == nil || rsp.StatusCode() != http.StatusOK {
-		return nil, errors.New("connect to jenkins Failed, Please verify that the host and credentials are correct")
-	}
+	j.logger.Info("Connected to jenkins successfully.", elog.Any("version", j.Version))
 	return j, nil
 }
 
@@ -156,8 +156,8 @@ func (j *Jenkins) CopyJob(copyFrom string, newName string) (*Job, error) {
 }
 
 // Delete a job.
-func (j *Jenkins) DeleteJob(name string) (bool, error) {
-	job := Job{Jenkins: j, Raw: new(JobResponse), Base: "/job/" + name}
+func (j *Jenkins) DeleteJob(name string, parentIDs ...string) (bool, error) {
+	job := Job{Jenkins: j, Raw: new(JobResponse), Base: "/job/" + strings.Join(append(parentIDs, name), "/job/")}
 	return job.Delete()
 }
 

@@ -231,19 +231,19 @@ func (b *Build) Stop() (bool, error) {
 func (b *Build) GetConsoleOutput() (string, error) {
 	urlStr := b.Base + "/consoleText"
 	var content string
-	_, err := b.Jenkins.Requester.GetXML(urlStr, nil, &content, nil)
+	_, err := b.Jenkins.Requester.Get(urlStr, nil, &content, nil)
 	return content, err
 }
 
 func (b *Build) GetConsoleOutputFromIndex(startID int64) (ConsoleResponse, error) {
-	strstart := strconv.FormatInt(startID, 10)
+	fromIdx := strconv.FormatInt(startID, 10)
 	urlStr := b.Base + "/logText/progressiveText"
 
 	var console ConsoleResponse
 
-	querymap := make(map[string]string)
-	querymap["start"] = strstart
-	rsp, err := b.Jenkins.Requester.Get(urlStr, nil, &console.Content, querymap)
+	queryMap := make(map[string]string)
+	queryMap["start"] = fromIdx
+	rsp, err := b.Jenkins.Requester.Get(urlStr, nil, &console.Content, queryMap)
 	if err != nil {
 		return console, err
 	}
