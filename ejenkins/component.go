@@ -47,10 +47,9 @@ func newComponent(compName string, config *Config, logger *elog.Component) *Comp
 		},
 		logger: logger,
 	}
-	// init(check) jenkins
-	_, err := j.Init()
-	if err != nil {
-		logger.Panic("new ejenkins component err", elog.FieldErr(err))
+	if _, err := j.Init(); err != nil {
+		// if failed to init(check) jenkins, do not panic, just log the error msg.
+		logger.Error("failed to init ejenkins component", elog.FieldErr(err))
 	}
 	return &Component{
 		name:    compName,
@@ -58,6 +57,10 @@ func newComponent(compName string, config *Config, logger *elog.Component) *Comp
 		logger:  logger,
 		jenkins: j,
 	}
+}
+
+func (c *Component) Logger() *elog.Component {
+	return c.logger
 }
 
 // exposes the jenkins REST api
@@ -97,8 +100,8 @@ func (c *Component) CopyJob(copyFrom string, newName string) (*Job, error) {
 	return c.jenkins.CopyJob(copyFrom, newName)
 }
 
-func (c *Component) DeleteJob(name string) (bool, error) {
-	return c.jenkins.DeleteJob(name)
+func (c *Component) DeleteJob(name string, parentIDs ...string) (bool, error) {
+	return c.jenkins.DeleteJob(name, parentIDs...)
 }
 
 func (c *Component) BuildJob(JobName string, payload map[string]string) (int64, error) {

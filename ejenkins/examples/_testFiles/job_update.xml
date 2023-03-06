@@ -1,24 +1,5 @@
 <?xml version='1.1' encoding='UTF-8'?>
 <flow-definition plugin="workflow-job@2.41">
-    <actions>
-        <org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobAction
-                plugin="pipeline-model-definition@1.8.5"/>
-        <org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobPropertyTrackerAction
-                plugin="pipeline-model-definition@1.8.5">
-            <jobProperties/>
-            <triggers/>
-            <parameters>
-                <string>ImageFullName</string>
-                <string>DockerfileInLocal</string>
-                <string>CommitId</string>
-                <string>GitUrl</string>
-                <string>GitBranch</string>
-                <string>AppName</string>
-                <string>NewAdded</string>
-            </parameters>
-            <options/>
-        </org.jenkinsci.plugins.pipeline.modeldefinition.actions.DeclarativeJobPropertyTrackerAction>
-    </actions>
     <description>UpdatedDescription</description>
     <keepDependencies>false</keepDependencies>
     <properties>
@@ -62,32 +43,24 @@
         </hudson.model.ParametersDefinitionProperty>
     </properties>
     <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps@2.92">
-        <script>pipeline {
-            agent {
-            label "jenkins-jenkins-agent"
-            }
-            parameters {
-            string name: 'AppName', defaultValue: 'None'
-            string name: 'GitUrl', defaultValue: 'None'
-            string name: 'GitBranch', defaultValue: 'None'
-            string name: 'CommitId', defaultValue: 'None'
-            string name: 'ImageFullName', defaultValue: 'None'
-            string name: 'NewAdded', defaultValue: 'None'
-            stashedFile 'DockerfileInLocal'
-            }
-            stages {
-            stage('echo received params:') {
+        <script>
+pipeline {
+    agent {
+        label &quot;jenkins-jenkins-agent&quot;
+    }
+    stages {
+        stage(&apos;echo received params:&apos;) {
             steps {
-            echo "params.AppName: ${params.AppName}"
-            echo "params.GitUrl: ${params.GitUrl}"
-            echo "params.ImageFullName: ${params.ImageFullName}"
-            echo "-> unstash file from param:"
-            unstash 'DockerfileInLocal'
-            sh 'ls -alFh'
+                echo &quot;params.AppName: ${params.AppName}&quot;
+                echo &quot;params.GitUrl: ${params.GitUrl}&quot;
+                echo &quot;params.ImageFullName: ${params.ImageFullName}&quot;
+                echo &quot;-&gt; unstash file from param:&quot;
+                unstash &apos;DockerfileInLocal&apos;
+                sh &apos;ls -alFh&apos;
             }
-            }
-            }
-            }
+        }
+    }
+}
         </script>
         <sandbox>true</sandbox>
     </definition>

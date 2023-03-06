@@ -1,7 +1,16 @@
 [jenkins]
-    addr = "http://127.0.0.1:8080"
-    username = "admin"
-    credential = "PasswordOrTokenGoesHere"
-#    readtimeout = "4s"
-#    debug = true
-#    rawdebug = true
+addr = "http://127.0.0.1:8080"
+username = "admin"
+credential = "PasswordOrTokenGoesHere"
+#readtimeout = "4s"
+#debug = true
+#rawdebug = true
+
+[yourAppLogger]
+level = "info"
+enableAsync = false
+enableAddCaller = true
+debug = true
+dir = "./logs"
+name = "ejenkins.log"
+#writer = "stderr"

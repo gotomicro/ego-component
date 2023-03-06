@@ -50,7 +50,10 @@ type Requester struct {
 
 func (r *Requester) SetCrumb(ar *APIRequest) error {
 	crumbData := map[string]string{}
-	response, _ := r.GetJSON("/crumbIssuer/api/json", nil, &crumbData, nil)
+	response, err := r.GetJSON("/crumbIssuer/api/json", nil, &crumbData, nil)
+	if err != nil {
+		return fmt.Errorf("failed to setCrumb. %w", err)
+	}
 
 	if response.StatusCode() == 200 && crumbData["crumbRequestField"] != "" {
 		ar.SetHeader(crumbData["crumbRequestField"], crumbData["crumb"])
@@ -107,6 +110,7 @@ func (r *Requester) GetJSON(endpoint string, payload map[string]string, response
 	return r.Do(ar, responseStruct, query)
 }
 
+// GetXML note, golang not support xml1.1, if jenkins returned the xml with version 1.1, will cause an error.
 func (r *Requester) GetXML(endpoint string, payload map[string]string, responseStruct interface{}, query map[string]string) (*resty.Response, error) {
 	ar := r.NewAPIRequest("GET", endpoint, payload)
 	ar.SetHeader("Content-Type", "application/xml")
@@ -167,7 +171,9 @@ func (r *Requester) Do(ar *APIRequest, responseStruct interface{}, options ...in
 	if len(ar.Payload) > 0 {
 		ar.RequestInst.SetFormData(ar.Payload)
 	}
-	ar.RequestInst.SetResult(responseStruct)
+	if responseStruct != nil {
+		ar.RequestInst.SetResult(responseStruct)
+	}
 	urlStr := URL.String()
 	switch strings.ToUpper(ar.Method) {
 	case "GET":
@@ -190,17 +196,27 @@ func (r *Requester) Do(ar *APIRequest, responseStruct interface{}, options ...in
 
 	if err != nil {
 		return nil, err
-	} else {
-		errorText := resp.Header().Get("X-Error")
-		if errorText != "" {
-			return nil, errors.New(errorText)
-		}
-		return resp, nil
 	}
 
+	if errorText := resp.Header().Get("X-Error"); errorText != "" {
+		return nil, errors.New(errorText)
+	}
+
+	if resp != nil && resp.StatusCode() >= 400 {
+		return nil, fmt.Errorf("%s %s %s", ar.Method, urlStr, resp.Status())
+	}
+
+	if _, ok := responseStruct.(*string); ok {
+		_, _ = r.ReadRawResponse(resp, responseStruct)
+	}
+
+	return resp, nil
 }
 
 func (r *Requester) ReadRawResponse(response *resty.Response, responseStruct interface{}) (*resty.Response, error) {
+	if response == nil {
+		return nil, fmt.Errorf("cannot cast nil response to *string")
+	}
 	if str, ok := responseStruct.(*string); ok {
 		*str = string(response.Body())
 	} else {
